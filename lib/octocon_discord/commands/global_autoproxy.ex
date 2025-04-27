@@ -31,16 +31,17 @@ defmodule OctoconDiscord.Commands.GlobalAutoproxy do
       # This atom cast should be safe because Discord should only send us valid options
       mode_atom = String.to_existing_atom(mode)
 
-      new_settings = %{
-        global_autoproxy_mode: mode_atom
-      }
-      |> then(fn settings ->
-        if mode_atom != :latch do
-          Map.put(settings, :global_latched_alter, nil)
-        else
-          settings
-        end
-      end)
+      new_settings =
+        %{
+          global_autoproxy_mode: mode_atom
+        }
+        |> then(fn settings ->
+          if mode_atom != :latch do
+            Map.put(settings, :global_latched_alter, nil)
+          else
+            settings
+          end
+        end)
 
       case Accounts.update_discord_settings(system_identity, new_settings) do
         {:ok, _} ->

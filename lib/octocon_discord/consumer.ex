@@ -39,7 +39,9 @@ defmodule OctoconDiscord.Consumer do
 
   def handle_event({:READY, %{shard: {this_shard, shard_count}}, _ws_state}) do
     if this_shard == 0 do
-      Logger.info("First shard is READY; bulk-registering all application commands (#{map_size(@commands)})...")
+      Logger.info(
+        "First shard is READY; bulk-registering all application commands (#{map_size(@commands)})..."
+      )
 
       scope = Application.get_env(:octocon, :nostrum_scope)
 

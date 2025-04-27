@@ -23,10 +23,16 @@ defmodule OctoconDiscord.Commands.System do
 
   @impl true
   def command(interaction) do
-    %{data: %{resolved: resolved, options: [%{name: name, options: options}]}, user: %{id: discord_id}} = interaction
+    %{
+      data: %{resolved: resolved, options: [%{name: name, options: options}]},
+      user: %{id: discord_id}
+    } = interaction
+
     discord_id = to_string(discord_id)
 
-    callback = fn -> @subcommands[name].(%{resolved: resolved, discord_id: discord_id}, options) end
+    callback = fn ->
+      @subcommands[name].(%{resolved: resolved, discord_id: discord_id}, options)
+    end
 
     # `/system view` can be used by unregistered users
     case name do

@@ -3,6 +3,8 @@ defmodule Octocon.Primary.HordeSupervisor do
 
   require Logger
 
+  alias Octocon.ClusterUtils
+
   def start_link(_) do
     Horde.DynamicSupervisor.start_link(
       __MODULE__,
@@ -17,18 +19,10 @@ defmodule Octocon.Primary.HordeSupervisor do
     |> Horde.DynamicSupervisor.init()
   end
 
-  # Only nodes in the primary region should be part of the supervisor
+  # Only nodes in the primary group should be part of the supervisor
   defp members() do
-    primary_region = Fly.RPC.primary_region()
-
     nodes =
-      [Node.self() | Node.list()]
-      |> Stream.filter(fn node ->
-        case Fly.RPC.region(node) do
-          {:ok, ^primary_region} -> true
-          _ -> false
-        end
-      end)
+      ClusterUtils.primary_nodes(true)
       |> Enum.map(fn node -> {__MODULE__, node} end)
 
     Logger.info("Valid nodes (supervisor): #{inspect(nodes)}")

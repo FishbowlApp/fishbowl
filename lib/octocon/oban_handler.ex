@@ -11,7 +11,7 @@ defmodule Octocon.ObanHandler do
     See documentation for Oban.#{func}/#{arity}
     """
     def unquote(func)(unquote_splicing(args)) do
-      Fly.RPC.rpc_primary({Oban, unquote(func), unquote(args)})
+      Octocon.RPC.NodeTracker.rpc_primary({Oban, unquote(func), unquote(args)})
     end
   end
 end

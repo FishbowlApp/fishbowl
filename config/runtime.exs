@@ -20,6 +20,14 @@ if System.get_env("PHX_SERVER") do
   config :octocon, OctoconWeb.Endpoint, server: true
 end
 
+get_pool_size = fn ->
+  if System.get_env("FLY_PROCESS_GROUP") == "sidecar" do
+    2
+  else
+    String.to_integer(System.get_env("POOL_SIZE") || "10")
+  end
+end
+
 if config_env() == :prod do
   config :octocon, dns_cluster_query: System.get_env("DNS_CLUSTER_QUERY")
 
@@ -46,7 +54,7 @@ if config_env() == :prod do
   config :octocon, Octocon.Repo.Local,
     # ssl: true,
     url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+    pool_size: get_pool_size.(),
     socket_options: maybe_ipv6
 
   config :octocon, Octocon.MessageRepo,

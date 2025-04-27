@@ -1,21 +1,14 @@
 defmodule Octocon.ClusterUtils do
   @moduledoc """
   Utility functions for working with the currently running node cluster.
-
-  Currently backed by Fly.RPC.
   """
 
-  alias Fly.RPC
-
-  @doc """
-  Get the primary region of the cluster.
-  """
-  def primary_region, do: RPC.primary_region()
+  alias Octocon.RPC.NodeTracker
 
   @doc """
   Check if the current node is a primary node.
   """
-  def is_primary?, do: RPC.is_primary?()
+  def is_primary?, do: System.get_env("FLY_PROCESS_GROUP") == "primary"
 
   @doc """
   Get a list of all primary nodes in the cluster.
@@ -25,8 +18,7 @@ defmodule Octocon.ClusterUtils do
   def primary_nodes(include_self \\ false)
 
   def primary_nodes(false) do
-    primary_region()
-    |> RPC.region_nodes()
+    NodeTracker.primary_nodes()
   end
 
   def primary_nodes(true) do
@@ -45,13 +37,13 @@ defmodule Octocon.ClusterUtils do
   """
   def run_on_all_primary_nodes(fun) do
     # If we are a primary node, run the function locally as well
-    if RPC.is_primary?() do
+    if NodeTracker.is_primary?() do
       fun.()
     end
 
     primary_nodes()
     |> Task.async_stream(fn node ->
-      RPC.rpc(node, fun)
+      NodeTracker.rpc(node, fun)
     end)
     |> Enum.map(fn
       {:ok, result} -> {:ok, result}
@@ -59,10 +51,20 @@ defmodule Octocon.ClusterUtils do
     end)
   end
 
+  def run_on_sidecar(fun, opts) do
+    NodeTracker.rpc_group(:sidecar, fun, opts)
+  end
+
   @doc """
   Get the number of desired functional (non-standby) primary nodes in the cluster.
   """
   def primary_node_count do
     Application.get_env(:octocon, :primary_node_count, 1)
+  end
+
+  def check_primary(node) do
+    Octocon.RPC.NodeTracker.rpc(node, fn ->
+      System.get_env("FLY_PROCESS_GROUP") == "primary"
+    end)
   end
 end

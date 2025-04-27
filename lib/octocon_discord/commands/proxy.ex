@@ -21,9 +21,12 @@ defmodule OctoconDiscord.Proxy do
 
   # https://discord.com/developers/docs/resources/channel#channel-object-channel-types
   @thread_like_channel_types [
-    10, # ANNOUNCEMENT_THREAD
-    11, # PUBLIC_THREAD
-    12  # PRIVATE_THREAD
+    # ANNOUNCEMENT_THREAD
+    10,
+    # PUBLIC_THREAD
+    11,
+    # PRIVATE_THREAD
+    12
   ]
 
   # Checks whether a message is in a thread or not
@@ -34,7 +37,7 @@ defmodule OctoconDiscord.Proxy do
     case Map.get(guild.threads, channel_id) do
       nil ->
         channel = Map.get(guild.channels, channel_id)
-        
+
         if channel.type in @thread_like_channel_types do
           {channel.parent_id, channel.parent_id, channel_id}
         else

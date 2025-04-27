@@ -16,5 +16,5 @@ defmodule Octocon.Repo.Local do
 end
 
 defmodule Octocon.Repo do
-  use Fly.Repo, local_repo: Octocon.Repo.Local
+  use Octocon.RPC.Postgres.Repo, local_repo: Octocon.Repo.Local
 end

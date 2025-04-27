@@ -23,13 +23,14 @@ swap_size_mb = 512
 [processes]
   primary = "/app/bin/server"
   auxiliary = "/app/bin/server"
+  sidecar = "/app/bin/server"
 
 [http_service]
   internal_port = 8080
   force_https = true
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['primary', 'auxiliary']
+  processes = ['primary', 'auxiliary', 'sidecar']
 
   [http_service.concurrency]
     type = 'connections'
@@ -44,10 +45,10 @@ swap_size_mb = 512
 [metrics]
   port = 9001
   path = '/'
-  processes = ['primary', 'auxiliary']
+  processes = ['primary', 'auxiliary', 'sidecar']
 
 [[vm]]
-  memory = '4gb'
+  memory = '3584mb'
   cpu_kind = 'shared'
   cpus = 2
   processes = ['primary']
@@ -57,3 +58,9 @@ swap_size_mb = 512
   cpu_kind = 'shared'
   cpus = 2
   processes = ['auxiliary']
+
+[[vm]]
+  memory = '1536mb'
+  cpu_kind = 'shared'
+  cpus = 2
+  processes = ['sidecar']

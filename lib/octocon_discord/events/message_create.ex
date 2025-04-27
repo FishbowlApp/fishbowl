@@ -187,6 +187,7 @@ defmodule OctoconDiscord.Events.MessageCreate do
          } = context
        ) do
     Logger.debug("Trying server autoproxy")
+
     case proxy_data.settings.server_settings.autoproxy_mode do
       :off ->
         Logger.debug("Server autoproxy disabled")
@@ -199,6 +200,7 @@ defmodule OctoconDiscord.Events.MessageCreate do
 
       :latch ->
         Logger.debug("Server autoproxy latch")
+
         case proxy_data.settings.server_settings.latched_alter do
           nil ->
             # No one has proxied yet, ignore
@@ -247,6 +249,7 @@ defmodule OctoconDiscord.Events.MessageCreate do
 
           %{alter: %{id: alter_id}} ->
             Logger.debug("Found longest current fronter: #{alter_id}")
+
             send_proxy_message(
               %{
                 webhook: webhook,
@@ -262,6 +265,7 @@ defmodule OctoconDiscord.Events.MessageCreate do
 
       alter_id ->
         Logger.debug("Found primary front: #{alter_id}")
+
         send_proxy_message(
           %{
             webhook: webhook,

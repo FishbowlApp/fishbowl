@@ -12,7 +12,6 @@ defmodule OctoconDiscord.Commands.Octo do
 
   @behaviour Nosedrum.ApplicationCommand
 
-
   alias OctoconDiscord.Utils
 
   @impl true

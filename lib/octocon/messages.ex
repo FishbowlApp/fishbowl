@@ -9,7 +9,7 @@ defmodule Octocon.Messages do
   alias Octocon.Messages.Message
 
   defp ensure_on_primary do
-    unless Fly.RPC.is_primary?() do
+    unless Octocon.RPC.NodeTracker.is_primary?() do
       raise "This module should only accessed on the primary region."
     end
   end

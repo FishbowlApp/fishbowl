@@ -28,7 +28,7 @@ defmodule OctoconWeb.AuthLinkController do
     link_token = get_session(conn, :link_token)
     Logger.info("Link token received: #{link_token}")
 
-    case Fly.RPC.rpc_primary(fn -> LinkTokenRegistry.get(link_token) end) do
+    case Octocon.RPC.NodeTracker.rpc_primary(fn -> LinkTokenRegistry.get(link_token) end) do
       nil ->
         conn
         |> delete_session(:link_token)
@@ -37,7 +37,7 @@ defmodule OctoconWeb.AuthLinkController do
 
       system_id when is_binary(system_id) ->
         Logger.info("Recovered ID: #{system_id}")
-        Fly.RPC.rpc_primary(fn -> LinkTokenRegistry.delete(link_token) end)
+        Octocon.RPC.NodeTracker.rpc_primary(fn -> LinkTokenRegistry.delete(link_token) end)
 
         try_link_account_wrapper(provider, conn, system_id, auth_data)
     end

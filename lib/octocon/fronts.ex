@@ -61,7 +61,7 @@ defmodule Octocon.Fronts do
   end
 
   def delete_front(system_identity, id) do
-    Fly.Postgres.rpc_and_wait(__MODULE__, :delete_front_internal, [system_identity, id])
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :delete_front_internal, [system_identity, id])
   end
 
   def currently_fronting(system_identity) do
@@ -284,7 +284,7 @@ defmodule Octocon.Fronts do
   end
 
   def end_front(system_identity, alter_identity) do
-    Fly.Postgres.rpc_and_wait(__MODULE__, :end_front_internal, [
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :end_front_internal, [
       system_identity,
       alter_identity
     ])
@@ -327,7 +327,7 @@ defmodule Octocon.Fronts do
   end
 
   def start_front(system_identity, alter_identity, comment \\ "") do
-    Fly.Postgres.rpc_and_wait(__MODULE__, :start_front_internal, [
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :start_front_internal, [
       system_identity,
       alter_identity,
       comment
@@ -361,7 +361,7 @@ defmodule Octocon.Fronts do
   end
 
   def update_comment(system_identity, front_id, comment) do
-    Fly.Postgres.rpc_and_wait(__MODULE__, :update_comment_internal, [
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :update_comment_internal, [
       system_identity,
       front_id,
       comment
@@ -406,7 +406,7 @@ defmodule Octocon.Fronts do
   end
 
   def bulk_update_fronts(system_identity, start_fronts, end_fronts) do
-    Fly.Postgres.rpc_and_wait(__MODULE__, :bulk_update_fronts_internal, [
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :bulk_update_fronts_internal, [
       system_identity,
       start_fronts,
       end_fronts
@@ -463,7 +463,7 @@ defmodule Octocon.Fronts do
   end
 
   def set_front(system_identity, alter_identity, comment \\ "") do
-    Fly.Postgres.rpc_and_wait(__MODULE__, :set_front_internal, [
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :set_front_internal, [
       system_identity,
       alter_identity,
       comment

@@ -90,7 +90,8 @@ defmodule Octocon.Workers.PluralKitImportWorker do
       Accounts.update_discord_settings(
         user,
         %{
-          system_tag: default_if_empty(system_tag, 20, Map.get(user.discord_settings, :system_tag, nil))
+          system_tag:
+            default_if_empty(system_tag, 20, Map.get(user.discord_settings, :system_tag, nil))
         }
       )
     end)
@@ -111,27 +112,10 @@ defmodule Octocon.Workers.PluralKitImportWorker do
 
     OctoconDiscord.ProxyCache.invalidate({:system, system_id})
 
-    # Enum.each(avatars, fn {avatar_url, avatar_scope} ->
-    #   case Avatar.store({avatar_url, avatar_scope}) do
-    #     {:ok, _} ->
-    #       octo_url = Avatar.url({"primary.jpg", avatar_scope}, :primary)
-
-    #       Alters.update_alter(
-    #         avatar_scope.system_id,
-    #         avatar_scope.alter_id,
-    #         %{avatar_url: octo_url}
-    #       )
-
-    #     _ ->
-    #       # Avatar doesn't exist; stale reference on PK's end?
-    #       :ok
-    #   end
-    # end)
-
     Task.async_stream(
       avatars,
       fn {avatar_url, avatar_scope} ->
-        case Avatar.store({avatar_url, avatar_scope}) do
+        case Octocon.ClusterUtils.run_on_sidecar(fn -> Avatar.store({avatar_url, avatar_scope}) end, timeout: 10_000) do
           {:ok, _} ->
             octo_url = Avatar.url({"primary.webp", avatar_scope}, :primary)
 

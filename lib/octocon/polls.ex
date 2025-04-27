@@ -138,7 +138,7 @@ defmodule Octocon.Polls do
   end
 
   def update_poll(system_identity, poll_id, attrs) do
-    Fly.Postgres.rpc_and_wait(__MODULE__, :update_poll_internal, [system_identity, poll_id, attrs])
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :update_poll_internal, [system_identity, poll_id, attrs])
   end
 
   @doc """

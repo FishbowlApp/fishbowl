@@ -596,7 +596,7 @@ defmodule Octocon.Accounts do
   def wipe_alters(system_identity) do
     OctoconDiscord.ProxyCache.invalidate(system_identity)
 
-    Fly.Postgres.rpc_and_wait(__MODULE__, :wipe_alters_internal, [system_identity])
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :wipe_alters_internal, [system_identity])
   end
 
   @doc """
@@ -801,7 +801,7 @@ defmodule Octocon.Accounts do
   defp wrap_fields_broadcast({:error, _} = result, _), do: result
 
   def wipe_encrypted_data(system_identity) do
-    Fly.Postgres.rpc_and_wait(__MODULE__, :wipe_encrypted_data_internal, [system_identity])
+    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :wipe_encrypted_data_internal, [system_identity])
   end
 
   def wipe_encrypted_data_internal(system_identity) do

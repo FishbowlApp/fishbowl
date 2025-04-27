@@ -164,7 +164,7 @@ defmodule OctoconDiscord.Utils do
       flags:
         Bitwise.bsl(1, 15)
         |> then(fn flags ->
-          if(ephemeral?, do: Bitwise.bor(flags, Bitwise.bsl(1, 6)), else: flags) 
+          if(ephemeral?, do: Bitwise.bor(flags, Bitwise.bsl(1, 6)), else: flags)
         end)
     ]
 
@@ -192,7 +192,7 @@ defmodule OctoconDiscord.Utils do
       flags:
         Bitwise.bsl(1, 15)
         |> then(fn flags ->
-          if(ephemeral?, do: Bitwise.bor(flags, Bitwise.bsl(1, 6)), else: flags) 
+          if(ephemeral?, do: Bitwise.bor(flags, Bitwise.bsl(1, 6)), else: flags)
         end)
     ]
 
@@ -469,6 +469,7 @@ defmodule OctoconDiscord.Utils do
 
   def separator(options \\ %{}) do
     divider = Map.get(options, :divider, true)
+
     spacing =
       Map.get(options, :spacing, :small)
       |> case do

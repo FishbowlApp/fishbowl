@@ -5,18 +5,17 @@ defmodule Octocon.Application do
   This module is responsible for starting the Octocon application and its supervision tree.
 
   The application has different behaviors depending on the environment it is running in. Clustered nodes
-  are split into one of two types:
+  are split into one of three types:
 
   - `auxiliary` nodes, which are responsible for running an API endpoint (including distributed Phoenix channels)
     and connect to a read replica of the database.
   - `primary` nodes, which inherit all responsibilites of `auxiliary` nodes, but also run additional services
     such as Oban background jobs and Discord bot shards.
+  - `sidecar` nodes, which act serve as dedicated, isolated environments for `primary` nodes to run CPU-intensive
+    tasks such as image processing and encryption.
 
-  Auxiliary nodes automatically proxy any non-read database queries and Oban jobs to the primary node through `Fly.Postgres`
-  and `Fly.RPC`. Reads are done locally, and are therefore much faster.
-
-  Auxiliary nodes can be run anywhere in the world, while primary nodes are only run in a single location in North America
-  to have the lowest latency to Discord's servers (currently, Fly.io's `iad` region in Virginia).
+  Auxiliary nodes can be run anywhere in the world, while primary (and sidecar) nodes are only run in a single location
+  in North America to have the lowest latency to Discord's servers (currently, Fly.io's `iad` region in Virginia).
   """
 
   use Application
@@ -25,8 +24,11 @@ defmodule Octocon.Application do
 
   @impl true
   def start(_type, _args) do
+    group = Octocon.RPC.NodeTracker.current_group()
+    Logger.warning("Starting node of type: #{group}")
+
     children =
-      global_children_start() ++ primary_children() ++ global_children_end()
+      global_children() ++ group_children(group) ++ endpoint_children(group)
 
     opts = [strategy: :one_for_one, name: Octocon.Supervisor]
     Supervisor.start_link(children, opts)
@@ -40,17 +42,17 @@ defmodule Octocon.Application do
     :ok
   end
 
-  defp global_children_start() do
+  defp global_children() do
     [
       # Telemetry
       OctoconWeb.Telemetry,
       Octocon.PromEx,
       # Distribution
       {Octocon.DNSCluster, query: Application.get_env(:octocon, :dns_cluster_query) || :ignore},
-      {Fly.RPC, []},
+      Octocon.RPC.NodeTracker,
       # Ecto (Postgres database) repositories
       Octocon.Repo.Local,
-      {Fly.Postgres.LSN.Supervisor, repo: Octocon.Repo.Local},
+      {Octocon.RPC.Postgres.LSN.Supervisor, repo: Octocon.Repo.Local},
       # Background jobs
       # PubSub system
       {Phoenix.PubSub, name: Octocon.PubSub},
@@ -64,7 +66,7 @@ defmodule Octocon.Application do
     ]
   end
 
-  defp global_children_end() do
+  defp endpoint_children(group) when group in [:primary, :auxiliary] do
     [
       # Web endpoint
       OctoconWeb.Endpoint,
@@ -72,29 +74,25 @@ defmodule Octocon.Application do
     ]
   end
 
-  defp prod_primary_children() do
+  defp endpoint_children(_), do: []
+
+  defp group_children(:primary) do
     if Application.get_env(:octocon, :env) == :prod do
       [
         Octocon.FCM
       ]
     else
       []
-    end
+    end ++
+      [
+        {Task, fn -> :mnesia.start() end},
+        Octocon.Primary.Supervisor,
+        Octocon.Global.Supervisor,
+        {Oban, Application.fetch_env!(:octocon, Oban)},
+        # Discord
+        OctoconDiscord.Supervisor
+      ]
   end
 
-  defp primary_children do
-    if Fly.RPC.is_primary?() do
-      prod_primary_children() ++
-        [
-          {Task, fn -> :mnesia.start() end},
-          Octocon.Primary.Supervisor,
-          Octocon.Global.Supervisor,
-          {Oban, Application.fetch_env!(:octocon, Oban)},
-          # Discord
-          OctoconDiscord.Supervisor
-        ]
-    else
-      []
-    end
-  end
+  defp group_children(_), do: []
 end

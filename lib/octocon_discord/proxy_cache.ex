@@ -14,7 +14,7 @@ defmodule OctoconDiscord.ProxyCache do
   end
 
   def get(discord_id, require_proxies \\ true) when is_binary(discord_id) do
-    unless Fly.RPC.is_primary?() do
+    unless Octocon.RPC.NodeTracker.is_primary?() do
       raise "ProxyCache should only be called on the primary region"
     end
 
