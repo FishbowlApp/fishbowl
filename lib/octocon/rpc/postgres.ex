@@ -34,7 +34,6 @@ defmodule Octocon.RPC.Postgres do
 
     case Octocon.RPC.Postgres.LSN.Tracker.request_and_await_notification(lsn_value, opts) do
       :ready ->
-
         result
 
       {:error, :timeout} ->

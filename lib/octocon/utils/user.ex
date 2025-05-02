@@ -28,7 +28,10 @@ defmodule Octocon.Utils.User do
 
     Utils.nuke_existing_avatars!(system.id, "self")
 
-    result = Octocon.ClusterUtils.run_on_sidecar(fn -> UserAvatar.store({url, avatar_scope}) end, timeout: 10_000)
+    result =
+      Octocon.ClusterUtils.run_on_sidecar(fn -> UserAvatar.store({url, avatar_scope}) end,
+        timeout: 10_000
+      )
 
     case result do
       {:ok, _} ->

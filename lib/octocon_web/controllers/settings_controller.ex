@@ -30,40 +30,43 @@ defmodule OctoconWeb.SettingsController do
 
     case Hammer.check_rate("encryption_key:#{system_id}", :timer.seconds(5), 1) do
       {:allow, _count} ->
-        Octocon.ClusterUtils.run_on_sidecar(fn ->
-          case decrypt_recovery_code(encrypted_recovery_code) do
-            {:ok, recovery_code} ->
-              old_checksum = user.encryption_key_checksum
-  
-              key = generate_encryption_key(user, recovery_code)
-  
-              new_checksum =
-                :crypto.hash(:sha256, key)
-                |> Base.encode64()
-                |> String.slice(0..8)
-  
-              if old_checksum == new_checksum do
-                conn
-                |> put_status(:ok)
-                |> json(%{data: %{key: Base.encode64(key)}})
-              else
+        Octocon.ClusterUtils.run_on_sidecar(
+          fn ->
+            case decrypt_recovery_code(encrypted_recovery_code) do
+              {:ok, recovery_code} ->
+                old_checksum = user.encryption_key_checksum
+
+                key = generate_encryption_key(user, recovery_code)
+
+                new_checksum =
+                  :crypto.hash(:sha256, key)
+                  |> Base.encode64()
+                  |> String.slice(0..8)
+
+                if old_checksum == new_checksum do
+                  conn
+                  |> put_status(:ok)
+                  |> json(%{data: %{key: Base.encode64(key)}})
+                else
+                  conn
+                  |> put_status(:bad_request)
+                  |> json(%{
+                    error: "Invalid recovery code.",
+                    code: "invalid_recovery_code"
+                  })
+                end
+
+              {:error, _} ->
                 conn
                 |> put_status(:bad_request)
                 |> json(%{
-                  error: "Invalid recovery code.",
-                  code: "invalid_recovery_code"
+                  error: "Failed to decrypt recovery code.",
+                  code: "decryption_error"
                 })
-              end
-  
-            {:error, _} ->
-              conn
-              |> put_status(:bad_request)
-              |> json(%{
-                error: "Failed to decrypt recovery code.",
-                code: "decryption_error"
-              })
-          end
-        end, timeout: 10_000)
+            end
+          end,
+          timeout: 10_000
+        )
 
       _ ->
         conn

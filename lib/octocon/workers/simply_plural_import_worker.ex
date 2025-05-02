@@ -105,7 +105,10 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     Task.async_stream(
       avatars,
       fn {avatar_url, avatar_scope} ->
-        case Octocon.ClusterUtils.run_on_sidecar(fn -> Avatar.store({avatar_url, avatar_scope}) end, timeout: 10_000) do
+        case Octocon.ClusterUtils.run_on_sidecar(
+               fn -> Avatar.store({avatar_url, avatar_scope}) end,
+               timeout: 10_000
+             ) do
           {:ok, _} ->
             octo_url = Avatar.url({"primary.webp", avatar_scope}, :primary)
 
