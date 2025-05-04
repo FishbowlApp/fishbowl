@@ -28,8 +28,20 @@ defmodule Octocon.Utils.User do
 
     Utils.nuke_existing_avatars!(system.id, "self")
 
+    to_store =
+      if String.starts_with?(url, "http") do
+        url
+      else
+        # Convert file URL to an actual binary to be sent to the sidecar node.
+
+        %{
+          filename: "primary.webp",
+          binary: File.read!(url)
+        }
+      end
+
     result =
-      Octocon.ClusterUtils.run_on_sidecar(fn -> UserAvatar.store({url, avatar_scope}) end,
+      Octocon.ClusterUtils.run_on_sidecar(fn -> UserAvatar.store({to_store, avatar_scope}) end,
         timeout: 10_000
       )
 
