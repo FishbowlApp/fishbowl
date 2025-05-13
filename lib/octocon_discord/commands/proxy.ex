@@ -19,6 +19,9 @@ defmodule OctoconDiscord.Proxy do
 
   alias Nostrum.Api
 
+  @proxy_delay_ms 500
+  @proxy_delete_delay_ms @proxy_delay_ms + 300
+
   # https://discord.com/developers/docs/resources/channel#channel-object-channel-types
   @thread_like_channel_types [
     # ANNOUNCEMENT_THREAD
@@ -329,7 +332,7 @@ defmodule OctoconDiscord.Proxy do
     webhook_task =
       Task.async(fn ->
         if !is_reproxy && context.use_proxy_delay do
-          Process.sleep(600)
+          Process.sleep(@proxy_delay_ms)
         end
 
         result_message = proxy_fun.(webhook.id, webhook.token, webhook_data)
@@ -363,6 +366,10 @@ defmodule OctoconDiscord.Proxy do
 
     delete_task =
       Task.async(fn ->
+        if !is_reproxy && context.use_proxy_delay do
+          Process.sleep(@proxy_delete_delay_ms)
+        end
+
         unless is_reproxy do
           Api.Message.delete(message.channel_id, message.id)
         end
