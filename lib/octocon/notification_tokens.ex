@@ -127,4 +127,11 @@ defmodule Octocon.NotificationTokens do
     )
     |> Repo.delete_all()
   end
+
+  def invalidate_notification_token(token) do
+    from(n in NotificationToken,
+      where: n.token == ^token
+    )
+    |> Repo.delete_all()
+  end
 end
