@@ -140,9 +140,9 @@ defmodule OctoconWeb.SettingsController do
   end
 
   # defp encrypt_key_with_public_key(
-  #   user, 
+  #   user,
   #   recovery_code, public_key_pem) do
-  #   public_key = 
+  #   public_key =
   #     :public_key.pem_decode(public_key_pem)
   #     |> hd()
   #     |> :public_key.pem_entry_decode()
@@ -427,9 +427,7 @@ defmodule OctoconWeb.SettingsController do
   end
 
   def invalidate_push_token(conn, %{"token" => token}) do
-    system_id = conn.private[:guardian_default_resource]
-
-    case NotificationTokens.invalidate_notification_token({:system, system_id}, token) do
+    case NotificationTokens.invalidate_notification_token(token) do
       {1, _} ->
         send_resp(conn, :no_content, "")
 
