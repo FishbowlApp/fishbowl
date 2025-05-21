@@ -1,0 +1,101 @@
+name: CI
+on:
+  push:
+    branches:
+      - temp
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/temp' && github.event_name == 'push' }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Fly registry auth
+        uses: docker/login@v3
+        with:
+          registry: registry.fly.io
+          username: x
+          password: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Build and push to Fly
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: registry.fly.io/octo:${{ github.sha }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
+
+      - name: Save Docker image as tarball
+        run: |
+          docker pull registry.fly.io/octo:${{ github.sha }}
+          docker save registry.fly.io/octo:${{ github.sha }} -o /tmp/image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image
+          path: /tmp/image.tar
+
+      # This ugly bit is necessary if you don't want your cache to grow forever
+      # until it hits GitHub's limit.
+      # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  fly_deploy:
+    name: Fly Deploy
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Deploy to Fly
+        uses: superfly/flyctl-actions@v1.5
+        with:
+          args:
+            'deploy -i registry.fly.io/octo:${{ github.sha }} --strategy rolling'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  dedi_deploy:
+    name: Dedi Deploy
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Download image
+        uses: actions/download-artifact@v4
+        with:
+          name: image
+          path: /tmp
+          
+      - name: 'Load image'
+        run: docker load --input /tmp/image.tar
