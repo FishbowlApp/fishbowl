@@ -14,7 +14,7 @@ defmodule OctoconDiscord.ProxyCache do
   end
 
   def get(discord_id, require_proxies \\ true) when is_binary(discord_id) do
-    unless Octocon.RPC.NodeTracker.is_primary?() do
+    unless Octocon.RPC.NodeTracker.is_primary_no_endpoint?() do
       raise "ProxyCache should only be called on the primary region"
     end
 
@@ -95,7 +95,7 @@ defmodule OctoconDiscord.ProxyCache do
   end
 
   def nuke_cache do
-    ClusterUtils.run_on_all_primary_nodes(fn ->
+    ClusterUtils.run_on_all_primary_no_endpoint_nodes(fn ->
       OctoconDiscord.ProxyCache.nuke_cache_internal()
     end)
   end
@@ -116,7 +116,7 @@ defmodule OctoconDiscord.ProxyCache do
     discord_id = Accounts.id_from_system_identity(system_identity, :discord)
 
     if discord_id != nil do
-      ClusterUtils.run_on_all_primary_nodes(fn ->
+      ClusterUtils.run_on_all_primary_no_endpoint_nodes(fn ->
         OctoconDiscord.ProxyCache.invalidate_internal(discord_id)
       end)
     end
@@ -125,7 +125,7 @@ defmodule OctoconDiscord.ProxyCache do
   end
 
   def invalidate(discord_id) when is_binary(discord_id) do
-    ClusterUtils.run_on_all_primary_nodes(fn ->
+    ClusterUtils.run_on_all_primary_no_endpoint_nodes(fn ->
       OctoconDiscord.ProxyCache.invalidate_internal(discord_id)
     end)
 
@@ -145,8 +145,7 @@ defmodule OctoconDiscord.ProxyCache do
   def update(nil, _, _), do: :ok
 
   def update(discord_id, key, value) do
-    # Now we propagate the change to all primary nodes
-    ClusterUtils.run_on_all_primary_nodes(fn ->
+    ClusterUtils.run_on_all_primary_no_endpoint_nodes(fn ->
       OctoconDiscord.ProxyCache.update_internal(discord_id, key, value)
     end)
 

@@ -3,12 +3,8 @@ defmodule OctoconDiscord.Commands.Messages.Reproxy do
 
   @behaviour Nosedrum.ApplicationCommand
 
-  import OctoconDiscord.Proxy
-
   alias Octocon.Messages
   alias OctoconDiscord.Utils
-
-  alias __MODULE__.NostrumShim
 
   @impl true
   def description, do: "Reproxies a message."

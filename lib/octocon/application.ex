@@ -28,7 +28,7 @@ defmodule Octocon.Application do
     Logger.warning("Starting node of type: #{group}")
 
     children =
-      global_children() ++ group_children(group) ++ endpoint_children(group)
+      global_children(group) ++ group_children(group) ++ endpoint_children(group)
 
     opts = [strategy: :one_for_one, name: Octocon.Supervisor]
     Supervisor.start_link(children, opts)
@@ -42,20 +42,40 @@ defmodule Octocon.Application do
     :ok
   end
 
-  defp global_children() do
+  defp global_children(group) do
+    topologies = [
+      tailscale: [
+        strategy: Cluster.Strategy.Tailscale,
+        config: [
+          authkey: Application.get_env(:octocon, :tailscale_api_authkey),
+          tailnet: "octocondev.org.github",
+          tag: "beam",
+          appname: "octo"
+        ]
+      ]
+    ]
+
     [
       # Telemetry
       OctoconWeb.Telemetry,
       Octocon.PromEx,
+
       # Distribution
-      {Octocon.DNSCluster, query: Application.get_env(:octocon, :dns_cluster_query) || :ignore},
+      {Cluster.Supervisor, [topologies, [name: Octocon.ClusterSupervisor]]},
       Octocon.RPC.NodeTracker,
+
       # Ecto (Postgres database) repositories
-      Octocon.Repo.Local,
-      {Octocon.RPC.Postgres.LSN.Supervisor, repo: Octocon.Repo.Local},
-      # Background jobs
+      if(group != :primary_no_endpoint,
+        do: [
+          Octocon.Repo.Local,
+          {Octocon.RPC.Postgres.LSN.Supervisor, repo: Octocon.Repo.Local}
+        ],
+        else: []
+      ),
+
       # PubSub system
       {Phoenix.PubSub, name: Octocon.PubSub},
+
       # Finch (HTTP client)
       {Finch,
        name: Octocon.Finch,
@@ -64,6 +84,7 @@ defmodule Octocon.Application do
          "https://cdn.discordapp.com" => [size: 32, count: 4]
        }}
     ]
+    |> List.flatten()
   end
 
   defp endpoint_children(group) when group in [:primary, :auxiliary] do
@@ -76,7 +97,7 @@ defmodule Octocon.Application do
 
   defp endpoint_children(_), do: []
 
-  defp group_children(:primary) do
+  defp group_children(:primary_no_endpoint) do
     if Application.get_env(:octocon, :env) == :prod do
       [
         Octocon.FCM
@@ -88,9 +109,22 @@ defmodule Octocon.Application do
         {Task, fn -> :mnesia.start() end},
         Octocon.Primary.Supervisor,
         Octocon.Global.Supervisor,
-        {Oban, Application.fetch_env!(:octocon, Oban)},
-        # Discord
+        # Discord TODO
         OctoconDiscord.Supervisor
+      ]
+  end
+
+  defp group_children(:primary) do
+    if Application.get_env(:octocon, :env) == :prod do
+      [
+        Octocon.FCM
+      ]
+    else
+      []
+    end ++
+      [
+        Octocon.MessageRepo,
+        {Oban, Application.fetch_env!(:octocon, Oban)}
       ]
   end
 

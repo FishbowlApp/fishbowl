@@ -340,7 +340,7 @@ defmodule Octocon.Alters do
         {:error, :no_user}
 
       user ->
-        Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :create_alter_internal, [user, attrs, nil])
+        Octocon.ClusterUtils.run_on_primary(__MODULE__, :create_alter_internal, [user, attrs, nil])
     end
   end
 
@@ -418,7 +418,7 @@ defmodule Octocon.Alters do
   Raises an error if the alter is not found.
   """
   def delete_alter(system_identity, alter_identity) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :delete_alter_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :delete_alter_internal, [
       system_identity,
       alter_identity
     ])
@@ -515,7 +515,7 @@ defmodule Octocon.Alters do
   **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
   """
   def update_alter(system_identity, alter_identity, attrs) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :update_alter_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :update_alter_internal, [
       system_identity,
       alter_identity,
       attrs

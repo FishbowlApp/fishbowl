@@ -132,3 +132,5 @@ config :sentry,
 config :hammer,
   backend:
     {Hammer.Backend.ETS, [expiry_ms: :timer.seconds(5), cleanup_interval_ms: :timer.minutes(10)]}
+
+config :libcluster, debug: true

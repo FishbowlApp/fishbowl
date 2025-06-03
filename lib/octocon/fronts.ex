@@ -61,7 +61,7 @@ defmodule Octocon.Fronts do
   end
 
   def delete_front(system_identity, id) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :delete_front_internal, [system_identity, id])
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :delete_front_internal, [system_identity, id])
   end
 
   def currently_fronting(system_identity) do
@@ -270,7 +270,7 @@ defmodule Octocon.Fronts do
               })
             end)
 
-            Octocon.Global.FrontNotifier.remove(system_id, alter_id)
+            Octocon.ClusterUtils.run_on_primary_no_endpoint(fn -> Octocon.Global.FrontNotifier.remove(system_id, alter_id) end)
 
             :ok
 
@@ -284,7 +284,7 @@ defmodule Octocon.Fronts do
   end
 
   def end_front(system_identity, alter_identity) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :end_front_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :end_front_internal, [
       system_identity,
       alter_identity
     ])
@@ -320,14 +320,14 @@ defmodule Octocon.Fronts do
           })
         end)
 
-        Octocon.Global.FrontNotifier.add(system_id, alter_id)
+        Octocon.ClusterUtils.run_on_primary_no_endpoint(fn -> Octocon.Global.FrontNotifier.add(system_id, alter_id) end)
 
         insertion
     end
   end
 
   def start_front(system_identity, alter_identity, comment \\ "") do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :start_front_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :start_front_internal, [
       system_identity,
       alter_identity,
       comment
@@ -361,7 +361,7 @@ defmodule Octocon.Fronts do
   end
 
   def update_comment(system_identity, front_id, comment) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :update_comment_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :update_comment_internal, [
       system_identity,
       front_id,
       comment
@@ -406,7 +406,7 @@ defmodule Octocon.Fronts do
   end
 
   def bulk_update_fronts(system_identity, start_fronts, end_fronts) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :bulk_update_fronts_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :bulk_update_fronts_internal, [
       system_identity,
       start_fronts,
       end_fronts
@@ -456,14 +456,14 @@ defmodule Octocon.Fronts do
           })
         end)
 
-        Octocon.Global.FrontNotifier.set(system_id, alter_id)
+        Octocon.ClusterUtils.run_on_primary_no_endpoint(fn -> Octocon.Global.FrontNotifier.set(system_id, alter_id) end)
 
         transaction
     end
   end
 
   def set_front(system_identity, alter_identity, comment \\ "") do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :set_front_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :set_front_internal, [
       system_identity,
       alter_identity,
       comment

@@ -271,7 +271,7 @@ defmodule Octocon.Friendships do
   **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
   """
   def link_friends(from_identity, to_identity) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :link_friends_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :link_friends_internal, [
       from_identity,
       to_identity
     ])
