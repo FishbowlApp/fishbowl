@@ -11,56 +11,52 @@ swap_size_mb = 512
 [build]
 
 [deploy]
-  release_command = '/app/bin/migrate'
+release_command = '/app/bin/migrate'
 
 [env]
-  RELEASE_COOKIE = 'octo-cookie'
-  PRIMARY_REGION = 'iad'
-  PRIMARY_NODE_COUNT = '1'
-  PHX_HOST = 'octo.fly.dev'
-  PORT = '8080'
+RELEASE_COOKIE = 'octo-cookie'
+PRIMARY_REGION = 'iad'
+PRIMARY_NODE_COUNT = '1'
+PHX_HOST = 'octo.fly.dev'
+PORT = '8080'
 
 [processes]
-  primary = "/app/bin/server"
-  auxiliary = "/app/bin/server"
-  sidecar = "/app/bin/server"
+primary = "/app/bin/server"
+auxiliary = "/app/bin/server"
+sidecar = "/app/bin/server"
 
 [http_service]
-  internal_port = 8080
-  force_https = true
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ['primary', 'auxiliary', 'sidecar']
+internal_port = 8080
+force_https = true
+auto_start_machines = true
+min_machines_running = 0
+processes = ['primary', 'auxiliary']
 
-  [http_service.concurrency]
-    type = 'connections'
-    hard_limit = 1000
-    soft_limit = 1000
+[http_service.concurrency]
+type = 'connections'
+hard_limit = 1000
+soft_limit = 1000
 
 [mounts]
-  source = 'octo_mnesia'
-  destination = '/mnesia'
-  processes = ['primary']
+source = 'octo_mnesia'
+destination = '/mnesia'
+processes = ['primary']
 
 [metrics]
-  port = 9001
-  path = '/'
-  processes = ['primary', 'auxiliary', 'sidecar']
+port = 9001
+path = '/'
+processes = ['primary', 'auxiliary', 'sidecar']
 
 [[vm]]
-  memory = '3584mb'
-  cpu_kind = 'shared'
-  cpus = 2
-  processes = ['primary']
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 2
+processes = ['primary', 'auxiliary', 'sidecar']
 
-[[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 2
-  processes = ['auxiliary']
+[[services]]
+internal_port = 41641
+protocol = 'udp'
+processes = ['primary', 'auxiliary', 'sidecar']
 
-[[vm]]
-  memory = '1536mb'
-  cpu_kind = 'shared'
-  cpus = 2
-  processes = ['sidecar']
+[[services.ports]]
+port = 41641

@@ -28,6 +28,29 @@ get_pool_size = fn ->
   end
 end
 
+get_node_group = fn ->
+  case System.get_env("FLY_PROCESS_GROUP") do
+    "primary" ->
+      :primary
+
+    "auxiliary" ->
+      :auxiliary
+
+    "sidecar" ->
+      :sidecar
+
+    _ ->
+      node_group =
+        System.get_env("NODE_GROUP") ||
+          raise """
+          environment variable NODE_GROUP is missing (this node is not running on Fly to auto-detect).
+          It should be one of: primary, primary_no_endpoint, auxiliary, sidecar.
+          """
+
+      String.to_atom(node_group)
+  end
+end
+
 if config_env() == :prod do
   config :octocon, dns_cluster_query: System.get_env("DNS_CLUSTER_QUERY")
 
@@ -61,6 +84,8 @@ if config_env() == :prod do
     url: msg_database_url,
     pool_size: String.to_integer(System.get_env("MSG_POOL_SIZE") || "10"),
     socket_options: maybe_ipv6
+
+  config :octocon, :node_group, get_node_group.()
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -170,6 +195,13 @@ if config_env() == :prod do
       System.get_env("ENCRYPTION_PEPPER") ||
         raise("""
         environment variable ENCRYPTION_PEPPER is missing.
+        """)
+
+  config :octocon,
+    tailscale_api_authkey:
+      System.get_env("TAILSCALE_API_AUTHKEY") ||
+        raise("""
+        environment variable TAILSCALE_API_AUTHKEY is missing.
         """)
 
   config :octocon,

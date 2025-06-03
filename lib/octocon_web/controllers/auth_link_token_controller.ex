@@ -7,7 +7,7 @@ defmodule OctoconWeb.AuthLinkTokenController do
 
   def get(conn, _params) do
     system_id = conn.private[:guardian_default_resource]
-    link_token = Octocon.RPC.NodeTracker.rpc_primary(fn -> LinkTokenRegistry.put(system_id) end)
+    link_token = Octocon.ClusterUtils.run_on_primary_no_endpoint(fn -> LinkTokenRegistry.put(system_id) end)
 
     Logger.info("Link token generated for #{system_id}: #{link_token}")
 

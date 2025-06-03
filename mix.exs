@@ -103,6 +103,7 @@ defmodule Octocon.MixProject do
       {:fly_postgres, "~> 0.3"},
       {:horde, "~> 0.9.0"},
       {:dns_cluster, "~> 0.2"},
+      {:libcluster, "~> 3.3"},
 
       # Time-series data
       {:timescale, "~> 0.1"},

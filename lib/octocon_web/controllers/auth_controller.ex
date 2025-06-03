@@ -129,13 +129,6 @@ defmodule OctoconWeb.AuthController do
   end
 
   def callback(conn, params) do
-    IO.inspect("START CONN")
-    IO.inspect(conn, limit: :infinity)
-    IO.inspect("END CONN")
-    IO.inspect("START PARAMS")
-    IO.inspect(params, limit: :infinity)
-    IO.inspect("END PARAMS")
-
     conn
     |> put_status(403)
     |> text("Failed to authenticate. Did you reload the page or copy-paste the URL?")

@@ -2,13 +2,13 @@ name: CI
 on:
   push:
     branches:
-      - temp
+      - main
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/temp' && github.event_name == 'push' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -77,7 +77,7 @@ jobs:
         uses: superfly/flyctl-actions@v1.5
         with:
           args:
-            'deploy -i registry.fly.io/octo:${{ github.sha }} --strategy rolling'
+            'deploy -i registry.fly.io/octo:${{ github.sha }}'
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 

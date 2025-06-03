@@ -138,7 +138,7 @@ defmodule Octocon.Polls do
   end
 
   def update_poll(system_identity, poll_id, attrs) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :update_poll_internal, [
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :update_poll_internal, [
       system_identity,
       poll_id,
       attrs
