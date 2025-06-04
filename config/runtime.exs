@@ -32,7 +32,7 @@ else
 end
 
 get_pool_size = fn ->
-  if System.get_env("FLY_PROCESS_GROUP") == "sidecar" do
+  if node_group == :sidecar do
     2
   else
     String.to_integer(System.get_env("POOL_SIZE") || "10")
