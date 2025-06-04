@@ -28,7 +28,13 @@ defmodule Octocon.Application do
     Logger.warning("Starting node of type: #{group}")
 
     children =
-      global_children(group) ++ group_children(group) ++ endpoint_children(group)
+      global_children(group) ++
+        group_children(group) ++
+        [
+          # Web endpoint
+          OctoconWeb.Endpoint,
+          {Bandit, plug: OctoconWeb.MetricsPlug, port: 9001}
+        ]
 
     opts = [strategy: :one_for_one, name: Octocon.Supervisor]
     Supervisor.start_link(children, opts)
@@ -86,16 +92,6 @@ defmodule Octocon.Application do
     ]
     |> List.flatten()
   end
-
-  defp endpoint_children(group) when group in [:primary, :auxiliary] do
-    [
-      # Web endpoint
-      OctoconWeb.Endpoint,
-      {Bandit, plug: OctoconWeb.MetricsPlug, port: 9001}
-    ]
-  end
-
-  defp endpoint_children(_), do: []
 
   defp group_children(:primary_no_endpoint) do
     if Application.get_env(:octocon, :env) == :prod do

@@ -270,7 +270,9 @@ defmodule Octocon.Fronts do
               })
             end)
 
-            Octocon.ClusterUtils.run_on_primary_no_endpoint(fn -> Octocon.Global.FrontNotifier.remove(system_id, alter_id) end)
+            Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
+              Octocon.Global.FrontNotifier.remove(system_id, alter_id)
+            end)
 
             :ok
 
@@ -320,7 +322,9 @@ defmodule Octocon.Fronts do
           })
         end)
 
-        Octocon.ClusterUtils.run_on_primary_no_endpoint(fn -> Octocon.Global.FrontNotifier.add(system_id, alter_id) end)
+        Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
+          Octocon.Global.FrontNotifier.add(system_id, alter_id)
+        end)
 
         insertion
     end
@@ -456,7 +460,9 @@ defmodule Octocon.Fronts do
           })
         end)
 
-        Octocon.ClusterUtils.run_on_primary_no_endpoint(fn -> Octocon.Global.FrontNotifier.set(system_id, alter_id) end)
+        Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
+          Octocon.Global.FrontNotifier.set(system_id, alter_id)
+        end)
 
         transaction
     end

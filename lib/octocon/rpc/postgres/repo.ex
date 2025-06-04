@@ -340,6 +340,7 @@ defmodule Octocon.RPC.Postgres.Repo do
         # false/falsey then skip the LSN query and waiting for replication.
 
         default = if Octocon.RPC.NodeTracker.is_primary_no_endpoint?(), do: false, else: true
+
         if Keyword.get(opts, :await, default) do
           rpc_timeout = Keyword.get(opts, :rpc_timeout, @timeout)
           replication_timeout = Keyword.get(opts, :replication_timeout, @replication_timeout)
