@@ -1,35 +1,6 @@
 import Config
 
-# config/runtime.exs is executed for all environments, including
-# during releases. It is executed after compilation and before the
-# system starts, so it is typically used to load production configuration
-# and secrets from environment variables or elsewhere. Do not define
-# any compile-time configuration in here, as it won't be applied.
-# The block below contains prod specific runtime configuration.
-
-# ## Using releases
-#
-# If you use `mix release`, you need to explicitly enable the server
-# by passing the PHX_SERVER=true when you start it:
-#
-#     PHX_SERVER=true bin/octocon start
-#
-# Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
-# script that automatically sets the env var above.
-if System.get_env("PHX_SERVER") do
-  config :octocon, OctoconWeb.Endpoint, server: true
-end
-
-get_pool_size = fn ->
-  if System.get_env("FLY_PROCESS_GROUP") == "sidecar" do
-    2
-  else
-    String.to_integer(System.get_env("POOL_SIZE") || "10")
-  end
-end
-
-get_node_group = fn ->
-  case System.get_env("FLY_PROCESS_GROUP") do
+node_group = case System.get_env("FLY_PROCESS_GROUP") do
     "primary" ->
       :primary
 
@@ -48,6 +19,23 @@ get_node_group = fn ->
           """
 
       String.to_atom(node_group)
+  end
+
+config :octocon, :node_group, node_group
+
+# TODO: Only :auxiliary
+# TODO: Rename :auxiliary to :ingress
+if node_group in [:primary, :auxiliary] || System.get_env("PHX_SERVER") do
+  config :octocon, OctoconWeb.Endpoint, server: true
+else
+  config :octocon, OctoconWeb.Endpoint, server: false
+end
+
+get_pool_size = fn ->
+  if System.get_env("FLY_PROCESS_GROUP") == "sidecar" do
+    2
+  else
+    String.to_integer(System.get_env("POOL_SIZE") || "10")
   end
 end
 
@@ -84,8 +72,6 @@ if config_env() == :prod do
     url: msg_database_url,
     pool_size: String.to_integer(System.get_env("MSG_POOL_SIZE") || "10"),
     socket_options: maybe_ipv6
-
-  config :octocon, :node_group, get_node_group.()
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

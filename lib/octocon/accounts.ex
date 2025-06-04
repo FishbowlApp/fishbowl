@@ -801,7 +801,9 @@ defmodule Octocon.Accounts do
   defp wrap_fields_broadcast({:error, _} = result, _), do: result
 
   def wipe_encrypted_data(system_identity) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :wipe_encrypted_data_internal, [system_identity])
+    Octocon.ClusterUtils.run_on_primary(__MODULE__, :wipe_encrypted_data_internal, [
+      system_identity
+    ])
   end
 
   def wipe_encrypted_data_internal(system_identity) do
