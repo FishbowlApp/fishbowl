@@ -105,7 +105,6 @@ defmodule Octocon.Application do
         {Task, fn -> :mnesia.start() end},
         Octocon.Primary.Supervisor,
         Octocon.Global.Supervisor,
-        # Discord TODO
         OctoconDiscord.Supervisor
       ]
   end
