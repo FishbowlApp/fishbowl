@@ -91,11 +91,13 @@ defmodule OctoconDiscord.ChannelBlacklistManager do
     Process.sleep(:timer.seconds(5))
 
     channels = ChannelBlacklists.list_channel_blacklists_bare()
+
     :ets.insert(
       @table,
       channels
       |> Enum.map(fn channel_id -> {channel_id, []} end)
     )
+
     {:noreply, state}
   end
 

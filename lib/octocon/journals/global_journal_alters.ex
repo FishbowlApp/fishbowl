@@ -13,13 +13,13 @@ defmodule Octocon.Journals.GlobalJournalAlters do
     field :global_journal_id, Ecto.UUID
     field :alter_id, :integer
 
-    belongs_to :global_journal, Octocon.Journals.GlobalJournalEntry,
-      foreign_key: :global_journal_id,
-      define_field: false
+    # belongs_to :global_journal, Octocon.Journals.GlobalJournalEntry,
+    #  foreign_key: :global_journal_id,
+    #  define_field: false
 
-    belongs_to :alter, Octocon.Alters.Alter,
-      foreign_key: :alter_id,
-      define_field: false
+    # belongs_to :alter, Octocon.Alters.Alter,
+    #  foreign_key: :alter_id,
+    #  define_field: false
   end
 
   @doc """

@@ -14,10 +14,10 @@ defmodule Octocon.NotificationTokens.NotificationToken do
     field :user_id, :string, primary_key: true
     field :token, :string, primary_key: true
 
-    belongs_to :user, Octocon.Accounts.User,
-      foreign_key: :user_id,
-      references: :id,
-      define_field: false
+    # belongs_to :user, Octocon.Accounts.User,
+    #  foreign_key: :user_id,
+    #  references: :id,
+    #  define_field: false
 
     timestamps()
   end

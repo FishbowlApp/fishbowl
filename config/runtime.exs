@@ -1,45 +1,64 @@
 import Config
 
-node_group = case System.get_env("FLY_PROCESS_GROUP") do
-    "primary" ->
-      :primary
+if config_env() == :prod do
+  node_group =
+    case System.get_env("FLY_PROCESS_GROUP") do
+      "primary" ->
+        :primary
 
-    "auxiliary" ->
-      :auxiliary
+      "auxiliary" ->
+        :auxiliary
 
-    "sidecar" ->
-      :sidecar
+      "sidecar" ->
+        :sidecar
 
-    _ ->
-      node_group =
-        System.get_env("NODE_GROUP") ||
+      _ ->
+        node_group =
+          System.get_env("NODE_GROUP") ||
+            raise """
+            environment variable NODE_GROUP is missing (this node is not running on Fly to auto-detect).
+            It should be one of: primary, primary_no_endpoint, auxiliary, sidecar.
+            """
+
+        String.to_atom(node_group)
+    end
+
+  current_db_region =
+    case System.get_env("FLY_REGION") do
+      "fra" -> :eur
+      "iad" -> :nam
+      "syd" -> :ocn
+      "gru" -> :sam
+      "bom" -> :sas
+      "sin" -> :eas
+      nil ->
+        region = System.get_env("CURRENT_DB_REGION") ||
           raise """
-          environment variable NODE_GROUP is missing (this node is not running on Fly to auto-detect).
-          It should be one of: primary, primary_no_endpoint, auxiliary, sidecar.
+          environment variable CURRENT_DB_REGION is missing (this node is not running on Fly to auto-detect).
+          It should be one of: nam, eur, ocn, eas, sam, sas, gdpr.
           """
 
-      String.to_atom(node_group)
-  end
+        String.to_atom(region)
+    end
 
-config :octocon, :node_group, node_group
+  config :octocon, :node_group, node_group
+  config :octocon, :current_db_region, current_db_region
 
-# TODO: Only :auxiliary
-# TODO: Rename :auxiliary to :ingress
-if node_group in [:primary, :auxiliary] || System.get_env("PHX_SERVER") do
-  config :octocon, OctoconWeb.Endpoint, server: true
-else
-  config :octocon, OctoconWeb.Endpoint, server: false
-end
-
-get_pool_size = fn ->
-  if node_group == :sidecar do
-    2
+  # TODO: Only :auxiliary
+  # TODO: Rename :auxiliary to :ingress
+  if node_group in [:primary, :auxiliary] || System.get_env("PHX_SERVER") do
+    config :octocon, OctoconWeb.Endpoint, server: true
   else
-    String.to_integer(System.get_env("POOL_SIZE") || "10")
+    config :octocon, OctoconWeb.Endpoint, server: false
   end
-end
 
-if config_env() == :prod do
+  pool_size =
+    if node_group == :sidecar do
+      2
+    else
+      String.to_integer(System.get_env("POOL_SIZE") || "10")
+    end
+
   config :octocon, dns_cluster_query: System.get_env("DNS_CLUSTER_QUERY")
 
   config :octocon,
@@ -62,10 +81,15 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
-  config :octocon, Octocon.Repo.Local,
+  config :octocon, :proxy_db, System.get_env("OCTO_PROXY_DB") in ~w(true 1)
+
+  config :octocon, Octocon.Repo, pool_size: pool_size
+  # TODO: Make dynamic?
+
+  config :octocon, Octocon.OldRepo.Local,
     # ssl: true,
     url: database_url,
-    pool_size: get_pool_size.(),
+    pool_size: pool_size,
     socket_options: maybe_ipv6
 
   config :octocon, Octocon.MessageRepo,

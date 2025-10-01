@@ -17,15 +17,15 @@ defmodule Octocon.Friendships.Request do
 
     field :date_sent, :utc_datetime
 
-    belongs_to :from, Octocon.Accounts.User,
-      foreign_key: :from_id,
-      references: :id,
-      define_field: false
+    # belongs_to :from, Octocon.Accounts.User,
+    #  foreign_key: :from_id,
+    #  references: :id,
+    #  define_field: false
 
-    belongs_to :to, Octocon.Accounts.User,
-      foreign_key: :to_id,
-      references: :id,
-      define_field: false
+    # belongs_to :to, Octocon.Accounts.User,
+    #  foreign_key: :to_id,
+    #  references: :id,
+    #  define_field: false
 
     timestamps()
   end

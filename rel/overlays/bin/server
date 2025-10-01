@@ -28,10 +28,10 @@ else
   done
 fi
 
-echo "Switching to user: nobody"
-
 echo "1Password host: ${OP_CONNECT_HOST}"
 export OP_CONFIG_DIR="/tmp/.op"
+
+echo "Switching to user: nobody"
 
 # PHX_SERVER=true exec ./octocon start
 exec su -s /bin/sh nobody -c 'op run --no-masking --env-file="/app/etc/.env" -- ./octocon start'

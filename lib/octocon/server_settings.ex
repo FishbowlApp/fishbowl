@@ -11,19 +11,19 @@ defmodule Octocon.ServerSettings do
   def get_server_settings(guild_id) do
     query = from(s in ServerSettingsEntry, where: s.guild_id == ^guild_id)
 
-    Repo.one(query)
+    Repo.one_regional(query, {:region, :nam})
   end
 
   def get_server_settings_data(guild_id) do
     query = from(s in ServerSettingsEntry, where: s.guild_id == ^guild_id, select: s.data)
 
-    Repo.one(query)
+    Repo.one_regional(query, {:region, :nam})
   end
 
   def create_server_settings(guild_id) do
     %ServerSettingsEntry{}
     |> ServerSettingsEntry.changeset(%{guild_id: guild_id, data: %{}})
-    |> Repo.insert()
+    |> Repo.insert_regional({:region, :nam})
   end
 
   def edit_server_settings(guild_id, attrs) do
@@ -39,14 +39,14 @@ defmodule Octocon.ServerSettings do
         settings
         |> ServerSettingsEntry.changeset()
         |> Ecto.Changeset.put_embed(:data, data)
-        |> Repo.update()
+        |> Repo.update_regional({:region, :nam})
     end
   end
 
   def delete_server_settings(guild_id) do
     query = from(s in ServerSettingsEntry, where: s.guild_id == ^guild_id)
 
-    case Repo.delete_all(query) do
+    case Repo.delete_all_regional(query, {:region, :nam}) do
       {1, _} -> :ok
       _ -> :error
     end

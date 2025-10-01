@@ -15,8 +15,8 @@ defmodule Octocon.Tags.Tag do
   @primary_key false
 
   schema "tags" do
+    field :user_id, :string, primary_key: true
     field :id, Ecto.UUID, primary_key: true
-    field :user_id, :string
 
     field :name, :string
     field :description, :string
@@ -30,13 +30,13 @@ defmodule Octocon.Tags.Tag do
 
     field :alters, {:array, :integer}, virtual: true
 
-    belongs_to :user, Octocon.Accounts.User,
-      foreign_key: :user_id,
-      define_field: false
+    # belongs_to :user, Octocon.Accounts.User,
+    #  foreign_key: :user_id,
+    #  define_field: false
 
-    belongs_to :parent_tag, __MODULE__,
-      foreign_key: :parent_tag_id,
-      define_field: false
+    # belongs_to :parent_tag, __MODULE__,
+    #  foreign_key: :parent_tag_id,
+    #  define_field: false
 
     timestamps()
   end

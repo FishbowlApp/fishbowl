@@ -52,6 +52,9 @@ defmodule Octocon.MixProject do
       {:postgrex, "~> 0.20"},
       {:phoenix_live_dashboard, "~> 0.8"},
 
+      # Scylla
+      {:exandra, "~> 0.14"},
+
       # Use Bandit instead of Cowboy
       {:bandit, "~> 1.6"},
       {:websock_adapter, "~> 0.5"},
