@@ -39,7 +39,7 @@ defmodule Octocon.Alters do
       {:system, system_id} ->
         [user_id: system_id] |> Keyword.merge(extra)
 
-      {:discord, _} = identity ->
+      {_, _} = identity ->
         [user_id: Accounts.id_from_system_identity(identity, :system)]
         |> Keyword.merge(extra)
     end
@@ -62,7 +62,7 @@ defmodule Octocon.Alters do
       Alter
       |> where(^where)
 
-    Repo.exists?(query)
+    Repo.exists_regional?(query, {:user, system_identity})
   end
 
   @doc """
@@ -82,7 +82,7 @@ defmodule Octocon.Alters do
       |> where(^where)
       |> select([a], a.id)
 
-    case Repo.one(query) do
+    case Repo.one_regional(query, {:user, system_identity}) do
       nil -> false
       id -> id
     end
@@ -92,7 +92,9 @@ defmodule Octocon.Alters do
   Returns the total number of alters in the database.
   """
   def count do
-    Repo.aggregate(Alter, :count)
+    Repo.region_list()
+    |> Enum.map(&Repo.aggregate(Alter, :count, prefix: &1))
+    |> Enum.sum()
   end
 
   @doc """
@@ -109,7 +111,7 @@ defmodule Octocon.Alters do
       |> where(^where)
       |> select([a], struct(a, ^fields))
 
-    case Repo.one(query) do
+    case Repo.one_regional(query, {:user, system_identity}) do
       nil ->
         case alter_identity do
           {:id, _} -> {:error, :no_alter_id}
@@ -145,13 +147,11 @@ defmodule Octocon.Alters do
   def get_alters_by_id(system_identity, fields \\ @all_fields) do
     where = unwrap_system_identity_where(system_identity)
 
-    query =
-      Alter
-      |> where(^where)
-      |> select([a], struct(a, ^fields))
-      |> order_by([a], asc: a.id)
-
-    Repo.all(query)
+    Alter
+    |> where(^where)
+    |> select([a], struct(a, ^fields))
+    |> Repo.all_regional({:user, system_identity})
+    |> Enum.sort_by(& &1.id, :asc)
   end
 
   @doc """
@@ -165,14 +165,12 @@ defmodule Octocon.Alters do
   def get_alters_by_id_bounded(system_identity, alter_ids, fields \\ @all_fields) do
     where = unwrap_system_identity_where(system_identity)
 
-    query =
-      Alter
-      |> where(^where)
-      |> where([a], a.id in ^alter_ids)
-      |> select([a], struct(a, ^fields))
-      |> order_by([a], asc: a.id)
-
-    Repo.all(query)
+    Alter
+    |> where(^where)
+    |> where([a], a.id in ^alter_ids)
+    |> select([a], struct(a, ^fields))
+    |> Repo.all_regional({:user, system_identity})
+    |> Enum.sort_by(& &1.id, :asc)
   end
 
   @doc """
@@ -282,37 +280,34 @@ defmodule Octocon.Alters do
   def create_alter_internal(user, attrs, force_id \\ nil) do
     alter_id = if force_id == nil, do: user.lifetime_alter_count + 1, else: force_id
 
-    transaction =
-      Multi.new()
-      # Increment the user's alter count
-      |> Multi.update(:user, Accounts.change_user(user, %{lifetime_alter_count: alter_id}))
-      # Create the alter
-      |> Multi.insert(:alter, change_alter(%Alter{user_id: user.id, id: alter_id}, attrs))
-      |> Repo.transaction()
+    case Accounts.update_user(user, %{lifetime_alter_count: alter_id}) do
+      {:ok, _user} ->
+        change_alter(%Alter{user_id: user.id, id: alter_id}, attrs)
+        |> Repo.insert_regional({:user, {:system, user.id}})
 
-    case transaction do
-      {:ok, %{alter: alter}} ->
         spawn(fn ->
           OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alter_created", %{
             alter: alter |> OctoconWeb.System.AlterJSON.data_me()
           })
         end)
 
-        {:ok, alter_id, alter}
+        {:ok, alter_id, get_alter_by_id!({:system, user.id}, {:id, alter_id})}
 
-      {:error, _, _, _} ->
+      {:error, _changeset} ->
         {:error, :database}
     end
   rescue
     e ->
-      # credo:disable-for-next-line
-      IO.inspect("ERROR IN create_alter_internal")
-      # credo:disable-for-next-line
-      IO.inspect(e)
+      if force_id == nil do
+        # credo:disable-for-next-line
+        IO.inspect("ERROR IN create_alter_internal")
+        # credo:disable-for-next-line
+        IO.inspect(e)
 
-      # Manually resync the user's alter count
-      highest_alter_id = get_highest_alter_id({:system, user.id})
-      create_alter_internal(user, attrs, highest_alter_id + 1)
+        # Manually resync the user's alter count
+        highest_alter_id = get_highest_alter_id({:system, user.id})
+        create_alter_internal(user, attrs, highest_alter_id + 1)
+      end
   end
 
   def get_highest_alter_id(system_identity) do
@@ -321,9 +316,11 @@ defmodule Octocon.Alters do
     query =
       Alter
       |> where(^where)
-      |> select([a], max(a.id))
+      |> select([a], a.id)
+      |> order_by([a], desc: a.id)
+      |> limit(1)
 
-    case Repo.one(query) do
+    case Repo.one_regional(query, {:user, system_identity}) do
       nil -> 0
       id -> id
     end
@@ -370,23 +367,21 @@ defmodule Octocon.Alters do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     if alter_id != false do
-      transaction =
-        Repo.transaction(fn repo ->
-          where =
-            unwrap_system_identity_where(
-              system_identity,
-              unwrap_alter_identity_where(alter_identity)
-            )
+      where = unwrap_system_identity_where(system_identity, unwrap_alter_identity_where(alter_identity))
 
-          query =
-            Alter
-            |> where(^where)
+      query =
+        Alter
+        |> where(^where)
 
-          repo.delete_all(query)
-        end)
+      case Repo.delete_all_regional(query, {:user, system_identity}) do
+        {1, _} ->
+          spawn(fn ->
+            system_identity = {:system, system_id}
+            Octocon.Journals.delete_alter_journal_entries(system_identity, alter_id)
+            Octocon.Tags.delete_alter_tags(system_identity, alter_id)
+            Octocon.Fronts.delete_alter_fronts(system_identity, alter_id)
+          end)
 
-      case transaction do
-        {:ok, _} ->
           spawn(fn ->
             OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "alter_deleted", %{
               alter_id: alter_id
@@ -399,7 +394,7 @@ defmodule Octocon.Alters do
 
           :ok
 
-        {:error, _} ->
+        _ ->
           {:error, :database}
       end
     else
@@ -472,7 +467,9 @@ defmodule Octocon.Alters do
           # NOTE: Check
           |> update(set: ^Keyword.new(attrs!))
 
-        case Repo.update_all(query, []) do
+        case Repo.update_all_regional(query, [], {:user, system_identity}) do
+          {0, _} ->
+            {:error, :no_alter}
           {1, _} ->
             spawn(fn ->
               alter = get_alter_by_id!(system_identity, {:id, alter_id})
@@ -498,15 +495,6 @@ defmodule Octocon.Alters do
         {:alias, _} -> {:error, :no_alter_alias}
       end
     end
-  rescue
-    e in Postgrex.Error ->
-      case e.postgres.constraint do
-        "alters_user_id_alias_index" ->
-          {:error, :alias_taken}
-
-        _ ->
-          {:error, :database}
-      end
   end
 
   @doc """

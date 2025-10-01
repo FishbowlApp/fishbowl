@@ -1,5 +1,5 @@
 defmodule Octocon.Apple do
-  @expiration_sec 86400 * 180
+  @expiration_sec 86_400 * 180
 
   defp generate_secret do
     secret =

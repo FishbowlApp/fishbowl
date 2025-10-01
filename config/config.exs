@@ -10,10 +10,18 @@ import Config
 config :octocon, :env, config_env()
 
 config :octocon,
-  ecto_repos: [Octocon.Repo.Local, Octocon.MessageRepo]
+  ecto_repos: [Octocon.Repo, Octocon.OldRepo.Local, Octocon.MessageRepo]
 
-config :octocon, Octocon.Repo.Local, priv: "priv/repo"
+config :octocon, Octocon.OldRepo.Local, priv: "priv/old_repo"
 config :octocon, Octocon.MessageRepo, priv: "priv/msg_repo"
+
+config :octocon, Octocon.Repo,
+  load_balancing:
+    {Xandra.Cluster.LoadBalancingPolicy.DCAwareRoundRobin, [local_data_center: :from_first_peer]},
+  target_pools: 1,
+  keyspace: "global",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true
 
 # Configures the endpoint
 config :octocon, OctoconWeb.Endpoint,
@@ -84,16 +92,16 @@ config :octocon, OctoconWeb.AuthPipeline,
   module: Octocon.Auth.Guardian,
   error_handler: OctoconWeb.AuthErrorHandler
 
-config :octocon, Oban,
-  repo: Octocon.Repo.Local,
-  plugins: [Oban.Plugins.Pruner],
-  queues: [
-    default: 10,
-    # Optimization courtesy of Snickety: 2 + 2 = 4
-    sp_imports: 2 + 2,
-    # Fuck you Snickety, we do this the cool way 😎
-    pk_imports: Kernel.+(2, 2)
-  ]
+# config :octocon, Oban,
+#  repo: Octocon.Repo.Local,
+#  plugins: [Oban.Plugins.Pruner],
+#  queues: [
+#    default: 10,
+#    # Optimization courtesy of Snickety: 2 + 2 = 4
+#    sp_imports: 2 + 2,
+#    # Fuck you Snickety, we do this the cool way 😎
+#    pk_imports: Kernel.+(2, 2)
+#  ]
 
 # Global Nostrum config
 config :nostrum,

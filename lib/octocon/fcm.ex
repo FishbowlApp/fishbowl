@@ -12,9 +12,9 @@ defmodule Octocon.FCM do
   alias Octocon.Alters
   alias Octocon.Alters.Alter
   alias Octocon.Friendships.Friendship
-  alias Octocon.Repo
   alias Octocon.NotificationTokens
   alias Octocon.NotificationTokens.NotificationToken
+  alias Octocon.Repo
 
   @size_limit 500
 
@@ -85,6 +85,12 @@ defmodule Octocon.FCM do
   end
 
   defp gen_batch_notifications(user_id, alter_ids) do
+    # TODO: Notifications with new system without joins
+  end
+
+  defp gen_batch_notifications do
+    user_id = "a"
+    alter_ids = "b"
     user = Accounts.get_user!({:system, user_id})
 
     username = then(user, fn user -> user.username || user.id end)
@@ -109,16 +115,25 @@ defmodule Octocon.FCM do
       from(
         f in Friendship,
         where: f.user_id == ^user_id,
-        # Get notification tokens
-        join: n in NotificationToken,
-        on: n.user_id == f.friend_id,
-        select: {f.friend_id, f.level, n}
+        select: {f.friend_id, f.level}
       )
 
     alters = Repo.all(alters_query)
+    friends = Repo.all(friends_query)
+
+    friend_ids = Enum.map(friends, &elem(&1, 0))
+
+    notification_tokens_query =
+      from(
+        n in NotificationToken,
+        where: n.user_id in ^friend_ids,
+        select: {n.user_id, n.token}
+      )
+
+    notification_tokens = Repo.all(notification_tokens_query) |> Enum.into(%{})
 
     data =
-      Repo.all(friends_query)
+      friends
       |> Enum.group_by(&elem(&1, 0))
       |> Stream.map(fn {id, list} ->
         {

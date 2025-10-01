@@ -11,6 +11,10 @@ defmodule Octocon.ClusterUtils do
   def is_primary?, do: NodeTracker.is_primary?()
   def is_primary_no_endpoint?, do: NodeTracker.is_primary_no_endpoint?()
 
+  def current_db_region do
+    Application.get_env(:octocon, :current_db_region)
+  end
+
   @doc """
   Get a list of all primary nodes in the cluster.
 

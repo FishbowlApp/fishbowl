@@ -1,14 +1,16 @@
 defmodule OctoconDiscord.Consumer do
+  @moduledoc false
+
   use Nostrum.Consumer
   require Logger
 
   alias Nostrum.ConsumerGroup
-  alias OctoconDiscord.Components
-  alias OctoconDiscord.Commands
-
-  alias OctoconDiscord.Events.{
-    MessageCreate
+  alias OctoconDiscord.{
+    Commands,
+    Components
   }
+
+  alias OctoconDiscord.Events.MessageCreate
 
   @commands %{
     "register" => Commands.Register,
@@ -109,20 +111,4 @@ defmodule OctoconDiscord.Consumer do
 
   def handle_event(_data) do
   end
-
-  # defp queue_command(name, module) do
-  #   # scope = 1_159_695_388_865_998_848
-  #   # scope = :global
-
-  #   scope = Application.get_env(:octocon, :nostrum_scope)
-
-  #   Logger.info("Running with channel scope: #{inspect(scope)}")
-
-  #   case Nosedrum.Storage.Dispatcher.queue_command(name, module, scope) do
-  #     {:ok, _} -> Logger.info("Registered '#{name}' command")
-  #     {:error, e} -> Logger.error("Failed to register '#{name}' command: #{e}")
-  #   end
-
-  #   Process.sleep(3000)
-  # end
 end

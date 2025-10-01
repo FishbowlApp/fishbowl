@@ -4,7 +4,7 @@
 
 It's also a
 wacky monolith built with [Elixir](https://elixir-lang.org/), [Phoenix](https://www.phoenixframework.org/),
-and [Postgres](https://www.postgresql.org/), deployed on a combination of [cloud infrastructure](https://fly.io/) and unmanaged, bare-metal hardware!
+and [ScyllaDB](https://www.scylladb.com/), deployed on a combination of [cloud infrastructure](https://fly.io/) and bare-metal hardware!
 
 ## Project structure 
 This repository contains the backend code for Octocon, which is structured into three main components:
@@ -12,11 +12,10 @@ This repository contains the backend code for Octocon, which is structured into 
 - **octocon-web**: The Phoenix web application that serves the REST API, metrics, and admin dashboard.
 - **octocon-discord**: The Discord bot that serves as an alternative interface for interacting with the Octocon platform, including "proxying" as alters.
 
-
 ## Distributed monolith
-Octocon is designed as a distributed monolith, meaning that while the components have a clear separation of concerns, they share a common codebase which is compiled and deployed as one.
+Octocon is designed as a distributed monolith, meaning that while the components have a clear separation of concerns, they share a common codebase which is compiled and deployed as one executable.
 
-Octocon is generally run in a cluster of nodes, which are designed to be globally distributed across the world. One "primary region" interfaces with the read-write database and runs the Discord bot, while "auxiliary regions" interface with read-only replicas of the database. This allows for low-latency access to the data from anywhere in the world; write operations on auxiliaries are proxied through RPC to the primary region.
+Octocon is generally run in a cluster of nodes, which are designed to be globally distributed across the world. One "primary region" interfaces with a larger database instance and runs the Discord bot, while "auxiliary regions" interface with database replicas. This allows for low-latency access to the data from anywhere in the world.
 
 When not running on Fly.io, an Octocon node knows its role in the overall cluster through an environment variable (`NODE_GROUP`), which determines which parts of the supervision tree it will run, and how it will advertise itself to its peers.
 
@@ -25,7 +24,7 @@ By default, Octocon is configured to discover other nodes using the [libcluster]
 There are 3 node groups:
 - `primary`: A node running in the primary region, which interfaces with the read-write database and runs Discord shards. Other nodes proxy their database writes to a `primary` node.
 - `auxiliary`: A node running in an auxiliary region, which interfaces with a read-only replica of the database. These nodes are largely only responsible for serving HTTP requests to the API.
-- `sidecar`: A node responsible for isolating CPU-bound tasks from the rest of the cluster, such as image processing and heavy encryption tasks. **At least one** sidecar must be present in the cluster.
+- `sidecar`: A node responsible for isolating CPU-bound tasks from the rest of the cluster, such as image processing and heavy encryption tasks. **At least one** sidecar must be present in the entire cluster.
 
 **Note**: Running multiple `primary` nodes is heavily experimental and not currently recommended - our Discord library (Nostrum) still doesn't behave well in this type of distributed environment.
 ## Configuration & integrations

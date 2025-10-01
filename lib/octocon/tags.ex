@@ -29,45 +29,37 @@ defmodule Octocon.Tags do
   end
 
   def get_tag(system_identity, tag_id) do
-    where = unwrap_system_identity_where(system_identity, id: tag_id)
+    where = unwrap_system_identity_where(system_identity)
 
-    query =
+    tag =
       Tag
       |> where(^where)
-      |> join(:left, [t], at in AlterTag, on: t.id == at.tag_id and at.user_id == t.user_id)
-      |> group_by([t], t.id)
-      |> select([t, at], %{tag: t})
-      |> select_merge([j, at], %{alters: fragment("array_agg(?)", at.alter_id)})
+      |> where([t], t.id == ^tag_id)
+      |> select([t], t)
+      |> Repo.one_regional({:user, system_identity})
 
-    Repo.one(query)
-    |> case do
-      # Populate virtual `alters` field
-      nil -> nil
-      %{tag: tag, alters: [nil]} -> %{tag | alters: []}
-      %{tag: tag, alters: alters} -> %{tag | alters: alters}
+    tag_alters =
+      AlterTag
+      |> where(^where)
+      |> where([at], at.tag_id == ^tag_id)
+      |> select([at], at.alter_id)
+      |> Repo.all_regional({:user, system_identity})
+
+    cond do
+      tag == nil ->
+        nil
+
+      alters == [] ->
+        %{tag: tag, alters: []}
+
+      alters when is_list(alters) ->
+        %{tag: tag, alters: alters}
     end
   end
 
   # Also returns guarded list of containing alters
   def get_tag_guarded(system_identity, tag_id, caller_identity) do
-    where = unwrap_system_identity_where(system_identity, id: tag_id)
-
-    query =
-      Tag
-      |> where(^where)
-      |> join(:left, [t], at in AlterTag, on: t.id == at.tag_id and at.user_id == t.user_id)
-      |> group_by([t], t.id)
-      |> select([t, at], %{tag: t})
-      |> select_merge([j, at], %{alters: fragment("array_agg(?)", at.alter_id)})
-
-    tag =
-      Repo.one(query)
-      |> case do
-        # Populate virtual `alters` field
-        nil -> nil
-        %{tag: tag, alters: [nil]} -> %{tag | alters: []}
-        %{tag: tag, alters: alters} -> %{tag | alters: alters}
-      end
+    tag = get_tag(system_identity, tag_id)
 
     friendship_level = Friendships.get_friendship_level(system_identity, caller_identity)
 
@@ -93,58 +85,43 @@ defmodule Octocon.Tags do
     %{tag | alters: alters}
   end
 
-  def get_tags(system_identity, opts \\ []) do
+  def get_tags(system_identity) do
     where = unwrap_system_identity_where(system_identity)
 
-    order_by = Keyword.get(opts, :order_by, desc: :inserted_at)
-
-    query =
+    tags =
       Tag
       |> where(^where)
-      |> join(:left, [t], at in AlterTag, on: t.id == at.tag_id and at.user_id == t.user_id)
-      |> group_by([t], t.id)
-      |> order_by(^order_by)
-      |> select([t], %{tag: t})
-      |> select_merge([t, at], %{alters: fragment("array_agg(?)", at.alter_id)})
+      |> select([t], t)
+      |> Repo.all_regional({:user, system_identity})
 
-    Repo.all(query)
-    |> Enum.map(fn
-      # Populate virtual `alters` field
-      %{tag: tag, alters: [nil]} -> %{tag | alters: []}
-      %{tag: tag, alters: alters} -> %{tag | alters: alters}
+    tag_ids = Enum.map(tags, & &1.id)
+
+    tag_alters =
+      AlterTag
+      |> where(^where)
+      |> where([at], at.tag_id in ^tag_ids)
+      |> select([at], struct(at, [:tag_id, :alter_id]))
+      |> Repo.all_regional({:user, system_identity})
+      |> Enum.group_by(& &1.tag_id, & &1.alter_id)
+
+    tags
+    |> Enum.map(fn ->
+      %{tag: tag, alters: Map.get(tag_alters, tag.id, [])}
     end)
   end
-
-  # OLD IMPLEMENTATION
-  # def get_tags_guarded(system_identity, caller_identity) do
-  #   where = unwrap_system_identity_where(system_identity)
-
-  #   query =
-  #     Tag
-  #     |> where(^where)
-  #     |> select([t], t)
-
-  #   friendship_level = Friendships.get_friendship_level(system_identity, caller_identity)
-
-  #   query
-  #   |> Repo.all()
-  #   |> Stream.filter(fn tag ->
-  #     Alters.can_view_entity?(friendship_level, tag.security_level)
-  #   end)
-  #   |> Enum.map(fn tag -> %{tag | alters: []} end)
-  # end
 
   def get_tags_guarded(system_identity, caller_identity) do
     where = unwrap_system_identity_where(system_identity)
 
-    query =
+    tags =
       Tag
       |> where(^where)
       |> select([t], t)
+      |> Repo.all_regional({:user, system_identity})
 
     friendship_level = Friendships.get_friendship_level(system_identity, caller_identity)
 
-    Repo.all(query)
+    tags
     |> Enum.filter(fn tag -> Alters.can_view_entity?(friendship_level, tag.security_level) end)
     |> Enum.map(fn tag -> %{tag | alters: []} end)
   end
@@ -163,7 +140,7 @@ defmodule Octocon.Tags do
             user_id: system_id
           }
           |> Tag.changeset(%{name: name})
-          |> Repo.insert()
+          |> Repo.insert_regional({:user, system_identity})
 
         case result do
           {:ok, tag} ->
@@ -207,7 +184,7 @@ defmodule Octocon.Tags do
                 user_id: system_id
               }
               |> Tag.changeset(%{name: name, parent_tag_id: parent_tag_id})
-              |> Repo.insert()
+              |> Repo.insert_regional({:user, system_identity})
 
             case result do
               {:ok, tag} ->
@@ -244,7 +221,7 @@ defmodule Octocon.Tags do
           alter_id: alter_id
         }
         |> AlterTag.changeset()
-        |> Repo.insert()
+        |> Repo.insert_regional({:user, system_identity})
         |> case do
           {:ok, _} ->
             spawn(fn ->
@@ -276,7 +253,7 @@ defmodule Octocon.Tags do
           |> where(^where)
           |> where(alter_id: ^alter_id)
 
-        case Repo.delete_all(query) do
+        case Repo.delete_all_regional(query, {:user, system_identity}) do
           {1, _} ->
             spawn(fn ->
               system_id = Accounts.id_from_system_identity(system_identity, :system)
@@ -310,7 +287,7 @@ defmodule Octocon.Tags do
       {tag, _parent} ->
         tag
         |> Tag.changeset(%{parent_tag_id: parent_tag_id})
-        |> Repo.update()
+        |> Repo.update_regional({:user, system_identity})
         |> case do
           {:ok, _} ->
             spawn(fn ->
@@ -339,7 +316,7 @@ defmodule Octocon.Tags do
       tag ->
         tag
         |> Tag.changeset(%{parent_tag_id: nil})
-        |> Repo.update()
+        |> Repo.update_regional({:user, system_identity})
         |> case do
           {:ok, _} ->
             spawn(fn ->
@@ -369,7 +346,7 @@ defmodule Octocon.Tags do
         result =
           tag
           |> Tag.changeset(Map.drop(attrs, [:parent_tag_id]))
-          |> Repo.update()
+          |> Repo.update_regional({:user, system_identity})
 
         case result do
           {:ok, bare_tag} ->
@@ -394,14 +371,20 @@ defmodule Octocon.Tags do
   end
 
   def delete_tag(system_identity, tag_id) do
-    where = unwrap_system_identity_where(system_identity, id: tag_id)
+    where = unwrap_system_identity_where(system_identity)
 
     query =
       Tag
       |> where(^where)
+      |> where([t], t.id == ^tag_id)
 
-    case Repo.delete_all(query) do
+    case Repo.delete_all_regional(query, {:user, system_identity}) do
       {1, _} ->
+        AlterTag
+        |> where(^where)
+        |> where([at], at.tag_id == ^tag_id)
+        |> Repo.delete_all_regional({:user, system_identity})
+
         spawn(fn ->
           system_id = Accounts.id_from_system_identity(system_identity, :system)
 
@@ -416,6 +399,33 @@ defmodule Octocon.Tags do
 
       _ ->
         {:error, :not_found}
+    end
+  end
+
+  def delete_alter_tags(system_identity, alter_id) do
+    where = unwrap_system_identity_where(system_identity)
+
+    query =
+      AlterTag
+      |> where(^where)
+      |> where([at], at.alter_id == ^alter_id)
+
+    case Repo.delete_all_regional(query, {:user, system_identity}) do
+      {0, _} ->
+        {:error, :not_found}
+
+      {count, _} when count > 0 ->
+        system_id = Accounts.id_from_system_identity(system_identity, :system)
+
+        spawn(fn ->
+          OctoconWeb.Endpoint.broadcast!(
+            "system:#{system_id}",
+            "alter_tags_deleted",
+            %{alter_id: alter_id}
+          )
+        end)
+
+        :ok
     end
   end
 end

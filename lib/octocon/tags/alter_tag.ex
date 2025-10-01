@@ -12,14 +12,6 @@ defmodule Octocon.Tags.AlterTag do
     field :user_id, :string
     field :tag_id, Ecto.UUID
     field :alter_id, :integer
-
-    belongs_to :tag, Octocon.Tags.Tag,
-      foreign_key: :tag_id,
-      define_field: false
-
-    belongs_to :alter, Octocon.Alters.Alter,
-      foreign_key: :alter_id,
-      define_field: false
   end
 
   @doc """

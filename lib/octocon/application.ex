@@ -53,8 +53,6 @@ defmodule Octocon.Application do
       tailscale: [
         strategy: Cluster.Strategy.Tailscale,
         config: [
-          authkey: Application.get_env(:octocon, :tailscale_api_authkey),
-          tailnet: "octocondev.org.github",
           tag: "beam",
           appname: "octo"
         ]
@@ -67,17 +65,26 @@ defmodule Octocon.Application do
       Octocon.PromEx,
 
       # Distribution
-      {Cluster.Supervisor, [topologies, [name: Octocon.ClusterSupervisor]]},
-      Octocon.RPC.NodeTracker,
+      # TODO: Turn back on
+      # {Cluster.Supervisor, [topologies, [name: Octocon.ClusterSupervisor]]},
+      # Octocon.RPC.NodeTracker,
 
       # Ecto (Postgres database) repositories
       if(group != :primary_no_endpoint,
         do: [
-          Octocon.Repo.Local,
-          {Octocon.RPC.Postgres.LSN.Supervisor, repo: Octocon.Repo.Local}
+          Octocon.OldRepo.Local,
+          {Octocon.RPC.Postgres.LSN.Supervisor, repo: Octocon.OldRepo.Local}
         ],
         else: []
       ),
+      Supervisor.child_spec(
+        {Cachex,
+         name: Octocon.Cache.UserRegistry,
+         limit: limit(size: 20_000),
+         fallback: fallback(default: &Octocon.UserRegistryCache.cache_function/1)},
+        id: :user_registry_cache
+      ),
+      Octocon.Repo,
 
       # PubSub system
       {Phoenix.PubSub, name: Octocon.PubSub},

@@ -38,29 +38,28 @@ defmodule Octocon.Journals do
   def get_global_journal_entry(system_identity, entry_id) do
     where = unwrap_system_identity_where(system_identity, id: entry_id)
 
-    query =
+    entry =
       GlobalJournalEntry
       |> where(^where)
-      |> join(:left, [j], gja in GlobalJournalAlters,
-        on: j.id == gja.global_journal_id and gja.user_id == j.user_id
-      )
-      |> group_by([j], j.id)
-      |> select([j, gja], %{entry: j})
-      |> select_merge([j, gja], %{alters: fragment("array_agg(?)", gja.alter_id)})
+      |> select([j], struct(j, ^@all_global_fields))
+      |> Repo.one_regional({:user, system_identity})
 
-    Repo.one(query)
+    alters =
+      GlobalJournalAlters
+      |> where(^where)
+      |> where([gja], gja.global_journal_id == ^entry_id)
+      |> select([gja], gja.alter_id)
+      |> Repo.all_regional({:user, system_identity})
+
+    entry
     |> case do
-      # Populate virtual `alters` field
       nil -> nil
-      %{entry: entry, alters: [nil]} -> %{entry | alters: []}
-      %{entry: entry, alters: alters} -> %{entry | alters: alters}
+      entry -> %{entry | alters: alters}
     end
   end
 
   def get_global_journal_entries(system_identity, opts \\ []) do
     where = unwrap_system_identity_where(system_identity)
-
-    order_by = Keyword.get(opts, :order_by, desc: :inserted_at)
 
     fields =
       Keyword.get(opts, :fields, :all)
@@ -79,22 +78,27 @@ defmodule Octocon.Journals do
                 "Invalid fields: expected :bare, :all or a non-empty list of field atoms"
       end
 
-    query =
+    entries =
       GlobalJournalEntry
       |> where(^where)
-      |> join(:left, [j], gja in GlobalJournalAlters,
-        on: j.id == gja.global_journal_id and gja.user_id == j.user_id
-      )
-      |> group_by([j], j.id)
-      |> order_by(^order_by)
-      |> select([j], %{entry: struct(j, ^fields)})
-      |> select_merge([j, gja], %{alters: fragment("array_agg(?)", gja.alter_id)})
+      |> select([j], struct(j, ^fields))
+      |> Repo.all_regional({:user, system_identity})
+      |> Enum.sort_by(& &1.inserted_at, {:desc, :inserted_at})
 
-    Repo.all(query)
-    |> Enum.map(fn
-      # Populate virtual `alters` field
-      %{entry: entry, alters: [nil]} -> %{entry | alters: []}
-      %{entry: entry, alters: alters} -> %{entry | alters: alters}
+    entry_ids = Enum.map(entries, & &1.id)
+
+    alters =
+      GlobalJournalAlters
+      |> where(^where)
+      |> where([gja], gja.global_journal_id in ^entry_ids)
+      |> select([gja], %{global_journal_id: gja.global_journal_id, alter_id: gja.alter_id})
+      |> Repo.all_regional({:user, system_identity})
+      |> Enum.group_by(& &1.global_journal_id, & &1.alter_id)
+
+    entries
+    |> Enum.map(fn entry ->
+      alters = Map.get(alters, entry.id, [])
+      %{entry | alters: alters}
     end)
   end
 
@@ -112,7 +116,7 @@ defmodule Octocon.Journals do
             user_id: system_id
           }
           |> GlobalJournalEntry.changeset(%{title: title})
-          |> Repo.insert()
+          |> Repo.insert_regional({:user, system_identity})
 
         case result do
           {:ok, entry} ->
@@ -148,7 +152,7 @@ defmodule Octocon.Journals do
           alter_id: alter_id
         }
         |> GlobalJournalAlters.changeset()
-        |> Repo.insert()
+        |> Repo.insert_regional({:user, system_identity})
         |> case do
           {:ok, _} ->
             spawn(fn ->
@@ -183,7 +187,7 @@ defmodule Octocon.Journals do
           |> where(^where)
           |> where(alter_id: ^alter_id)
 
-        case Repo.delete_all(query) do
+        case Repo.delete_all_regional(query, {:user, system_identity}) do
           {1, _} ->
             spawn(fn ->
               system_id = Accounts.id_from_system_identity(system_identity, :system)
@@ -215,7 +219,7 @@ defmodule Octocon.Journals do
         result =
           entry
           |> GlobalJournalEntry.changeset(attrs)
-          |> Repo.update()
+          |> Repo.update_regional({:user, system_identity})
 
         case result do
           {:ok, bare_entry} ->
@@ -248,7 +252,7 @@ defmodule Octocon.Journals do
       GlobalJournalEntry
       |> where(^where)
 
-    case Repo.delete_all(query) do
+    case Repo.delete_all_regional(query, {:user, system_identity}) do
       {1, _} ->
         spawn(fn ->
           system_id = Accounts.id_from_system_identity(system_identity, :system)
@@ -283,8 +287,6 @@ defmodule Octocon.Journals do
       alter_id ->
         where = unwrap_system_identity_where(system_identity)
 
-        order_by = Keyword.get(opts, :order_by, desc: :inserted_at)
-
         fields =
           Keyword.get(opts, :fields, :all)
           |> case do
@@ -302,26 +304,21 @@ defmodule Octocon.Journals do
                     "Invalid fields: expected :bare, :all or a non-empty list of field atoms"
           end
 
-        query =
-          AlterJournalEntry
-          |> where(^where)
-          |> where(alter_id: ^alter_id)
-          |> order_by(^order_by)
-          |> select([j], struct(j, ^fields))
-
-        Repo.all(query)
+        AlterJournalEntry
+        |> where(^where)
+        |> where(alter_id: ^alter_id)
+        |> select([j], struct(j, ^fields))
+        |> Repo.all_regional({:user, system_identity})
+        |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
     end
   end
 
-  def get_alter_journal_entry(system_identity, entry_id, order_by \\ [desc: :inserted_at]) do
+  def get_alter_journal_entry(system_identity, entry_id) do
     where = unwrap_system_identity_where(system_identity, id: entry_id)
 
-    query =
-      AlterJournalEntry
-      |> where(^where)
-      |> order_by(^order_by)
-
-    Repo.one(query)
+    AlterJournalEntry
+    |> where(^where)
+    |> Repo.one_regional({:user, system_identity})
   end
 
   def create_alter_journal_entry(system_identity, alter_identity, title) do
@@ -340,7 +337,7 @@ defmodule Octocon.Journals do
           alter_id: alter_id
         }
         |> AlterJournalEntry.changeset(%{title: title})
-        |> Repo.insert()
+        |> Repo.insert_regional({:user, system_identity})
         |> case do
           {:ok, entry} ->
             spawn(fn ->
@@ -368,7 +365,7 @@ defmodule Octocon.Journals do
       AlterJournalEntry
       |> where(^where)
 
-    case Repo.delete_all(query) do
+    case Repo.delete_all_regional(query, {:user, system_identity}) do
       {1, _} ->
         spawn(fn ->
           system_id = Accounts.id_from_system_identity(system_identity, :system)
@@ -398,7 +395,7 @@ defmodule Octocon.Journals do
         result =
           entry
           |> AlterJournalEntry.changeset(attrs)
-          |> Repo.update()
+          |> Repo.update_regional({:user, system_identity})
 
         case result do
           {:ok, entry} ->
@@ -419,6 +416,22 @@ defmodule Octocon.Journals do
           _ ->
             {:error, :changeset}
         end
+    end
+  end
+
+  def delete_alter_journal_entries(system_identity, alter_id) do
+    where = unwrap_system_identity_where(system_identity, alter_id: alter_id)
+
+    query =
+      AlterJournalEntry
+      |> where(^where)
+
+    case Repo.delete_all_regional(query, {:user, system_identity}) do
+      {count, _} when count > 0 ->
+        :ok
+
+      _ ->
+        {:error, :not_found}
     end
   end
 end

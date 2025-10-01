@@ -74,7 +74,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
     Repo.transaction(fn ->
       chunked_alters
       |> Enum.each(fn chunk ->
-        Repo.insert_all(Alter, chunk)
+        Repo.insert_all_regional(Alter, chunk, {:user, system_identity})
       end)
 
       user = Accounts.get_user!({:system, system_id})

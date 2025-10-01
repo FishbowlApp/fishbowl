@@ -63,7 +63,7 @@ defmodule Cluster.Strategy.Tailscale do
     appname = Keyword.fetch!(config, :appname)
     authkey = Keyword.fetch!(config, :authkey)
 
-    list_devices(tailnet, authkey)
+    Octocon.Utils.Tailscale.list_devices()
     |> Enum.filter(&(("tag:" <> tag) in (&1["tags"] || [])))
     |> Enum.map(&List.first(&1["addresses"]))
     |> Enum.map(&"#{appname}@#{&1}")
@@ -106,30 +106,6 @@ defmodule Cluster.Strategy.Tailscale do
         Enum.reduce(bad_nodes, nodes, fn {n, _}, acc ->
           MapSet.delete(acc, n)
         end)
-    end
-  end
-
-  def list_devices(tailnet, authkey) do
-    case get("/tailnet/#{tailnet}/devices", authkey) do
-      {:ok, devices} ->
-        # IO.inspect(devices, limit: :infinity)
-        devices["devices"]
-
-      _ ->
-        []
-    end
-  end
-
-  def get(path, authkey) do
-    case :httpc.request(:get, {'https://#{authkey}:@#{@endpoint}/#{path}', []}, [], []) do
-      {:ok, {{_version, 200, _status}, _headers, body}} ->
-        {:ok, Jason.decode!(body)}
-
-      {:ok, {{_version, code, status}, _headers, body}} ->
-        {:warn, [code, status, body]}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 end
