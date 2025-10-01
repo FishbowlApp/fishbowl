@@ -130,6 +130,7 @@ defmodule Octocon.FCM do
         select: {n.user_id, n.token}
       )
 
+    # TODO
     notification_tokens = Repo.all(notification_tokens_query) |> Enum.into(%{})
 
     data =

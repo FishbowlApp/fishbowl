@@ -49,11 +49,11 @@ defmodule Octocon.Tags do
       tag == nil ->
         nil
 
-      alters == [] ->
+      tag_alters == [] ->
         %{tag: tag, alters: []}
 
-      alters when is_list(alters) ->
-        %{tag: tag, alters: alters}
+      true ->
+        %{tag: tag, alters: tag_alters}
     end
   end
 
@@ -105,7 +105,7 @@ defmodule Octocon.Tags do
       |> Enum.group_by(& &1.tag_id, & &1.alter_id)
 
     tags
-    |> Enum.map(fn ->
+    |> Enum.map(fn tag ->
       %{tag: tag, alters: Map.get(tag_alters, tag.id, [])}
     end)
   end

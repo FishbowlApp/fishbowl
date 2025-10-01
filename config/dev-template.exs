@@ -1,16 +1,5 @@
 import Config
 
-# Configure your database
-config :octocon, Octocon.Repo.Local,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "octocon_dev",
-  port: "4001",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
-
 config :octocon, Octocon.MessageRepo,
   username: "postgres",
   password: "postgres",

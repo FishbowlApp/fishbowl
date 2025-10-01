@@ -14,8 +14,6 @@ defmodule Octocon.Alters do
 
   import Ecto.Query, warn: false
 
-  alias Ecto.Multi
-
   alias Octocon.{
     Accounts,
     Alters.Alter,
@@ -282,8 +280,9 @@ defmodule Octocon.Alters do
 
     case Accounts.update_user(user, %{lifetime_alter_count: alter_id}) do
       {:ok, _user} ->
-        change_alter(%Alter{user_id: user.id, id: alter_id}, attrs)
-        |> Repo.insert_regional({:user, {:system, user.id}})
+        {:ok, alter} =
+          change_alter(%Alter{user_id: user.id, id: alter_id}, attrs)
+          |> Repo.insert_regional({:user, {:system, user.id}})
 
         spawn(fn ->
           OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alter_created", %{

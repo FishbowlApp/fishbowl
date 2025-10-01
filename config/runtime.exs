@@ -41,6 +41,17 @@ if config_env() == :prod do
         String.to_atom(region)
     end
 
+  current_db_datacenter =
+    case current_db_region do
+      :nam -> "dedi-us-east"
+      :eur -> "fly-fra"
+      :gdpr -> "fly-fra"
+      :ocn -> "fly-syd"
+      :eas -> "fly-sin"
+      :sam -> "fly-gru"
+      :sas -> "fly-bom"
+    end
+
   config :octocon, :node_group, node_group
   config :octocon, :current_db_region, current_db_region
 
@@ -72,6 +83,13 @@ if config_env() == :prod do
       For example: ecto://USER:PASS@HOST/DATABASE
       """
 
+  database_contact_points =
+    System.get_env("DATABASE_CONTACT_POINTS") ||
+      raise """
+      environment variable DATABASE_CONTACT_POINTS is missing.
+      For example: 100.100.127.0,100.100.127.1,100.100.127.2
+      """
+
   msg_database_url =
     System.get_env("MSG_DATABASE_URL") ||
       raise """
@@ -83,8 +101,13 @@ if config_env() == :prod do
 
   config :octocon, :proxy_db, System.get_env("OCTO_PROXY_DB") in ~w(true 1)
 
-  config :octocon, Octocon.Repo, pool_size: pool_size
-  # TODO: Make dynamic?
+  config :octocon, Octocon.Repo,
+    nodes: String.split(database_contact_points, ","),
+    load_balancing:
+      {Xandra.Cluster.LoadBalancingPolicy.DCAwareRoundRobin, [local_data_center: current_db_datacenter]},
+    refresh_topology_interval: :timer.minutes(1),
+    sync_connect: true,
+    pool_size: pool_size
 
   config :octocon, Octocon.OldRepo.Local,
     # ssl: true,

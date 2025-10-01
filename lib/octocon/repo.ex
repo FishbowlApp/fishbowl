@@ -1,30 +1,7 @@
-# defmodule Octocon.Repo do
-#   use Ecto.Repo,
-#     otp_app: :octocon,
-#     adapter: Ecto.Adapters.Postgres
-# end
-defmodule Octocon.Repo do
-  @regions [:nam, :eur, :ocn, :eas, :sam, :sas, :gdpr]
-  @funs [
-    "insert",
-    "update",
-    "delete",
-    "delete_all",
-    "get",
-    "one",
-    "all",
-    "aggregate"
-  ]
+defmodule Octocon.Repo.Macros do
+  @moduledoc false
 
-  use Ecto.Repo,
-    otp_app: :octocon,
-    adapter: Exandra
-
-  alias Octocon.UserRegistryCache
-
-  def region_list, do: @regions
-
-  defmacro create_global_shim(verb_string) when is_binary(verb_string) do
+  defmacro create_global_shim(verb_string) do
     verb = String.to_atom(verb_string)
     func_name = String.to_atom("#{verb}_global")
 
@@ -42,7 +19,7 @@ defmodule Octocon.Repo do
     end
   end
 
-  defmacro create_nam_nt_shim(verb_string) when is_binary(verb_string) do
+  defmacro create_nam_nt_shim(verb_string) do
     verb = String.to_atom(verb_string)
     func_name = String.to_atom("#{verb}_nam_nt")
 
@@ -60,7 +37,7 @@ defmodule Octocon.Repo do
     end
   end
 
-  defmacro create_regional_shim(verb_string) when is_binary(verb_string) do
+  defmacro create_regional_shim(verb_string) do
     verb = String.to_atom(verb_string)
     func_name = String.to_atom("#{verb}_regional")
 
@@ -103,16 +80,48 @@ defmodule Octocon.Repo do
       end
     end
   end
+end
 
-  for fun <- @funs do
-    create_global_shim(verb)
-    create_nam_nt_shim(verb)
-    create_regional_shim(verb)
-  end
+defmodule Octocon.Repo do
+  @regions [:nam, :eur, :ocn, :eas, :sam, :sas, :gdpr]
+  @funs [
+    "insert",
+    "update",
+    "delete",
+    "delete_all",
+    "get",
+    "one",
+    "all",
+    "aggregate"
+  ]
+
+  use Ecto.Repo,
+    otp_app: :octocon,
+    adapter: Exandra
+
+  require Octocon.Repo.Macros
+
+  alias Octocon.UserRegistryCache
+
+  def region_list, do: @regions
+
+  Enum.each(@funs, fn fun ->
+  Code.eval_quoted(
+    quote do
+      Octocon.Repo.Macros.create_global_shim(unquote(fun))
+      Octocon.Repo.Macros.create_nam_nt_shim(unquote(fun))
+      Octocon.Repo.Macros.create_regional_shim(unquote(fun))
+    end,
+    [],
+    __ENV__
+  )
+end)
 
   ### Manual shims
 
-  def exists_regional?(struct_or_changeset, {:region, region}, opts \\ [])
+  def exists_regional?(struct_or_changeset, identifier, opts \\ [])
+
+  def exists_regional?(struct_or_changeset, {:region, region}, opts)
       when is_binary(region) do
     exists_regional?(
       struct_or_changeset,
@@ -121,7 +130,7 @@ defmodule Octocon.Repo do
     )
   end
 
-  def exists_regional?(struct_or_changeset, {:region, region}, opts \\ [])
+  def exists_regional?(struct_or_changeset, {:region, region}, opts)
       when is_atom(region) and region in @regions do
     consistency = consistency_from_opts(opts, region)
 
@@ -133,8 +142,7 @@ defmodule Octocon.Repo do
     )
   end
 
-  def exists_regional?(struct_or_changeset, {:user, system_identity}, opts \\ [])
-      when is_binary(user_id) do
+  def exists_regional?(struct_or_changeset, {:user, system_identity}, opts) do
     region = UserRegistryCache.get_region(system_identity)
 
     if region == nil do
@@ -152,7 +160,9 @@ defmodule Octocon.Repo do
     __MODULE__.exists?(struct_or_changeset, Keyword.put(opts, :prefix, "nam_nt"))
   end
 
-  def update_all_regional(struct_or_changeset, updates, {:region, region}, opts \\ [])
+  def update_all_regional(struct_or_changeset, updates, identifier, opts \\ [])
+
+  def update_all_regional(struct_or_changeset, updates, {:region, region}, opts)
       when is_atom(region) and region in @regions do
     consistency = consistency_from_opts(opts, region)
 
@@ -165,8 +175,7 @@ defmodule Octocon.Repo do
     )
   end
 
-  def update_all_regional(struct_or_changeset, updates, {:user, system_identity}, opts \\ [])
-      when is_binary(user_id) do
+  def update_all_regional(struct_or_changeset, updates, {:user, system_identity}, opts) do
     region = UserRegistryCache.get_region(system_identity)
 
     if region == nil do
@@ -180,11 +189,13 @@ defmodule Octocon.Repo do
     __MODULE__.update_all(struct_or_changeset, updates, Keyword.put(opts, :prefix, "global"))
   end
 
-  def update_all_nam_nt(struct_or_changeset, opts \\ []) do
+  def update_all_nam_nt(struct_or_changeset, updates, opts \\ []) do
     __MODULE__.update_all(struct_or_changeset, updates, Keyword.put(opts, :prefix, "nam_nt"))
   end
 
-  def insert_all_regional(module, inserts, {:region, region}, opts \\ [])
+  def insert_all_regional(module, inserts, identifier, opts \\ [])
+
+  def insert_all_regional(module, inserts, {:region, region}, opts)
       when is_atom(region) and region in @regions do
     consistency = consistency_from_opts(opts, region)
 
@@ -197,8 +208,7 @@ defmodule Octocon.Repo do
     )
   end
 
-  def insert_all_regional(module, inserts, {:user, system_identity}, opts \\ [])
-      when is_binary(user_id) do
+  def insert_all_regional(module, inserts, {:user, system_identity}, opts) do
     region = UserRegistryCache.get_region(system_identity)
 
     if region == nil do

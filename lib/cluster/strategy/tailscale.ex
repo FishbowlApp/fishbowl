@@ -20,7 +20,6 @@ defmodule Cluster.Strategy.Tailscale do
   alias Cluster.Strategy.State
 
   @polling_interval 30_000
-  @endpoint "api.tailscale.com/api/v2"
 
   def start_link(args), do: GenServer.start_link(__MODULE__, args)
 
@@ -58,10 +57,8 @@ defmodule Cluster.Strategy.Tailscale do
   end
 
   defp get_nodes(%State{config: config}) do
-    tailnet = Keyword.fetch!(config, :tailnet)
     tag = Keyword.fetch!(config, :tag)
     appname = Keyword.fetch!(config, :appname)
-    authkey = Keyword.fetch!(config, :authkey)
 
     Octocon.Utils.Tailscale.list_devices()
     |> Enum.filter(&(("tag:" <> tag) in (&1["tags"] || [])))

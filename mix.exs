@@ -83,7 +83,7 @@ defmodule Octocon.MixProject do
       # github: "jchristgit/nosedrum", branch: "master", override: true},
 
       # Caching
-      {:cachex, "~> 3.6"},
+      {:cachex, "~> 4.1"},
       # Background jobs
       {:oban, "~> 2.19.4"},
       # Object storage
