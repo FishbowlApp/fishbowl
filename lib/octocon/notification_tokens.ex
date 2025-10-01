@@ -83,10 +83,12 @@ defmodule Octocon.NotificationTokens do
         Alters.can_view_entity?(level, alter.security_level)
       end)
       |> Enum.map_join(", ", & &1.name)
-      |> case do
-        "" -> "No one is fronting"
-        alters when String.length(alters) > 150 -> String.slice(alters, 0..150) <> "\n..."
-        alters -> alters
+
+    visible_alters =
+      cond do
+        visible_alters == "" -> "No one is fronting"
+        String.length(visible_alters) > 150 -> String.slice(visible_alters, 0..150) <> "\n..."
+        true -> visible_alters
       end
 
     {tokens, visible_alters}

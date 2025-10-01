@@ -20,6 +20,8 @@ defmodule Octocon.Application do
 
   use Application
 
+  import Cachex.Spec
+
   require Logger
 
   @impl true
@@ -65,9 +67,8 @@ defmodule Octocon.Application do
       Octocon.PromEx,
 
       # Distribution
-      # TODO: Turn back on
-      # {Cluster.Supervisor, [topologies, [name: Octocon.ClusterSupervisor]]},
-      # Octocon.RPC.NodeTracker,
+      {Cluster.Supervisor, [topologies, [name: Octocon.ClusterSupervisor]]},
+      Octocon.RPC.NodeTracker,
 
       # Ecto (Postgres database) repositories
       if(group != :primary_no_endpoint,
@@ -80,8 +81,10 @@ defmodule Octocon.Application do
       Supervisor.child_spec(
         {Cachex,
          name: Octocon.Cache.UserRegistry,
-         limit: limit(size: 20_000),
-         fallback: fallback(default: &Octocon.UserRegistryCache.cache_function/1)},
+         hooks: [
+          hook(module: Cachex.Limit.Scheduled, args: {20_000, [], [frequency: :timer.seconds(30)]}),
+         ],
+        },
         id: :user_registry_cache
       ),
       Octocon.Repo,

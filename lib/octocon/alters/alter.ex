@@ -131,7 +131,6 @@ end
 
 defmodule Octocon.Alters.AlterWithProxies do
   use Ecto.Schema
-  import Ecto.Changeset
 
   @primary_key false
 

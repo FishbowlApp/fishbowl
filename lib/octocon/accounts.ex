@@ -853,7 +853,7 @@ defmodule Octocon.Accounts do
     alters =
       from(
         a in AlterWithProxies,
-        where: a.user_id == ^user_id,
+        where: a.user_id == ^user.id,
         select: struct(a, [:id, :discord_proxies])
       )
       |> Repo.all_regional({:user, {:system, user.id}})

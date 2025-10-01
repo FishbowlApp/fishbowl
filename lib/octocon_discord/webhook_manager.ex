@@ -16,7 +16,7 @@ defmodule OctoconDiscord.WebhookManager do
   end
 
   defp do_fetch(channel_id) do
-    case Cachex.fetch!(OctoconDiscord.Cache.Webhooks, channel_id) do
+    case Cachex.fetch!(OctoconDiscord.Cache.Webhooks, channel_id, &OctoconDiscord.WebhookManager.cache_function/1) do
       %{id: _, token: _} = result -> result
       _ -> nil
     end

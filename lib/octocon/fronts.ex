@@ -222,9 +222,11 @@ defmodule Octocon.Fronts do
     if currently_fronting == [] do
       nil
     else
-      currently_fronting
-      |> Enum.max_by(fn %{front: front} -> front.time_start end)
-      |> Map.put(:primary, Accounts.get_primary_front({:system, system_id}) == front.alter_id)
+      fronter =
+        currently_fronting
+        |> Enum.max_by(fn %{front: front} -> front.time_start end)
+
+      Map.put(fronter, :primary, Accounts.get_primary_front({:system, system_id}) == fronter.alter_id)
     end
   end
 
@@ -421,7 +423,7 @@ defmodule Octocon.Fronts do
 
       Repo.update_all_regional(
         from(f in Front,
-          where: f.user_id == ^system_id and id in ^current_front_ids
+          where: f.user_id == ^system_id and f.id in ^current_front_ids
         ),
         [set: [time_end: now]],
         {:user, system_identity}
@@ -518,8 +520,6 @@ defmodule Octocon.Fronts do
         Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
           Octocon.Global.FrontNotifier.set(system_id, alter_id)
         end)
-
-        transaction
     end
   end
 
