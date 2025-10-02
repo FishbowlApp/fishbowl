@@ -76,6 +76,12 @@ if config_env() == :prod do
          :primary_node_count,
          String.to_integer(System.get_env("PRIMARY_NODE_COUNT") || "1")
 
+  database_password =
+    System.get_env("DATABASE_PASSWORD") ||
+      raise """
+      environment variable DATABASE_PASSWORD is missing.
+      """
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
@@ -88,6 +94,8 @@ if config_env() == :prod do
       raise """
       environment variable DATABASE_CONTACT_POINTS is missing.
       For example: 100.100.127.0,100.100.127.1,100.100.127.2
+
+      Whole env: #{inspect(System.get_env())}
       """
 
   msg_database_url =
@@ -106,7 +114,8 @@ if config_env() == :prod do
     load_balancing:
       {Xandra.Cluster.LoadBalancingPolicy.DCAwareRoundRobin, [local_data_center: current_db_datacenter]},
     refresh_topology_interval: :timer.minutes(1),
-    sync_connect: true,
+    sync_connect: :infinity,
+    authentication: {Xandra.Authenticator.Password, [username: "octo", password: database_password]},
     pool_size: pool_size
 
   config :octocon, Octocon.OldRepo.Local,

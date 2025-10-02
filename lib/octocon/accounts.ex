@@ -852,7 +852,7 @@ defmodule Octocon.Accounts do
 
     alters =
       from(
-        a in AlterWithProxies,
+        a in Alter,
         where: a.user_id == ^user.id,
         select: struct(a, [:id, :discord_proxies])
       )
