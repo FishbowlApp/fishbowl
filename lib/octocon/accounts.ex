@@ -118,9 +118,7 @@ defmodule Octocon.Accounts do
   Returns the total number of users in the database.
   """
   def count do
-    Repo.region_list()
-    |> Enum.map(&Repo.aggregate(UserRegistry, :count, prefix: &1))
-    |> Enum.sum()
+    Octocon.Repo.aggregate(UserRegistry, :count, prefix: :global, consistency: :local_one)
   end
 
   @doc """
@@ -212,7 +210,7 @@ defmodule Octocon.Accounts do
 
     case region_for_user({:system, uuid}) do
       nil ->
-        {:ok, uuid}
+        uuid
 
       _ ->
         allocate_uuid()
@@ -222,7 +220,7 @@ defmodule Octocon.Accounts do
   def register_user(user_id, region, attrs \\ %{}) do
     %UserRegistry{
       user_id: user_id,
-      region: region
+      region: to_string(region)
     }
     |> UserRegistry.changeset(attrs)
     |> Repo.insert_global()

@@ -74,7 +74,7 @@ defmodule Octocon.NotificationTokens do
   friendships
   |> Enum.map(fn {friend_id, level} ->
     # Get tokens for this friend
-    tokens = Map.get(token_map, friend_id, []) |> Enum.map(& &1.token)
+    tokens = Map.get(token_map, friend_id, []) |> Enum.map(& &1.push_token)
 
     # Filter alters visible at this security level
     visible_alters =
@@ -112,7 +112,7 @@ end
     user_id = Accounts.id_from_system_identity(system_identity, :system)
 
     changeset =
-      NotificationToken.changeset(%NotificationToken{}, %{user_id: user_id, token: token})
+      NotificationToken.changeset(%NotificationToken{}, %{user_id: user_id, push_token: token})
 
     Repo.insert_global(changeset)
   end
@@ -121,14 +121,14 @@ end
     user_id = Accounts.id_from_system_identity(system_identity, :system)
 
     from(n in NotificationToken,
-      where: n.user_id == ^user_id and n.token == ^token
+      where: n.user_id == ^user_id and n.push_token == ^token
     )
     |> Repo.delete_all_global()
   end
 
   def invalidate_notification_token(token) do
     from(n in NotificationToken,
-      where: n.token == ^token
+      where: n.push_token == ^token
     )
     |> Repo.delete_all_global()
   end

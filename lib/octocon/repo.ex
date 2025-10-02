@@ -1,6 +1,8 @@
 defmodule Octocon.Repo.Macros do
   @moduledoc false
 
+  alias Octocon.UserRegistryCache
+
   defmacro create_global_shim(verb_string) do
     verb = String.to_atom(verb_string)
     func_name = String.to_atom("#{verb}_global")
@@ -101,21 +103,19 @@ defmodule Octocon.Repo do
 
   require Octocon.Repo.Macros
 
-  alias Octocon.UserRegistryCache
-
   def region_list, do: @regions
 
   Enum.each(@funs, fn fun ->
-  Code.eval_quoted(
-    quote do
-      Octocon.Repo.Macros.create_global_shim(unquote(fun))
-      Octocon.Repo.Macros.create_nam_nt_shim(unquote(fun))
-      Octocon.Repo.Macros.create_regional_shim(unquote(fun))
-    end,
-    [],
-    __ENV__
-  )
-end)
+    Code.eval_quoted(
+      quote do
+        Octocon.Repo.Macros.create_global_shim(unquote(fun))
+        Octocon.Repo.Macros.create_nam_nt_shim(unquote(fun))
+        Octocon.Repo.Macros.create_regional_shim(unquote(fun))
+      end,
+      [],
+      __ENV__
+    )
+  end)
 
   ### Manual shims
 

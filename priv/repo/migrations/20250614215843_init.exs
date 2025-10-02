@@ -293,13 +293,13 @@ defmodule Octocon.Repo.Migrations.Init do
 
     create_table(keyspace, table, """
       user_id text,
-      token text,
+      push_token text,
 
       inserted_at timestamp,
       updated_at timestamp
-    """, "user_id, token")
+    """, "user_id, push_token")
 
-    create_index(keyspace, "notification_tokens", "token")
+    create_index(keyspace, "notification_tokens", "push_token")
   end
 
   def create_friendships_table do
