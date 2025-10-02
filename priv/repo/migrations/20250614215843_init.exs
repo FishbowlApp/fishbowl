@@ -247,7 +247,7 @@ defmodule Octocon.Repo.Migrations.Init do
     execute """
     CREATE MATERIALIZED VIEW IF NOT EXISTS #{keyspace}.fronts_by_alter AS
       SELECT * FROM #{keyspace}.fronts
-      WHERE user_id IS NOT NULL AND alter_id IS NOT NULL AND id IS NOT NULL
+      WHERE user_id IS NOT NULL AND alter_id IS NOT NULL AND id IS NOT NULL AND time_start IS NOT NULL
       PRIMARY KEY (user_id, alter_id, id, time_start)
     """, "DROP MATERIALIZED VIEW IF EXISTS #{keyspace}.fronts_by_alter"
   end
@@ -256,7 +256,7 @@ defmodule Octocon.Repo.Migrations.Init do
     execute """
     CREATE MATERIALIZED VIEW IF NOT EXISTS #{keyspace}.fronts_by_time AS
       SELECT * FROM #{keyspace}.fronts
-      WHERE user_id IS NOT NULL AND alter_id IS NOT NULL AND time_start IS NOT NULL AND time_end IS NOT NULL AND id IS NOT NULL
+      WHERE user_id IS NOT NULL AND time_start IS NOT NULL AND time_end IS NOT NULL AND id IS NOT NULL
       PRIMARY KEY (user_id, time_start, time_end, id)
     """, "DROP MATERIALIZED VIEW IF EXISTS #{keyspace}.fronts_by_time"
   end
