@@ -3,7 +3,7 @@ defmodule Octocon.NotificationTokens.NotificationToken do
   A token used to send mobile push notifications to a user. It consists of:
 
   - A user ID (7-character alphanumeric lowercase string)
-  - A token (a unique string identifying the device to be sent to Firebase Cloud Messaging)
+  - A push token (a unique string identifying the device to be sent to Firebase Cloud Messaging)
   """
   use Ecto.Schema
   import Ecto.Changeset
@@ -12,12 +12,7 @@ defmodule Octocon.NotificationTokens.NotificationToken do
 
   schema "notification_tokens" do
     field :user_id, :string, primary_key: true
-    field :token, :string, primary_key: true
-
-    # belongs_to :user, Octocon.Accounts.User,
-    #  foreign_key: :user_id,
-    #  references: :id,
-    #  define_field: false
+    field :push_token, :string, primary_key: true
 
     timestamps()
   end
@@ -27,7 +22,7 @@ defmodule Octocon.NotificationTokens.NotificationToken do
   """
   def changeset(notification_token, attrs) do
     notification_token
-    |> cast(attrs, [:user_id, :token])
-    |> validate_required([:user_id, :token])
+    |> cast(attrs, [:user_id, :push_token])
+    |> validate_required([:user_id, :push_token])
   end
 end

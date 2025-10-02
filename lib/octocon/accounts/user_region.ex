@@ -3,6 +3,7 @@ defmodule Octocon.Accounts.UserRegistry do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key false
   schema "user_registry" do
     field :user_id, :string, primary_key: true
     field :discord_id, :string
@@ -16,7 +17,7 @@ defmodule Octocon.Accounts.UserRegistry do
     timestamps()
   end
 
-  def update_changeset(user, attrs \\ %{}) do
+  def changeset(user, attrs \\ %{}) do
     user
     |> cast(attrs, [
       :user_id,

@@ -127,7 +127,7 @@ defmodule Octocon.FCM do
       from(
         n in NotificationToken,
         where: n.user_id in ^friend_ids,
-        select: {n.user_id, n.token}
+        select: {n.user_id, n.push_token}
       )
 
     # TODO
@@ -140,7 +140,7 @@ defmodule Octocon.FCM do
         {
           id,
           Enum.reduce(list, [], fn {_, _, token}, acc ->
-            [token.token | acc]
+            [token.push_token | acc]
           end),
           hd(list) |> elem(1)
         }
