@@ -15,11 +15,9 @@ defmodule Octocon.Repo.Migrations.Init do
     for keyspace <- @keyspaces do
       create_users_table(keyspace)
       create_alters_table(keyspace)
-      create_alters_with_proxies_view(keyspace)
 
       create_tags_table(keyspace)
       create_alter_tags_table(keyspace)
-      create_alter_tags_by_alter_view(keyspace)
 
       create_global_journals_table(keyspace)
       create_global_journal_alters_table(keyspace)
@@ -28,13 +26,14 @@ defmodule Octocon.Repo.Migrations.Init do
       create_polls_table(keyspace)
 
       create_fronts_tables(keyspace)
-      create_currently_fronting_view(keyspace)
+      create_fronts_by_alter_view(keyspace)
+      create_fronts_by_time_view(keyspace)
 
       # Execute the commands on the current keyspace before moving on to the next one
       flush()
     end
 
-    create_user_registry_tables()
+    create_user_registry_table()
     create_notification_tokens_table()
     create_channel_blacklists_table()
     create_server_settings_table()
@@ -112,16 +111,7 @@ defmodule Octocon.Repo.Migrations.Init do
       updated_at timestamp
     """, "user_id, id")
 
-    create_raw_index(keyspace, table_name, "alters_by_alias", "((user_id), alias)")
-  end
-
-  def create_alters_with_proxies_view(keyspace) do
-    execute """
-    CREATE MATERIALIZED VIEW IF NOT EXISTS #{keyspace}.alters_with_proxies AS
-      SELECT * FROM #{keyspace}.alters
-      WHERE user_id IS NOT NULL AND id IS NOT NULL AND discord_proxies IS NOT NULL
-      PRIMARY KEY (user_id, id)
-    """, "DROP MATERIALIZED VIEW IF EXISTS #{keyspace}.alters_with_proxies"
+    create_raw_index(keyspace, table_name, "alters_by_alias", "(user_id), alias")
   end
 
   def create_tags_table(keyspace) do
@@ -150,7 +140,7 @@ defmodule Octocon.Repo.Migrations.Init do
       updated_at timestamp
     """, "user_id, tag_id, alter_id")
 
-    create_raw_index(keyspace, "alter_tags", "alter_tags_by_alter", "((user_id), alter_id, tag_id)")
+    create_raw_index(keyspace, "alter_tags", "alter_tags_by_alter", "(user_id), alter_id")
   end
 
   def create_polls_table(keyspace) do
@@ -212,10 +202,10 @@ defmodule Octocon.Repo.Migrations.Init do
       updated_at timestamp
     """, "user_id, id, alter_id")
 
-    create_raw_index(keyspace, "alter_journals", "alter_journals_by_alter", "((user_id), alter_id, id)")
+    create_raw_index(keyspace, "alter_journals", "alter_journals_by_alter", "(user_id), alter_id")
   end
 
-    def create_alter_journals_by_alter_view(keyspace) do
+  def create_alter_journals_by_alter_view(keyspace) do
     execute """
     CREATE MATERIALIZED VIEW IF NOT EXISTS #{keyspace}.alter_journals_by_alter AS
       SELECT * FROM #{keyspace}.alter_journals
@@ -258,7 +248,7 @@ defmodule Octocon.Repo.Migrations.Init do
     CREATE MATERIALIZED VIEW IF NOT EXISTS #{keyspace}.fronts_by_alter AS
       SELECT * FROM #{keyspace}.fronts
       WHERE user_id IS NOT NULL AND alter_id IS NOT NULL AND id IS NOT NULL
-      PRIMARY KEY (user_id, alter_id, id)
+      PRIMARY KEY (user_id, alter_id, id, time_start)
     """, "DROP MATERIALIZED VIEW IF EXISTS #{keyspace}.fronts_by_alter"
   end
 
@@ -393,7 +383,7 @@ defmodule Octocon.Repo.Migrations.Init do
 
   def create_raw_index(keyspace, table, name, on) when is_binary(keyspace) and is_binary(table) and is_binary(name) and is_binary(on) do
     execute """
-    CREATE INDEX #{name} ON #{keyspace}.#{table} (#{on})
+    CREATE INDEX IF NOT EXISTS #{name} ON #{keyspace}.#{table} (#{on})
     """, "DROP INDEX #{keyspace}.#{name}"
   end
 
@@ -401,7 +391,7 @@ defmodule Octocon.Repo.Migrations.Init do
     name = "#{table}_by_#{field}"
 
     execute """
-    CREATE INDEX #{name} ON #{keyspace}.#{table} (#{field})
+    CREATE INDEX IF NOT EXISTS #{name} ON #{keyspace}.#{table} (#{field})
     """, "DROP INDEX #{keyspace}.#{name}"
   end
 end
