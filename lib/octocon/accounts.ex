@@ -320,7 +320,8 @@ defmodule Octocon.Accounts do
 
           result
 
-        err -> err
+        err ->
+          err
       end
     end
   end
@@ -634,7 +635,7 @@ defmodule Octocon.Accounts do
         :discord_settings
       ])
 
-    Repo.one_regional(query. {:user, system_identity})
+    Repo.one_regional(query.{:user, system_identity})
   end
 
   @doc """
@@ -749,7 +750,7 @@ defmodule Octocon.Accounts do
         OctoconDiscord.ProxyCache.invalidate(user.discord_id)
 
         spawn(fn ->
-          delete_user_registry(user.id)
+          delete_user_registry({:system, user.id})
           delete_user_data(user.id)
         end)
 
@@ -805,13 +806,19 @@ defmodule Octocon.Accounts do
     |> Repo.delete_all_regional({:user, {:system, system_id}})
   end
 
-  @doc false
-  def wipe_alters_internal(system_identity) do
+  @doc """
+  Wipes all alters associated with the user associated with the provided system identity.
+
+  This also resets the user's lifetime alter count to 0, so the next alter will be assigned ID 1.
+  """
+  def wipe_alters(system_identity) do
+    OctoconDiscord.ProxyCache.invalidate(system_identity)
+
     user = get_user!(system_identity)
 
     query =
       from a in Alter,
-      where: a.user_id == ^user.id
+        where: a.user_id == ^user.id
 
     Repo.delete_all_regional(query, {:user, {:system, user.id}})
 
@@ -822,17 +829,6 @@ defmodule Octocon.Accounts do
     spawn(fn ->
       OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alters_wiped", %{})
     end)
-  end
-
-  @doc """
-  Wipes all alters associated with the user associated with the provided system identity.
-
-  This also resets the user's lifetime alter count to 0, so the next alter will be assigned ID 1.
-  """
-  def wipe_alters(system_identity) do
-    OctoconDiscord.ProxyCache.invalidate(system_identity)
-
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :wipe_alters_internal, [system_identity])
   end
 
   @doc """
@@ -983,49 +979,41 @@ defmodule Octocon.Accounts do
   defp wrap_fields_broadcast({:error, _} = result, _), do: result
 
   def wipe_encrypted_data(system_identity) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :wipe_encrypted_data_internal, [
-      system_identity
-    ])
-  end
-
-  def wipe_encrypted_data_internal(system_identity) do
     alias Octocon.Journals.{AlterJournalEntry, GlobalJournalAlters, GlobalJournalEntry}
 
-    Repo.transaction(fn ->
-      user = get_user!(system_identity)
-      specifier = {:user, {:system, user.id}}
+    user = get_user!(system_identity)
+    specifier = {:user, {:system, user.id}}
 
-      {:ok, _} =
-        user
-        |> User.update_changeset(%{
-          encryption_initialized: false,
-          encryption_key_checksum: nil
-        })
-        |> Repo.update_regional(specifier)
+    {:ok, _} =
+      user
+      |> User.update_changeset(%{
+        encryption_initialized: false,
+        encryption_key_checksum: nil
+      })
+      |> Repo.update_regional(specifier)
 
-      from(
-        ja in GlobalJournalAlters,
-        where: ja.user_id == ^user.id
-      )
-      |> Repo.delete_all_regional(specifier)
+    from(
+      ja in GlobalJournalAlters,
+      where: ja.user_id == ^user.id
+    )
+    |> Repo.delete_all_regional(specifier)
 
-      from(
-        j in GlobalJournalEntry,
-        where: j.user_id == ^user.id
-      )
-      |> Repo.delete_all_regional(specifier)
+    from(
+      j in GlobalJournalEntry,
+      where: j.user_id == ^user.id
+    )
+    |> Repo.delete_all_regional(specifier)
 
-      from(
-        j in AlterJournalEntry,
-        where: j.user_id == ^user.id
-      )
-      |> Repo.delete_all_regional(specifier)
+    from(
+      j in AlterJournalEntry,
+      where: j.user_id == ^user.id
+    )
+    |> Repo.delete_all_regional(specifier)
 
-      spawn(fn ->
-        OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "encrypted_data_wiped", %{})
-      end)
-
-      :ok
+    spawn(fn ->
+      OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "encrypted_data_wiped", %{})
     end)
+
+    :ok
   end
 end
