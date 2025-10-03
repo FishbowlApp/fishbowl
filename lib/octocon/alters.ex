@@ -60,7 +60,10 @@ defmodule Octocon.Alters do
       Alter
       |> where(^where)
 
-    Repo.exists_regional?(query, {:user, system_identity})
+    case Repo.all(query, {:user, system_identity}) do
+      [] -> false
+      _ -> true
+    end
   end
 
   @doc """
@@ -325,25 +328,36 @@ defmodule Octocon.Alters do
     end
   end
 
-  @doc """
-  Creates a new alter given a system identity and a map of `attrs`.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-  """
-  def create_alter(system_identity, attrs \\ %{}) do
+  def create_alter(system_identity, attrs \\ %{}, force_id \\ nil) do
     case Accounts.get_user(system_identity) do
       nil ->
         {:error, :no_user}
 
       user ->
-        Octocon.ClusterUtils.run_on_primary(__MODULE__, :create_alter_internal, [user, attrs, nil])
+        alter_id = if force_id == nil, do: user.lifetime_alter_count + 1, else: force_id
+
+        case Accounts.update_user(user, %{lifetime_alter_count: alter_id}) do
+          {:ok, _user} ->
+            {:ok, alter} =
+              change_alter(%Alter{user_id: user.id, id: alter_id}, attrs)
+              |> Repo.insert_regional({:user, {:system, user.id}})
+
+            spawn(fn ->
+              OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alter_created", %{
+                alter: alter |> OctoconWeb.System.AlterJSON.data_me()
+              })
+            end)
+
+            {:ok, alter_id, get_alter_by_id!({:system, user.id}, {:id, alter_id})}
+
+          {:error, _changeset} ->
+            {:error, :database}
+        end
     end
   end
 
   @doc """
   Creates a new alter given a system identity and a map of `attrs`.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
 
   Raises an error if a user is not found with the given `system_identity`.
   """
@@ -360,13 +374,16 @@ defmodule Octocon.Alters do
     end
   end
 
-  @doc false
-  def delete_alter_internal(system_identity, alter_identity) do
+  @doc """
+  Deletes an alter given a system identity and an alter identity.
+  """
+  def delete_alter(system_identity, alter_identity) do
     alter_id = resolve_alter(system_identity, alter_identity)
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     if alter_id != false do
-      where = unwrap_system_identity_where(system_identity, unwrap_alter_identity_where(alter_identity))
+      where =
+        unwrap_system_identity_where(system_identity, unwrap_alter_identity_where(alter_identity))
 
       query =
         Alter
@@ -405,20 +422,9 @@ defmodule Octocon.Alters do
   end
 
   @doc """
-  Deletes an alter given a system identity and an alter identity.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-
-  Raises an error if the alter is not found.
+  Updates an alter given a system identity, an alter identity, and a map of `attrs`.
   """
-  def delete_alter(system_identity, alter_identity) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :delete_alter_internal, [
-      system_identity,
-      alter_identity
-    ])
-  end
-
-  def update_alter_internal(system_identity, alter_identity, attrs) do
+  def update_alter(system_identity, alter_identity, attrs) do
     alter_id = resolve_alter(system_identity, alter_identity)
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
@@ -469,6 +475,7 @@ defmodule Octocon.Alters do
         case Repo.update_all_regional(query, [], {:user, system_identity}) do
           {0, _} ->
             {:error, :no_alter}
+
           {1, _} ->
             spawn(fn ->
               alter = get_alter_by_id!(system_identity, {:id, alter_id})
@@ -498,23 +505,6 @@ defmodule Octocon.Alters do
 
   @doc """
   Updates an alter given a system identity, an alter identity, and a map of `attrs`.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-  """
-  def update_alter(system_identity, alter_identity, attrs) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :update_alter_internal, [
-      system_identity,
-      alter_identity,
-      attrs
-    ])
-  end
-
-  @doc """
-  Updates an alter given a system identity, an alter identity, and a map of `attrs`.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-
-  Raises an error if the alter is not found.
   """
   def update_alter!(system_identity, alter_identity, attrs) do
     case update_alter(system_identity, alter_identity, attrs) do

@@ -106,7 +106,7 @@ defmodule Octocon.Polls do
     end
   end
 
-  def update_poll_internal(system_identity, poll_id, attrs) do
+  def update_poll(system_identity, poll_id, attrs) do
     case get_poll(system_identity, poll_id) do
       nil ->
         {:error, :not_found}
@@ -135,14 +135,6 @@ defmodule Octocon.Polls do
             {:error, :changeset}
         end
     end
-  end
-
-  def update_poll(system_identity, poll_id, attrs) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :update_poll_internal, [
-      system_identity,
-      poll_id,
-      attrs
-    ])
   end
 
   @doc """

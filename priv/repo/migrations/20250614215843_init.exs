@@ -27,7 +27,7 @@ defmodule Octocon.Repo.Migrations.Init do
 
       create_fronts_tables(keyspace)
       create_fronts_by_alter_view(keyspace)
-      create_fronts_by_time_view(keyspace)
+      create_fronts_by_time_views(keyspace)
 
       # Execute the commands on the current keyspace before moving on to the next one
       flush()
@@ -252,13 +252,20 @@ defmodule Octocon.Repo.Migrations.Init do
     """, "DROP MATERIALIZED VIEW IF EXISTS #{keyspace}.fronts_by_alter"
   end
 
-  def create_fronts_by_time_view(keyspace) do
+  def create_fronts_by_time_views(keyspace) do
     execute """
     CREATE MATERIALIZED VIEW IF NOT EXISTS #{keyspace}.fronts_by_time AS
       SELECT * FROM #{keyspace}.fronts
       WHERE user_id IS NOT NULL AND time_start IS NOT NULL AND time_end IS NOT NULL AND id IS NOT NULL
       PRIMARY KEY (user_id, time_start, time_end, id)
     """, "DROP MATERIALIZED VIEW IF EXISTS #{keyspace}.fronts_by_time"
+
+    execute """
+    CREATE MATERIALIZED VIEW IF NOT EXISTS #{keyspace}.fronts_by_end_time AS
+      SELECT * FROM #{keyspace}.fronts
+      WHERE user_id IS NOT NULL AND time_start IS NOT NULL AND time_end IS NOT NULL AND id IS NOT NULL
+      PRIMARY KEY (user_id, time_end, time_start, id)
+    """, "DROP MATERIALIZED VIEW IF EXISTS #{keyspace}.fronts_by_end_time"
   end
 
   ### PINNED TABLES ###

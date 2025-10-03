@@ -24,7 +24,7 @@ defmodule OctoconDiscord.Supervisor do
         {Cachex,
          name: OctoconDiscord.Cache.ServerSettings,
          hooks: [
-          hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]}),
+           hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
          ],
          expiration: expiration(default: :timer.minutes(10))},
         id: :server_settings_cache
@@ -34,7 +34,7 @@ defmodule OctoconDiscord.Supervisor do
         {Cachex,
          name: OctoconDiscord.Cache.Webhooks,
          hooks: [
-          hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]}),
+           hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
          ],
          expiration: expiration(default: :timer.minutes(10))},
         id: :webhooks_cache

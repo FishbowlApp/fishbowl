@@ -17,10 +17,7 @@ defmodule Octocon.Fronts do
   alias Octocon.Alters.Alter
   alias Octocon.Friendships
 
-  alias Octocon.Fronts.{
-    CurrentFront,
-    Front
-  }
+  alias Octocon.Fronts.{CurrentFront, Front, FrontByAlter, FrontByTime, FrontByEndTime}
 
   def get_by_id(system_identity, id) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
@@ -52,7 +49,7 @@ defmodule Octocon.Fronts do
     end
   end
 
-  def delete_front_internal(system_identity, id) do
+  def delete_front(system_identity, id) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     result = Repo.delete_regional(%Front{id: id, user_id: system_id}, {:user, system_identity})
@@ -66,10 +63,6 @@ defmodule Octocon.Fronts do
     end
 
     result
-  end
-
-  def delete_front(system_identity, id) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :delete_front_internal, [system_identity, id])
   end
 
   def currently_fronting(system_identity) do
@@ -172,46 +165,90 @@ defmodule Octocon.Fronts do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
     alter_id = Alters.resolve_alter({:system, system_id}, alter_identity)
 
-    from(
-      f in CurrentFront,
-      where: f.user_id == ^system_id and f.alter_id == ^alter_id,
-      select: f
-    )
-    |> Repo.exists?()
+    if alter_id == false do
+      false
+    else
+      from(
+        f in CurrentFront,
+        where: f.user_id == ^system_id and f.alter_id == ^alter_id,
+        select: f
+      )
+      |> Repo.all_regional({:user, system_identity})
+      |> case do
+        [] -> false
+        _ -> true
+      end
+    end
   end
 
   def fronted_between(system_identity, time_start, time_end) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    from(
-      f in Front,
-      where:
-        f.user_id == ^system_id and not is_nil(f.time_end) and
-          ((f.time_start >= ^time_start and f.time_start <= ^time_end) or
-             (f.time_end >= ^time_start and f.time_end <= ^time_end) or
-             (f.time_start <= ^time_start and f.time_end >= ^time_end)),
-      select: f
-    )
-    |> Repo.all_regional({:user, system_identity})
-    |> Enum.sort_by(& &1.time_start, {:desc, DateTime})
+    # Query 1: time_start within range (original table)
+    q1 =
+      from f in FrontByTime,
+        where:
+          f.user_id == ^system_id and not is_nil(f.time_end) and
+            f.time_start >= ^time_start and f.time_start <= ^time_end,
+        select: f
+
+    # Query 2: time_end within range (use FrontByEndTime for efficiency)
+    q2 =
+      from f in FrontByEndTime,
+        where:
+          f.user_id == ^system_id and not is_nil(f.time_end) and
+            f.time_end >= ^time_start and f.time_end <= ^time_end,
+        select: f
+
+    # Query 3: entries spanning entire range (still use FrontByTime)
+    q3 =
+      from f in FrontByTime,
+        where:
+          f.user_id == ^system_id and not is_nil(f.time_end) and
+            f.time_start <= ^time_start and f.time_end >= ^time_end,
+        select: f
+
+    results =
+      ((Repo.all_regional(q1, {:user, system_identity}) |> FrontByTime.to_front()) ++
+         (Repo.all_regional(q2, {:user, system_identity}) |> FrontByEndTime.to_front()) ++
+         (Repo.all_regional(q3, {:user, system_identity}) |> FrontByTime.to_front()))
+      |> Enum.uniq_by(& &1.id)
+      |> Enum.sort_by(& &1.time_start, {:desc, DateTime})
+
+    results
   end
 
   def fronted_for_month(system_identity, end_anchor \\ DateTime.utc_now()) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    from(
-      f in Front,
-      where:
-        f.user_id == ^system_id and
-          not is_nil(f.time_end) and
-          ((f.time_start >= datetime_add(^end_anchor, -1, "month") and
-              f.time_start <= ^end_anchor) or
-             (f.time_end >= datetime_add(^end_anchor, -1, "month") and
-                f.time_end <= ^end_anchor)),
-      select: f
-    )
-    |> Repo.all_regional({:user, system_identity})
-    |> Enum.sort_by(& &1.time_start, {:desc, DateTime})
+    # Compute start of the one-month window
+    start_date = DateTime.add(end_anchor, -30 * 24 * 60 * 60, :second)
+    end_date = end_anchor
+
+    # Query 1: time_start within window (original table)
+    q1 =
+      from f in FrontByTime,
+        where:
+          f.user_id == ^system_id and
+            f.time_start >= ^start_date and f.time_start <= ^end_date,
+        select: f
+
+    # Query 2: time_end within window (MV keyed by time_end)
+    q2 =
+      from f in FrontByEndTime,
+        where:
+          f.user_id == ^system_id and
+            f.time_end >= ^start_date and f.time_end <= ^end_date,
+        select: f
+
+    results =
+      ((Repo.all_regional(q1, {:user, system_identity}) |> Enum.each(&FrontByTime.to_front/1)) ++
+         (Repo.all_regional(q2, {:user, system_identity})
+          |> Enum.each(&FrontByEndTime.to_front/1)))
+      |> Enum.uniq_by(& &1.id)
+      |> Enum.sort_by(& &1.time_start, {:desc, DateTime})
+
+    results
   end
 
   def longest_current_fronter(system_identity) do
@@ -226,11 +263,15 @@ defmodule Octocon.Fronts do
         currently_fronting
         |> Enum.max_by(fn %{front: front} -> front.time_start end)
 
-      Map.put(fronter, :primary, Accounts.get_primary_front({:system, system_id}) == fronter.alter_id)
+      Map.put(
+        fronter,
+        :primary,
+        Accounts.get_primary_front({:system, system_id}) == fronter.alter_id
+      )
     end
   end
 
-  def end_front_internal(system_identity, alter_identity) do
+  def end_front(system_identity, alter_identity) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
     alter_id = Alters.resolve_alter({:system, system_id}, alter_identity)
 
@@ -252,7 +293,9 @@ defmodule Octocon.Fronts do
           Repo.update_all_regional(
             from(
               f in Front,
-              where: f.user_id == ^system_id and f.alter_id == ^alter_id and f.id == ^front.id
+              where:
+                f.user_id == ^system_id and f.id == ^front.id and
+                  f.time_start == ^front.time_start
             ),
             [set: [time_end: DateTime.utc_now(:second)]],
             {:user, system_identity}
@@ -295,14 +338,7 @@ defmodule Octocon.Fronts do
     end
   end
 
-  def end_front(system_identity, alter_identity) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :end_front_internal, [
-      system_identity,
-      alter_identity
-    ])
-  end
-
-  def start_front_internal(system_identity, alter_identity, comment \\ "") do
+  def start_front(system_identity, alter_identity, comment \\ "") do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
     alter_id = Alters.resolve_alter({:system, system_id}, alter_identity)
 
@@ -341,23 +377,17 @@ defmodule Octocon.Fronts do
           })
         end)
 
-        Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
-          Octocon.Global.FrontNotifier.add(system_id, alter_id)
+        spawn(fn ->
+          Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
+            Octocon.Global.FrontNotifier.add(system_id, alter_id)
+          end)
         end)
 
         insertion
     end
   end
 
-  def start_front(system_identity, alter_identity, comment \\ "") do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :start_front_internal, [
-      system_identity,
-      alter_identity,
-      comment
-    ])
-  end
-
-  def update_comment_internal(system_identity, front_id, comment) do
+  def update_comment(system_identity, front_id, comment) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     case get_by_id({:system, system_id}, front_id) do
@@ -367,7 +397,18 @@ defmodule Octocon.Fronts do
       front ->
         case change_front(front.front, %{comment: comment}) do
           %Ecto.Changeset{valid?: true} = changeset ->
-            Repo.update(changeset)
+            Repo.update_regional(changeset, {:user, system_identity})
+
+            if front.front.time_end == nil do
+              from(
+                f in CurrentFront,
+                where: f.user_id == ^system_id and f.alter_id == ^front.front.alter_id
+              )
+              |> Repo.update_all_regional(
+                [set: [comment: comment]],
+                {:user, system_identity}
+              )
+            end
 
             spawn(fn ->
               OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "front_updated", %{
@@ -383,15 +424,7 @@ defmodule Octocon.Fronts do
     end
   end
 
-  def update_comment(system_identity, front_id, comment) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :update_comment_internal, [
-      system_identity,
-      front_id,
-      comment
-    ])
-  end
-
-  def bulk_update_fronts_internal(system_identity, start_fronts, end_fronts)
+  def bulk_update_fronts(system_identity, start_fronts, end_fronts)
       when is_list(start_fronts) and is_list(end_fronts) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
@@ -417,17 +450,21 @@ defmodule Octocon.Fronts do
         from(
           f in CurrentFront,
           where: f.user_id == ^system_id and f.alter_id in ^end_fronts,
-          select: f.id
+          select: {f.id, f.time_start}
         )
         |> Repo.all()
 
-      Repo.update_all_regional(
-        from(f in Front,
-          where: f.user_id == ^system_id and f.id in ^current_front_ids
-        ),
-        [set: [time_end: now]],
-        {:user, system_identity}
-      )
+      current_front_ids
+      |> Enum.each(fn {id, time_start} ->
+        from(
+          f in Front,
+          where: f.user_id == ^system_id and f.id == ^id and f.time_start == ^time_start
+        )
+        |> Repo.update_all_regional(
+          [set: [time_end: now]],
+          {:user, system_identity}
+        )
+      end)
 
       Repo.delete_all_regional(
         from(f in CurrentFront,
@@ -442,15 +479,7 @@ defmodule Octocon.Fronts do
     end
   end
 
-  def bulk_update_fronts(system_identity, start_fronts, end_fronts) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :bulk_update_fronts_internal, [
-      system_identity,
-      start_fronts,
-      end_fronts
-    ])
-  end
-
-  def set_front_internal(system_identity, alter_identity, comment \\ "") do
+  def set_front(system_identity, alter_identity, comment \\ "") do
     # Sets an alter to front and ends all existing fronts
 
     system_id = Accounts.id_from_system_identity(system_identity, :system)
@@ -467,27 +496,27 @@ defmodule Octocon.Fronts do
         id = Ecto.UUID.generate()
         now = DateTime.utc_now(:second)
 
+        region_specifier = {:user, system_identity}
+
         current_front_ids =
           from(
             f in CurrentFront,
             where: f.user_id == ^system_id,
-            select: f.id
+            select: {f.id, f.time_start}
           )
-          |> Repo.all_regional({:user, system_identity})
+          |> Repo.all_regional(region_specifier)
 
-        Repo.delete_all_regional(
-          from(f in CurrentFront,
-            where: f.user_id == ^system_id
-          ),
-          {:user, system_identity}
+        from(f in CurrentFront,
+          where: f.user_id == ^system_id
         )
+        |> Repo.delete_all_regional(region_specifier)
 
-        Repo.update_all_regional(
-          from(f in Front,
-            where: f.user_id == ^system_id and f.id in ^current_front_ids
-          ),
+        from(f in Front,
+          where: f.user_id == ^system_id and f.id in ^current_front_ids
+        )
+        |> Repo.update_all_regional(
           [set: [time_end: now]],
-          {:user, system_identity}
+          region_specifier
         )
 
         %Front{
@@ -498,7 +527,7 @@ defmodule Octocon.Fronts do
           time_start: now,
           time_end: nil
         }
-        |> Repo.insert_regional({:user, system_identity})
+        |> Repo.insert_regional(region_specifier)
 
         %CurrentFront{
           id: id,
@@ -507,7 +536,7 @@ defmodule Octocon.Fronts do
           comment: comment,
           time_start: now
         }
-        |> Repo.insert_regional({:user, system_identity})
+        |> Repo.insert_regional(region_specifier)
 
         Accounts.set_primary_front({:system, system_id}, nil)
 
@@ -523,28 +552,23 @@ defmodule Octocon.Fronts do
     end
   end
 
-  def set_front(system_identity, alter_identity, comment \\ "") do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :set_front_internal, [
-      system_identity,
-      alter_identity,
-      comment
-    ])
-  end
-
   def delete_alter_fronts(system_identity, alter_id) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    front_ids =
+    fronts =
       from(
         f in FrontByAlter,
         where: f.user_id == ^system_id and f.alter_id == ^alter_id,
-        select: f.id
+        select: {f.id, f.time_start}
       )
       |> Repo.all()
 
+    front_ids = Enum.map(fronts, &elem(&1, 0))
+    front_time_starts = Enum.map(fronts, &elem(&1, 1))
+
     from(
       f in Front,
-      where: f.user_id == ^system_id and f.id in ^front_ids
+      where: f.user_id == ^system_id and f.id in ^front_ids and f.time_start in ^front_time_starts
     )
     |> Repo.delete_all_regional({:user, system_identity})
   end

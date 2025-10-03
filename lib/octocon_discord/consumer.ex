@@ -5,6 +5,7 @@ defmodule OctoconDiscord.Consumer do
   require Logger
 
   alias Nostrum.ConsumerGroup
+
   alias OctoconDiscord.{
     Commands,
     Components

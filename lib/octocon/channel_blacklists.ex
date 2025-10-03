@@ -27,7 +27,10 @@ defmodule Octocon.ChannelBlacklists do
   Gets all channel blacklists for a given guild.
   """
   def list_channel_blacklists_by_guild(guild_id) do
-    Repo.all_regional(from(c in ChannelBlacklist, where: c.guild_id == ^to_string(guild_id)), @region_specifier)
+    Repo.all_regional(
+      from(c in ChannelBlacklist, where: c.guild_id == ^to_string(guild_id)),
+      @region_specifier
+    )
   end
 
   @doc """
@@ -36,7 +39,12 @@ defmodule Octocon.ChannelBlacklists do
   This should always be backed by a `OctoconDiscord.ChannelBlacklistManager` cache, as it is a latency-sensitive operation.
   """
   def is_channel_blacklisted?(channel_id) do
-    Repo.exists_regional?(from(c in ChannelBlacklist, where: c.channel_id == ^to_string(channel_id)), @region_specifier)
+    from(c in ChannelBlacklist, where: c.channel_id == ^to_string(channel_id))
+    |> Repo.all_regional(@region_specifier)
+    |> case do
+      [] -> false
+      _ -> true
+    end
   end
 
   @doc """

@@ -42,7 +42,7 @@ defmodule Octocon.Friendships do
         where: u.id == ^friend_id,
         select: struct(u, [:username, :description, :discord_id, :id, :avatar_url])
       )
-      |> Repo.one_global()
+      |> Repo.one_regional({:user, {:system, friend_id}})
 
     %{
       friendship: friendship,
@@ -87,7 +87,7 @@ defmodule Octocon.Friendships do
       |> Repo.all_global()
 
     friend_data =
-      Enum.map(friendships, &(&1.friend_id))
+      Enum.map(friendships, & &1.friend_id)
       |> Enum.map(fn id ->
         query =
           from(
@@ -95,10 +95,11 @@ defmodule Octocon.Friendships do
             where: u.id == ^id,
             select: struct(u, [:avatar_url, :username, :discord_id, :id])
           )
+
         {query, {:system, id}}
       end)
       |> Enum.map(fn {query, system_identity} ->
-        Repo.one_regional(query, system_identity)
+        Repo.one_regional(query, {:user, system_identity})
       end)
       |> Enum.into(%{}, fn user -> {user.id, user} end)
 
@@ -128,10 +129,11 @@ defmodule Octocon.Friendships do
             where: f.user_id == ^id,
             select: struct(f, [:id, :user_id, :alter_id, :comment, :time_start])
           )
+
         {query, {:system, id}}
       end)
       |> Enum.map(fn {query, system_identity} ->
-        Repo.all_regional(query, system_identity)
+        Repo.all_regional(query, {:user, system_identity})
       end)
       |> List.flatten()
       |> Enum.map(&CurrentFront.to_front/1)
@@ -140,17 +142,27 @@ defmodule Octocon.Friendships do
       friendship_ids
       |> Enum.map(fn id ->
         alter_ids = Enum.filter(fronts, fn f -> f.user_id == id end) |> Enum.map(& &1.alter_id)
+
         query =
           from(
             a in Alter,
             where: a.user_id == ^id and a.id in ^alter_ids,
             select:
-              struct(a, [:id, :name, :avatar_url, :pronouns, :color, :security_level, :description])
+              struct(a, [
+                :id,
+                :name,
+                :avatar_url,
+                :pronouns,
+                :color,
+                :security_level,
+                :description
+              ])
           )
+
         {query, {:system, id}}
       end)
       |> Enum.map(fn {query, system_identity} ->
-        Repo.all_regional(query, system_identity)
+        Repo.all_regional(query, {:user, system_identity})
       end)
       |> List.flatten()
 
@@ -201,11 +213,13 @@ defmodule Octocon.Friendships do
 
     from(
       f in Friendship,
-      where:
-        (f.user_id == ^left_id and f.friend_id == ^right_id) or
-          (f.user_id == ^right_id and f.friend_id == ^left_id)
+      where: f.user_id == ^left_id and f.friend_id == ^right_id
     )
-    |> Repo.exists_global?()
+    |> Repo.one_global()
+    |> case do
+      nil -> false
+      _ -> true
+    end
   end
 
   @doc """
@@ -290,11 +304,17 @@ defmodule Octocon.Friendships do
       r in Request,
       where: r.from_id == ^from_id and r.to_id == ^to_id
     )
-    |> Repo.exists_global?()
+    |> Repo.all_global()
+    |> case do
+      [] -> false
+      _ -> true
+    end
   end
 
-  @doc false
-  def link_friends_internal(from_identity, to_identity) do
+  @doc """
+  Links two users as friends, creating bidirectional friendship entries between them.
+  """
+  def link_friends(from_identity, to_identity) do
     from_id = Accounts.id_from_system_identity(from_identity, :system)
     to_id = Accounts.id_from_system_identity(to_identity, :system)
 
@@ -317,18 +337,6 @@ defmodule Octocon.Friendships do
     delete_friend_requests(from_identity, to_identity)
 
     :ok
-  end
-
-  @doc """
-  Links two users as friends, creating bidirectional friendship entries between them.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-  """
-  def link_friends(from_identity, to_identity) do
-    Octocon.ClusterUtils.run_on_primary(__MODULE__, :link_friends_internal, [
-      from_identity,
-      to_identity
-    ])
   end
 
   @doc """
@@ -394,42 +402,34 @@ defmodule Octocon.Friendships do
     user_id = Accounts.id_from_system_identity(user_identity, :system)
     friend_id = Accounts.id_from_system_identity(friend_identity, :system)
 
-    result =
+    if not friendship_exists?(user_identity, friend_identity) do
+      {:error, :not_friends}
+    else
       from(
         f in Friendship,
-        where:
-          (f.user_id == ^user_id and f.friend_id == ^friend_id) or
-            (f.user_id == ^friend_id and f.friend_id == ^user_id)
+        where: f.user_id == ^user_id and f.friend_id == ^friend_id
       )
       |> Repo.delete_all_global()
 
-    case result do
-      {0, _} ->
-        {:error, :not_friends}
+      from(
+        f in Friendship,
+        where: f.user_id == ^friend_id and f.friend_id == ^user_id
+      )
+      |> Repo.delete_all_global()
 
-      {2, _} ->
-        OctoconDiscord.Utils.send_dm(
-          {:system, friend_id},
-          "Friendship removed",
-          "You are no longer friends with the system **#{user_id}**."
-        )
-
-        [
-          {friend_id, user_id},
-          {user_id, friend_id}
-        ]
-        |> Enum.each(fn {to, removed} ->
-          spawn(fn ->
-            OctoconWeb.Endpoint.broadcast!("system:#{to}", "friend_removed", %{
-              friend_id: removed
-            })
-          end)
+      [
+        {friend_id, user_id},
+        {user_id, friend_id}
+      ]
+      |> Enum.each(fn {to, removed} ->
+        spawn(fn ->
+          OctoconWeb.Endpoint.broadcast!("system:#{to}", "friend_removed", %{
+            friend_id: removed
+          })
         end)
+      end)
 
-        :ok
-
-      _ ->
-        {:error, :database}
+      :ok
     end
   end
 
@@ -685,10 +685,11 @@ defmodule Octocon.Friendships do
             where: u.id == ^id,
             select: struct(u, [:username, :discord_id, :id, :avatar_url])
           )
+
         {query, {:system, id}}
       end)
       |> Enum.map(fn {query, system_identity} ->
-        Repo.one_regional(query, system_identity)
+        Repo.one_regional(query, {:user, system_identity})
       end)
       |> Enum.into(%{}, fn user -> {user.id, user} end)
 
@@ -727,10 +728,11 @@ defmodule Octocon.Friendships do
             where: u.id == ^id,
             select: struct(u, [:username, :discord_id, :id, :avatar_url])
           )
+
         {query, {:system, id}}
       end)
       |> Enum.map(fn {query, system_identity} ->
-        Repo.one_regional(query, system_identity)
+        Repo.one_regional(query, {:user, system_identity})
       end)
       |> Enum.into(%{}, fn user -> {user.id, user} end)
 
@@ -754,8 +756,14 @@ defmodule Octocon.Friendships do
     from(
       r in Request,
       where:
-        (r.from_id == ^left_id and r.to_id == ^right_id) or
-          (r.from_id == ^right_id and r.to_id == ^left_id)
+        (r.from_id == ^left_id and r.to_id == ^right_id)
+    )
+    |> Repo.delete_all_global()
+
+    from(
+      r in Request,
+      where:
+        (r.from_id == ^right_id and r.to_id == ^left_id)
     )
     |> Repo.delete_all_global()
   end

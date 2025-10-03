@@ -27,7 +27,7 @@ defmodule Octocon.Repo.Macros do
 
     quote bind_quoted: [func_name: func_name, verb: verb] do
       def unquote(func_name)(struct_or_changeset, opts \\ []) do
-        consistency = Keyword.get(opts, :consistency, :local_one)
+        consistency = Keyword.get(opts, :consistency, :one)
 
         __MODULE__.unquote(verb)(
           struct_or_changeset,
@@ -57,7 +57,7 @@ defmodule Octocon.Repo.Macros do
 
       def unquote(func_name)(struct_or_changeset, {:region, region}, opts)
           when is_atom(region) and region in @regions do
-        consistency = consistency_from_opts(opts, region)
+        consistency = Octocon.Repo.Macros.consistency_from_opts(opts, region)
 
         __MODULE__.unquote(verb)(
           struct_or_changeset,
@@ -82,6 +82,24 @@ defmodule Octocon.Repo.Macros do
       end
     end
   end
+
+  def consistency_from_opts(opts, region) do
+    current_region = Octocon.ClusterUtils.current_db_region()
+
+    cond do
+      Keyword.has_key?(opts, :consistency) ->
+        Keyword.get(opts, :consistency)
+
+      region == :gdpr ->
+        :one
+
+      current_region == :nam or region == current_region ->
+        :local_one
+
+      true ->
+        :one
+    end
+  end
 end
 
 defmodule Octocon.Repo do
@@ -102,15 +120,18 @@ defmodule Octocon.Repo do
     adapter: Exandra
 
   require Octocon.Repo.Macros
+  alias Octocon.Repo.Macros
+
+  alias Octocon.UserRegistryCache
 
   def region_list, do: @regions
 
   Enum.each(@funs, fn fun ->
     Code.eval_quoted(
       quote do
-        Octocon.Repo.Macros.create_global_shim(unquote(fun))
-        Octocon.Repo.Macros.create_nam_nt_shim(unquote(fun))
-        Octocon.Repo.Macros.create_regional_shim(unquote(fun))
+        Macros.create_global_shim(unquote(fun))
+        Macros.create_nam_nt_shim(unquote(fun))
+        Macros.create_regional_shim(unquote(fun))
       end,
       [],
       __ENV__
@@ -132,7 +153,7 @@ defmodule Octocon.Repo do
 
   def exists_regional?(struct_or_changeset, {:region, region}, opts)
       when is_atom(region) and region in @regions do
-    consistency = consistency_from_opts(opts, region)
+    consistency = Macros.consistency_from_opts(opts, region)
 
     __MODULE__.exists?(
       struct_or_changeset,
@@ -164,7 +185,7 @@ defmodule Octocon.Repo do
 
   def update_all_regional(struct_or_changeset, updates, {:region, region}, opts)
       when is_atom(region) and region in @regions do
-    consistency = consistency_from_opts(opts, region)
+    consistency = Macros.consistency_from_opts(opts, region)
 
     __MODULE__.update_all(
       struct_or_changeset,
@@ -197,7 +218,7 @@ defmodule Octocon.Repo do
 
   def insert_all_regional(module, inserts, {:region, region}, opts)
       when is_atom(region) and region in @regions do
-    consistency = consistency_from_opts(opts, region)
+    consistency = Macros.consistency_from_opts(opts, region)
 
     __MODULE__.insert_all(
       module,
@@ -225,24 +246,4 @@ defmodule Octocon.Repo do
   def insert_all_nam_nt(module, inserts, opts \\ []) do
     __MODULE__.insert_all(module, inserts, Keyword.put(opts, :prefix, "nam_nt"))
   end
-
-  def consistency_from_opts(opts, region) do
-    current_region = Octocon.ClusterUtils.current_db_region()
-
-    cond do
-      Keyword.has_key?(opts, :consistency) ->
-        Keyword.get(opts, :consistency)
-
-      region == :gdpr ->
-        :one
-
-      current_region == :nam or region == current_region ->
-        :local_one
-
-      true ->
-        :one
-    end
-  end
-
-  # @env Mix.env()
 end

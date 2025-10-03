@@ -37,65 +37,66 @@ defmodule Octocon.NotificationTokens do
   end
 
   def batch_notifications(system_identity, alter_ids) do
-  user_id = Accounts.id_from_system_identity(system_identity, :system)
+    user_id = Accounts.id_from_system_identity(system_identity, :system)
 
-  # Load all alters belonging to the user and filtered by alter_ids
-  alters =
-    from(
-      a in Alter,
-      where: a.user_id == ^user_id and a.id in ^alter_ids,
-      select: a
-    )
-    |> Repo.all_regional({:user, system_identity})
+    # Load all alters belonging to the user and filtered by alter_ids
+    alters =
+      from(
+        a in Alter,
+        where: a.user_id == ^user_id and a.id in ^alter_ids,
+        select: a
+      )
+      |> Repo.all_regional({:user, system_identity})
 
-  # Load all friendships for the user
-  friendships =
-    from(
-      f in Friendship,
-      where: f.user_id == ^user_id,
-      select: {f.friend_id, f.level}
-    )
-    |> Repo.all_global()
-  friend_ids = Enum.map(friendships, fn {id, _level} -> id end)
+    # Load all friendships for the user
+    friendships =
+      from(
+        f in Friendship,
+        where: f.user_id == ^user_id,
+        select: {f.friend_id, f.level}
+      )
+      |> Repo.all_global()
 
-  # Load all notification tokens for those friends
-  tokens =
-    from(
-      n in NotificationToken,
-      where: n.user_id in ^friend_ids,
-      select: n
-    )
-    |> Repo.all_global()
+    friend_ids = Enum.map(friendships, fn {id, _level} -> id end)
 
-  # Group tokens by user_id
-  token_map = Enum.group_by(tokens, & &1.user_id)
+    # Load all notification tokens for those friends
+    tokens =
+      from(
+        n in NotificationToken,
+        where: n.user_id in ^friend_ids,
+        select: n
+      )
+      |> Repo.all_global()
 
-  # Build final notification map
-  friendships
-  |> Enum.map(fn {friend_id, level} ->
-    # Get tokens for this friend
-    tokens = Map.get(token_map, friend_id, []) |> Enum.map(& &1.push_token)
+    # Group tokens by user_id
+    token_map = Enum.group_by(tokens, & &1.user_id)
 
-    # Filter alters visible at this security level
-    visible_alters =
-      alters
-      |> Enum.filter(fn alter ->
-        Alters.can_view_entity?(level, alter.security_level)
-      end)
-      |> Enum.map_join(", ", & &1.name)
+    # Build final notification map
+    friendships
+    |> Enum.map(fn {friend_id, level} ->
+      # Get tokens for this friend
+      tokens = Map.get(token_map, friend_id, []) |> Enum.map(& &1.push_token)
 
-    visible_alters =
-      cond do
-        visible_alters == "" -> "No one is fronting"
-        String.length(visible_alters) > 150 -> String.slice(visible_alters, 0..150) <> "\n..."
-        true -> visible_alters
-      end
+      # Filter alters visible at this security level
+      visible_alters =
+        alters
+        |> Enum.filter(fn alter ->
+          Alters.can_view_entity?(level, alter.security_level)
+        end)
+        |> Enum.map_join(", ", & &1.name)
 
-    {tokens, visible_alters}
-  end)
-  |> Enum.reject(fn {tokens, _} -> tokens == [] end)
-  |> Enum.into(%{})
-end
+      visible_alters =
+        cond do
+          visible_alters == "" -> "No one is fronting"
+          String.length(visible_alters) > 150 -> String.slice(visible_alters, 0..150) <> "\n..."
+          true -> visible_alters
+        end
+
+      {tokens, visible_alters}
+    end)
+    |> Enum.reject(fn {tokens, _} -> tokens == [] end)
+    |> Enum.into(%{})
+  end
 
   def get_tokens_for_users(system_identities) do
     user_ids = Enum.map(system_identities, &Accounts.id_from_system_identity(&1, :system))

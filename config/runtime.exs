@@ -25,18 +25,31 @@ if config_env() == :prod do
 
   current_db_region =
     case System.get_env("FLY_REGION") do
-      "fra" -> :eur
-      "iad" -> :nam
-      "syd" -> :ocn
-      "gru" -> :sam
-      "bom" -> :sas
-      "sin" -> :eas
+      "fra" ->
+        :eur
+
+      "iad" ->
+        :nam
+
+      "syd" ->
+        :ocn
+
+      "gru" ->
+        :sam
+
+      "bom" ->
+        :sas
+
+      "sin" ->
+        :eas
+
       nil ->
-        region = System.get_env("CURRENT_DB_REGION") ||
-          raise """
-          environment variable CURRENT_DB_REGION is missing (this node is not running on Fly to auto-detect).
-          It should be one of: nam, eur, ocn, eas, sam, sas, gdpr.
-          """
+        region =
+          System.get_env("CURRENT_DB_REGION") ||
+            raise """
+            environment variable CURRENT_DB_REGION is missing (this node is not running on Fly to auto-detect).
+            It should be one of: nam, eur, ocn, eas, sam, sas, gdpr.
+            """
 
         String.to_atom(region)
     end
@@ -112,10 +125,12 @@ if config_env() == :prod do
   config :octocon, Octocon.Repo,
     nodes: String.split(database_contact_points, ","),
     load_balancing:
-      {Xandra.Cluster.LoadBalancingPolicy.DCAwareRoundRobin, [local_data_center: current_db_datacenter]},
+      {Xandra.Cluster.LoadBalancingPolicy.DCAwareRoundRobin,
+       [local_data_center: current_db_datacenter]},
     refresh_topology_interval: :timer.minutes(1),
     sync_connect: :infinity,
-    authentication: {Xandra.Authenticator.Password, [username: "octo", password: database_password]},
+    authentication:
+      {Xandra.Authenticator.Password, [username: "octo", password: database_password]},
     pool_size: pool_size
 
   config :octocon, Octocon.OldRepo.Local,

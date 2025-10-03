@@ -19,7 +19,7 @@ defmodule Octocon.Fronts.Front do
     field :alter_id, :integer
     field :comment, :string, default: ""
 
-    field :time_start, :utc_datetime
+    field :time_start, :utc_datetime, primary_key: true
     field :time_end, :utc_datetime
 
     # belongs_to :user, Octocon.Accounts.User,
@@ -61,7 +61,7 @@ defmodule Octocon.Fronts.CurrentFront do
 
   @primary_key false
 
-  schema "currently_fronting" do
+  schema "current_fronts" do
     field :id, Ecto.UUID
     field :user_id, :string
     field :alter_id, :integer
@@ -80,6 +80,8 @@ defmodule Octocon.Fronts.CurrentFront do
       time_end: nil
     }
   end
+
+  def to_front(nil), do: nil
 end
 
 defmodule Octocon.Fronts.FrontByAlter do
@@ -109,6 +111,8 @@ defmodule Octocon.Fronts.FrontByAlter do
       time_end: front.time_end
     }
   end
+
+  def to_front(nil), do: nil
 end
 
 defmodule Octocon.Fronts.FrontByTime do
@@ -138,4 +142,37 @@ defmodule Octocon.Fronts.FrontByTime do
       time_end: front.time_end
     }
   end
+
+  def to_front(nil), do: nil
+end
+
+defmodule Octocon.Fronts.FrontByEndTime do
+  @moduledoc false
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  @primary_key false
+
+  schema "fronts_by_end_time" do
+    field :id, Ecto.UUID
+    field :user_id, :string
+    field :alter_id, :integer
+    field :comment, :string, default: ""
+
+    field :time_start, :utc_datetime
+    field :time_end, :utc_datetime
+  end
+
+  def to_front(%__MODULE__{} = front) do
+    %Octocon.Fronts.Front{
+      id: front.id,
+      user_id: front.user_id,
+      alter_id: front.alter_id,
+      comment: front.comment,
+      time_start: front.time_start,
+      time_end: front.time_end
+    }
+  end
+
+  def to_front(nil), do: nil
 end

@@ -91,15 +91,15 @@ config :octocon, OctoconWeb.AuthPipeline,
   error_handler: OctoconWeb.AuthErrorHandler
 
 config :octocon, Oban,
- repo: Octocon.MessageRepo,
- plugins: [Oban.Plugins.Pruner],
- queues: [
-   default: 10,
-   # Optimization courtesy of Snickety: 2 + 2 = 4
-   sp_imports: 2 + 2,
-   # Fuck you Snickety, we do this the cool way 😎
-   pk_imports: Kernel.+(2, 2)
- ]
+  repo: Octocon.MessageRepo,
+  plugins: [Oban.Plugins.Pruner],
+  queues: [
+    default: 10,
+    # Optimization courtesy of Snickety: 2 + 2 = 4
+    sp_imports: 2 + 2,
+    # Fuck you Snickety, we do this the cool way 😎
+    pk_imports: Kernel.+(2, 2)
+  ]
 
 # Global Nostrum config
 config :nostrum,
