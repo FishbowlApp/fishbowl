@@ -47,6 +47,37 @@ defmodule Octocon.Repo.Migrations.Init do
   ### REGIONAL TABLES ###
 
   def create_users_table(keyspace) do
+    create_udt(keyspace, "discord_server_settings", """
+      guild_id text,
+      proxying_disabled boolean,
+      autoproxy_mode smallint,
+      latched_alter int
+    """)
+
+    create_udt(keyspace, "discord_settings", """
+      system_tag text,
+      show_system_tag boolean,
+
+      case_insensitive_proxies boolean,
+      show_pronouns boolean,
+      ids_as_proxies boolean,
+      silent_proxying boolean,
+      use_proxy_delay boolean,
+
+      global_autoproxy_mode smallint,
+      global_latched_alter int,
+
+      server_settings list<frozen<#{keyspace}.discord_server_settings>>
+    """)
+
+    create_udt(keyspace, "field", """
+      id uuid,
+      name text,
+      type smallint,
+      locked boolean,
+      security_level smallint
+    """)
+
     create_table(keyspace, "users", """
       id text,
       email text,
@@ -62,9 +93,9 @@ defmodule Octocon.Repo.Migrations.Init do
       primary_front int,
 
       last_proxy_id smallint,
-      discord_settings text,
+      discord_settings frozen<#{keyspace}.discord_settings>,
 
-      fields list<text>,
+      fields list<frozen<#{keyspace}.field>>,
 
       salt text,
       encryption_initialized boolean,
@@ -82,6 +113,11 @@ defmodule Octocon.Repo.Migrations.Init do
   end
 
   def create_alters_table(keyspace) do
+    create_udt(keyspace, "alter_field", """
+      id uuid,
+      value text
+    """)
+
     table_name = "alters"
     create_table(keyspace, table_name, """
       id smallint,
@@ -100,7 +136,7 @@ defmodule Octocon.Repo.Migrations.Init do
       discord_proxies list<text>,
       proxy_name text,
 
-      fields list<text>,
+      fields list<frozen<#{keyspace}.alter_field>>,
 
       untracked boolean,
       archived boolean,
@@ -355,12 +391,19 @@ defmodule Octocon.Repo.Migrations.Init do
   end
 
   def create_server_settings_table do
+    create_udt("nam", "server_settings_data", """
+      log_channel text,
+      force_system_tags boolean,
+
+      proxy_disabled_users list<text>
+    """)
+
     keyspace = "nam"
     table = "server_settings"
 
     create_table(keyspace, table, """
       guild_id text,
-      data text,
+      data frozen<#{keyspace}.server_settings_data>,
 
       inserted_at timestamp,
       updated_at timestamp
@@ -377,6 +420,14 @@ defmodule Octocon.Repo.Migrations.Init do
   end
 
   ### UTILS ###
+
+  def create_udt(keyspace, name, fields) when is_binary(keyspace) and is_binary(name) and is_binary(fields) do
+    execute """
+    CREATE TYPE IF NOT EXISTS #{keyspace}.#{name} (
+      #{fields}
+    )
+    """, "DROP TYPE IF EXISTS #{keyspace}.#{name}"
+  end
 
   def create_table(keyspace, table, fields, primary_key) when is_binary(keyspace) and is_binary(table) do
     execute """

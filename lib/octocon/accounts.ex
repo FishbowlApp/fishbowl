@@ -669,7 +669,7 @@ defmodule Octocon.Accounts do
 
   def update_discord_settings(%User{} = user, attrs) do
     old_attrs =
-      user.discord_settings
+      user.discord_settings || %Octocon.Accounts.DiscordSettings{}
       |> Map.from_struct()
       |> Map.put(
         :server_settings,
@@ -699,8 +699,8 @@ defmodule Octocon.Accounts do
   def update_server_settings(%User{} = user, guild_id, settings) when is_binary(guild_id) do
     settings = Map.drop(settings, [:guild_id])
 
-    old_discord_settings = user.discord_settings |> Map.from_struct()
-    old_settings = user.discord_settings.server_settings |> Enum.map(&Map.from_struct/1)
+    old_discord_settings = (user.discord_settings || %Octocon.Accounts.DiscordSettings{}) |> Map.from_struct()
+    old_settings = (user.discord_settings.server_settings || []) |> Enum.map(&Map.from_struct/1)
 
     result =
       if Enum.any?(old_settings, fn server ->
@@ -772,6 +772,18 @@ defmodule Octocon.Accounts do
     from(
       at in AlterTag,
       where: at.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
+
+    from(
+      f in Front,
+      where: f.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
+
+    from(
+      f in CurrentFront,
+      where: f.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
@@ -868,8 +880,7 @@ defmodule Octocon.Accounts do
     user = get_user!(system_identity)
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, [])
+    |> User.update_changeset(%{fields: []})
     |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
@@ -884,15 +895,14 @@ defmodule Octocon.Accounts do
       user.fields
       |> Enum.map(fn field ->
         if field.id == id do
-          Field.changeset(field, data)
+          struct(field, data)
         else
           field
         end
       end)
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, fields)
+    |> User.update_changeset(%{fields: fields})
     |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
@@ -902,11 +912,10 @@ defmodule Octocon.Accounts do
   """
   def add_field(system_identity, data) do
     user = get_user!(system_identity)
-    fields = user.fields ++ [Field.changeset(nil, data)]
+    fields = (user.fields || []) ++ [struct(%Field{}, data)]
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, fields)
+    |> User.update_changeset(%{fields: fields})
     |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
@@ -918,12 +927,11 @@ defmodule Octocon.Accounts do
     user = get_user!(system_identity)
 
     fields =
-      user.fields
+      (user.fields || [])
       |> Enum.reject(fn field -> field.id == id end)
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, fields)
+    |> User.update_changeset(%{fields: fields})
     |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
@@ -943,8 +951,7 @@ defmodule Octocon.Accounts do
       |> List.insert_at(index, field)
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, fields)
+    |> User.update_changeset(%{fields: fields})
     |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end

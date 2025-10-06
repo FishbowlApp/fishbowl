@@ -6,7 +6,10 @@ defmodule Octocon.ServerSettings do
   import Ecto.Query, warn: false
   alias Octocon.Repo
 
-  alias Octocon.ServerSettings.ServerSettingsEntry
+  alias Octocon.ServerSettings.{
+    ServerSettingsData,
+    ServerSettingsEntry
+  }
 
   def get_server_settings(guild_id) do
     query = from(s in ServerSettingsEntry, where: s.guild_id == ^guild_id)
@@ -34,11 +37,10 @@ defmodule Octocon.ServerSettings do
         {:error, :not_found}
 
       settings ->
-        data = ServerSettingsEntry.data_changeset(settings.data, attrs)
+        data = struct((settings.data || %ServerSettingsData{}), attrs)
 
         settings
-        |> ServerSettingsEntry.changeset()
-        |> Ecto.Changeset.put_embed(:data, data)
+        |> ServerSettingsEntry.changeset(%{data: data})
         |> Repo.update_regional({:region, :nam})
     end
   end

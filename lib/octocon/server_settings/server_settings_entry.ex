@@ -11,18 +11,13 @@ defmodule Octocon.ServerSettings.ServerSettingsEntry do
   """
   use Ecto.Schema
   import Ecto.Changeset
+  import Exandra, only: [embedded_type: 2]
 
   @primary_key false
 
   schema "server_settings" do
     field :guild_id, :string, primary_key: true
-
-    embeds_one :data, ServerSettingsData, primary_key: false, on_replace: :delete do
-      field :log_channel, :string
-      field :force_system_tags, :boolean, default: false
-
-      field :proxy_disabled_users, {:array, :string}, default: []
-    end
+    embedded_type(:data, Octocon.ServerSettings.ServerSettingsData)
 
     timestamps()
   end
@@ -32,18 +27,7 @@ defmodule Octocon.ServerSettings.ServerSettingsEntry do
   """
   def changeset(%__MODULE__{} = server_settings_entry, attrs \\ %{}) do
     server_settings_entry
-    |> cast(attrs, [:guild_id])
-    |> cast_embed(:data, required: true, with: &data_changeset/2)
-    |> unique_constraint([:guild_id], name: "server_settings_pkey")
+    |> cast(attrs, [:guild_id, :data])
     |> validate_required([:guild_id])
-  end
-
-  @doc """
-  Builds a changeset based on the given `Octocon.ServerSettings.ServerSettingsData` struct and `attrs` to change.
-  """
-  def data_changeset(data, attrs \\ %{}) do
-    data
-    |> cast(attrs, [:log_channel, :force_system_tags, :proxy_disabled_users])
-    |> validate_required([:force_system_tags])
   end
 end

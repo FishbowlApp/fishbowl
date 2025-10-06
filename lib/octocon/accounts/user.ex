@@ -19,6 +19,7 @@ defmodule Octocon.Accounts.User do
   """
   use Ecto.Schema
   import Ecto.Changeset
+  import Exandra, only: [embedded_type: 3]
 
   alias Octocon.Accounts.DiscordSettings
 
@@ -41,16 +42,8 @@ defmodule Octocon.Accounts.User do
     field :lifetime_alter_count, :integer, default: 0
     field :primary_front, :integer
 
-    embeds_one :discord_settings, DiscordSettings, on_replace: :delete
-
-    # has_many :alters, Octocon.Alters.Alter, foreign_key: :user_id, references: :id
-    # has_many :fronts, Octocon.Fronts.Front, foreign_key: :user_id, references: :id
-
-    # has_many :global_journals, Octocon.Journals.GlobalJournalEntry,
-    #  foreign_key: :user_id,
-    #  references: :id
-
-    embeds_many :fields, Octocon.Accounts.Field, on_replace: :delete
+    embedded_type(:discord_settings, Octocon.Accounts.DiscordSettings, cardinality: :one)
+    embedded_type(:fields, Octocon.Accounts.Field, cardinality: :many)
 
     field :salt, :string
     field :encryption_initialized, :boolean, default: false
@@ -92,12 +85,12 @@ defmodule Octocon.Accounts.User do
       :lifetime_alter_count,
       :primary_front,
       :description,
+      :discord_settings,
+      :fields,
       :salt,
       :encryption_initialized,
       :encryption_key_checksum
     ])
-    |> cast_embed(:fields)
-    |> cast_embed(:discord_settings)
     |> global_validations()
   end
 

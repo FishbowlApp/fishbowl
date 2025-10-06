@@ -444,13 +444,7 @@ defmodule Octocon.Alters do
           end)
         end
 
-      changeset =
-        if fields == nil do
-          change_alter(base_struct, attrs)
-        else
-          change_alter(base_struct, Map.drop(attrs, [:fields]))
-          |> Ecto.Changeset.put_embed(:fields, fields)
-        end
+      changeset = change_alter(base_struct, attrs)
 
       if changeset.valid? do
         attrs! =

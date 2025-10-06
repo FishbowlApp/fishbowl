@@ -73,7 +73,7 @@ defmodule OctoconDiscord.Proxy do
           if webhook == nil do
             :no_proxy
           else
-            settings_template = %Octocon.Accounts.DiscordSettings.ServerSettings{
+            settings_template = %Octocon.Accounts.ServerSettings{
               guild_id: to_string(message.guild_id)
             }
 
