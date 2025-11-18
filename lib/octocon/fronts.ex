@@ -441,7 +441,8 @@ defmodule Octocon.Fronts do
             comment: data["comment"] || "",
             time_start: now
           }
-        end)
+        end),
+        {:user, system_identity}
       )
     end
 
