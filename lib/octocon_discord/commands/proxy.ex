@@ -346,7 +346,6 @@ defmodule OctoconDiscord.Proxy do
                   |> Map.put(:message_id, to_string(message_id))
                   |> Map.put(:timestamp, Nostrum.Snowflake.creation_time(message_id))
 
-                # Log the message in Timescale
                 Messages.insert_message(attrs)
               end)
 

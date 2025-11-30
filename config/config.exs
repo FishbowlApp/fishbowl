@@ -10,9 +10,8 @@ import Config
 config :octocon, :env, config_env()
 
 config :octocon,
-  ecto_repos: [Octocon.Repo, Octocon.OldRepo.Local, Octocon.MessageRepo]
+  ecto_repos: [Octocon.Repo, Octocon.MessageRepo]
 
-config :octocon, Octocon.OldRepo.Local, priv: "priv/old_repo"
 config :octocon, Octocon.MessageRepo, priv: "priv/msg_repo"
 
 config :octocon, Octocon.Repo,

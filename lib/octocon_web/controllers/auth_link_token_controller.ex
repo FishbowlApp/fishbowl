@@ -9,7 +9,7 @@ defmodule OctoconWeb.AuthLinkTokenController do
     system_id = conn.private[:guardian_default_resource]
 
     link_token =
-      Octocon.ClusterUtils.run_on_primary_no_endpoint(fn -> LinkTokenRegistry.put(system_id) end)
+      Octocon.ClusterUtils.run_on_primary(fn -> LinkTokenRegistry.put(system_id) end)
 
     Logger.info("Link token generated for #{system_id}: #{link_token}")
 

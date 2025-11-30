@@ -110,7 +110,7 @@ defmodule Octocon.Friendships do
         friend: Map.get(friend_data, friendship.friend_id)
       }
     end)
-    |> Enum.sort_by(& &1.friendship.since, :desc)
+    |> Enum.sort_by(& &1.friendship.since, {:desc, DateTime})
   end
 
   @doc """
@@ -150,6 +150,7 @@ defmodule Octocon.Friendships do
             select:
               struct(a, [
                 :id,
+                :user_id,
                 :name,
                 :avatar_url,
                 :pronouns,
@@ -755,15 +756,13 @@ defmodule Octocon.Friendships do
 
     from(
       r in Request,
-      where:
-        (r.from_id == ^left_id and r.to_id == ^right_id)
+      where: r.from_id == ^left_id and r.to_id == ^right_id
     )
     |> Repo.delete_all_global()
 
     from(
       r in Request,
-      where:
-        (r.from_id == ^right_id and r.to_id == ^left_id)
+      where: r.from_id == ^right_id and r.to_id == ^left_id
     )
     |> Repo.delete_all_global()
   end

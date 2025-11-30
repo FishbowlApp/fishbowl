@@ -188,7 +188,7 @@ defmodule Octocon.Fronts do
     q1 =
       from f in FrontByTime,
         where:
-          f.user_id == ^system_id and not is_nil(f.time_end) and
+          f.user_id == ^system_id and
             f.time_start >= ^time_start and f.time_start <= ^time_end,
         select: f
 
@@ -196,23 +196,25 @@ defmodule Octocon.Fronts do
     q2 =
       from f in FrontByEndTime,
         where:
-          f.user_id == ^system_id and not is_nil(f.time_end) and
+          f.user_id == ^system_id and
             f.time_end >= ^time_start and f.time_end <= ^time_end,
         select: f
 
     # Query 3: entries spanning entire range (still use FrontByTime)
     q3 =
       from f in FrontByTime,
+        hints: ["ALLOW FILTERING"],
         where:
-          f.user_id == ^system_id and not is_nil(f.time_end) and
+          f.user_id == ^system_id and
             f.time_start <= ^time_start and f.time_end >= ^time_end,
         select: f
 
     results =
-      ((Repo.all_regional(q1, {:user, system_identity}) |> FrontByTime.to_front()) ++
-         (Repo.all_regional(q2, {:user, system_identity}) |> FrontByEndTime.to_front()) ++
-         (Repo.all_regional(q3, {:user, system_identity}) |> FrontByTime.to_front()))
+      ((Repo.all_regional(q1, {:user, system_identity}) |> Enum.map(&FrontByTime.to_front/1)) ++
+         (Repo.all_regional(q2, {:user, system_identity}) |> Enum.map(&FrontByEndTime.to_front/1)) ++
+         (Repo.all_regional(q3, {:user, system_identity}) |> Enum.map(&FrontByTime.to_front/1)))
       |> Enum.uniq_by(& &1.id)
+      |> Enum.filter(fn front -> front.time_end != nil end)
       |> Enum.sort_by(& &1.time_start, {:desc, DateTime})
 
     results
@@ -261,12 +263,12 @@ defmodule Octocon.Fronts do
     else
       fronter =
         currently_fronting
-        |> Enum.max_by(fn %{front: front} -> front.time_start end)
+        |> Enum.min_by(fn %{front: front} -> front.time_start end)
 
       Map.put(
         fronter,
         :primary,
-        Accounts.get_primary_front({:system, system_id}) == fronter.alter_id
+        Accounts.get_primary_front({:system, system_id}) == fronter.alter.id
       )
     end
   end
@@ -322,7 +324,7 @@ defmodule Octocon.Fronts do
             end)
 
             spawn(fn ->
-              Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
+              Octocon.ClusterUtils.run_on_primary(fn ->
                 Octocon.Global.FrontNotifier.remove(system_id, alter_id)
               end)
             end)
@@ -378,7 +380,7 @@ defmodule Octocon.Fronts do
         end)
 
         spawn(fn ->
-          Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
+          Octocon.ClusterUtils.run_on_primary(fn ->
             Octocon.Global.FrontNotifier.add(system_id, alter_id)
           end)
         end)
@@ -512,13 +514,17 @@ defmodule Octocon.Fronts do
         )
         |> Repo.delete_all_regional(region_specifier)
 
-        from(f in Front,
-          where: f.user_id == ^system_id and f.id in ^current_front_ids
-        )
-        |> Repo.update_all_regional(
-          [set: [time_end: now]],
-          region_specifier
-        )
+        current_front_ids
+        |> Enum.each(fn {id, time_start} ->
+          from(
+            f in Front,
+            where: f.user_id == ^system_id and f.id == ^id and f.time_start == ^time_start
+          )
+          |> Repo.update_all_regional(
+            [set: [time_end: now]],
+            region_specifier
+          )
+        end)
 
         %Front{
           id: id,
@@ -547,8 +553,10 @@ defmodule Octocon.Fronts do
           })
         end)
 
-        Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
-          Octocon.Global.FrontNotifier.set(system_id, alter_id)
+        spawn(fn ->
+          Octocon.ClusterUtils.run_on_primary(fn ->
+            Octocon.Global.FrontNotifier.set(system_id, alter_id)
+          end)
         end)
     end
   end

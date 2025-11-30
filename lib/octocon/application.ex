@@ -70,14 +70,6 @@ defmodule Octocon.Application do
       {Cluster.Supervisor, [topologies, [name: Octocon.ClusterSupervisor]]},
       Octocon.RPC.NodeTracker,
 
-      # Ecto (Postgres database) repositories
-      if(group != :primary_no_endpoint,
-        do: [
-          Octocon.OldRepo.Local,
-          {Octocon.RPC.Postgres.LSN.Supervisor, repo: Octocon.OldRepo.Local}
-        ],
-        else: []
-      ),
       Supervisor.child_spec(
         {Cachex,
          name: Octocon.Cache.UserRegistry,
@@ -105,22 +97,6 @@ defmodule Octocon.Application do
     |> List.flatten()
   end
 
-  defp group_children(:primary_no_endpoint) do
-    if Application.get_env(:octocon, :env) == :prod do
-      [
-        Octocon.FCM
-      ]
-    else
-      []
-    end ++
-      [
-        {Task, fn -> :mnesia.start() end},
-        Octocon.Primary.Supervisor,
-        Octocon.Global.Supervisor,
-        OctoconDiscord.Supervisor
-      ]
-  end
-
   defp group_children(:primary) do
     if Application.get_env(:octocon, :env) == :prod do
       [
@@ -130,8 +106,12 @@ defmodule Octocon.Application do
       []
     end ++
       [
+        # TODO
         Octocon.MessageRepo,
-        {Oban, Application.fetch_env!(:octocon, Oban)}
+        {Task, fn -> :mnesia.start() end},
+        Octocon.Primary.Supervisor,
+        Octocon.Global.Supervisor,
+        OctoconDiscord.Supervisor
       ]
   end
 

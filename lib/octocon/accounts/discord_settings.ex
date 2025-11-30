@@ -41,7 +41,7 @@ defmodule Octocon.Accounts.DiscordSettings do
   end
 
   def server_settings_map(%__MODULE__{server_settings: server_settings}) do
-    server_settings
+    (server_settings || [])
     |> Enum.map(fn %Octocon.Accounts.ServerSettings{
                      guild_id: guild_id,
                      proxying_disabled: proxying_disabled,

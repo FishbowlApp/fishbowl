@@ -218,7 +218,7 @@ defmodule Octocon.Repo.Migrations.Init do
       user_id text,
       global_journal_id uuid,
       alter_id smallint
-    """, "user_id, global_journal_id")
+    """, "user_id, global_journal_id, alter_id")
   end
 
   def create_alter_journals_table(keyspace) do

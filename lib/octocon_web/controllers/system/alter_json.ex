@@ -22,7 +22,7 @@ defmodule OctoconWeb.System.AlterJSON do
     alter
     |> Map.from_struct()
     |> Map.drop(Alter.dropped_fields())
-    |> Map.put(:fields, alter.fields |> Enum.map(&Map.drop(&1, [:__struct__, :__meta__])))
+    |> Map.put(:fields, (alter.fields || []) |> Enum.map(&Map.drop(&1, [:__struct__, :__meta__])))
   end
 
   def data(%Alter{} = alter) do
@@ -36,6 +36,6 @@ defmodule OctoconWeb.System.AlterJSON do
       :extra_images,
       :color
     ])
-    |> Map.put(:fields, alter.fields |> Enum.map(&Map.drop(&1, [:__struct__, :__meta__])))
+    |> Map.put(:fields, (alter.fields || []) |> Enum.map(&Map.drop(&1, [:__struct__, :__meta__])))
   end
 end

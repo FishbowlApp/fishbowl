@@ -18,7 +18,6 @@ defmodule Octocon.RPC.NodeTracker do
   end
 
   def primary_nodes, do: group_nodes(:primary)
-  def primary_no_endpoint_nodes, do: group_nodes(:primary_no_endpoint)
   def auxiliary_nodes, do: group_nodes(:auxiliary)
   def sidecar_nodes, do: group_nodes(:sidecar)
 
@@ -27,7 +26,6 @@ defmodule Octocon.RPC.NodeTracker do
   end
 
   def is_primary?(), do: current_group() == :primary
-  def is_primary_no_endpoint?(), do: current_group() == :primary_no_endpoint
 
   @doc """
   Asks a node what group it is in.

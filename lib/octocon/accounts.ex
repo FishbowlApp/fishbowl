@@ -635,7 +635,7 @@ defmodule Octocon.Accounts do
         :discord_settings
       ])
 
-    Repo.one_regional(query.{:user, system_identity})
+    Repo.one_regional(query, {:user, system_identity})
   end
 
   @doc """
@@ -669,13 +669,14 @@ defmodule Octocon.Accounts do
 
   def update_discord_settings(%User{} = user, attrs) do
     old_attrs =
-      user.discord_settings || %Octocon.Accounts.DiscordSettings{}
-      |> Map.from_struct()
-      |> Map.put(
-        :server_settings,
-        Map.get(user.discord_settings, :server_settings)
-        |> Enum.map(&Map.from_struct/1)
-      )
+      user.discord_settings ||
+        %Octocon.Accounts.DiscordSettings{}
+        |> Map.from_struct()
+        |> Map.put(
+          :server_settings,
+          Map.get(user.discord_settings, :server_settings)
+          |> Enum.map(&Map.from_struct/1)
+        )
 
     result =
       user
@@ -699,7 +700,9 @@ defmodule Octocon.Accounts do
   def update_server_settings(%User{} = user, guild_id, settings) when is_binary(guild_id) do
     settings = Map.drop(settings, [:guild_id])
 
-    old_discord_settings = (user.discord_settings || %Octocon.Accounts.DiscordSettings{}) |> Map.from_struct()
+    old_discord_settings =
+      (user.discord_settings || %Octocon.Accounts.DiscordSettings{}) |> Map.from_struct()
+
     old_settings = (user.discord_settings.server_settings || []) |> Enum.map(&Map.from_struct/1)
 
     result =
@@ -770,49 +773,49 @@ defmodule Octocon.Accounts do
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
     from(
-      at in AlterTag,
+      at in Octocon.Tags.AlterTag,
       where: at.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
     from(
-      f in Front,
+      f in Octocon.Fronts.Front,
       where: f.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
     from(
-      f in CurrentFront,
+      f in Octocon.Fronts.CurrentFront,
       where: f.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
     from(
-      aj in AlterJournalEntry,
+      aj in Octocon.Journals.AlterJournalEntry,
       where: aj.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
     from(
-      aj in GlobalJournalEntry,
+      aj in Octocon.Journals.GlobalJournalEntry,
       where: aj.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
     from(
-      p in Poll,
+      p in Octocon.Polls.Poll,
       where: p.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
     from(
-      t in Tag,
+      t in Octocon.Tags.Tag,
       where: t.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
 
     from(
-      gw in GlobalJournalAlters,
+      gw in Octocon.Journals.GlobalJournalAlters,
       where: gw.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
@@ -828,11 +831,34 @@ defmodule Octocon.Accounts do
 
     user = get_user!(system_identity)
 
-    query =
+    q1 =
       from a in Alter,
         where: a.user_id == ^user.id
 
-    Repo.delete_all_regional(query, {:user, {:system, user.id}})
+    q2 =
+      from f in Octocon.Fronts.Front,
+        where: f.user_id == ^user.id
+
+    q3 =
+      from f in Octocon.Journals.AlterJournalEntry,
+        where: f.user_id == ^user.id
+
+    q4 =
+      from f in Octocon.Journals.GlobalJournalAlters,
+        where: f.user_id == ^user.id
+
+    q5 =
+      from f in Octocon.Tags.AlterTag,
+        where: f.user_id == ^user.id
+
+    q6 =
+      from f in Octocon.Fronts.CurrentFront,
+        where: f.user_id == ^user.id
+
+    [q1, q2, q3, q4, q5, q6]
+    |> Enum.each(fn query ->
+      Repo.delete_all_regional(query, {:user, {:system, user.id}})
+    end)
 
     user
     |> User.update_changeset(%{primary_front: nil, lifetime_alter_count: 0})
@@ -863,7 +889,7 @@ defmodule Octocon.Accounts do
         select: struct(a, [:id, :discord_proxies])
       )
       |> Repo.all_regional({:user, {:system, user.id}})
-      |> Enum.filter(fn alter -> alter.discord_proxies != [] end)
+      |> Enum.filter(fn alter -> alter.discord_proxies != [] && alter.discord_proxies != nil end)
 
     Enum.reduce(alters, %{}, fn %{id: alter_id, discord_proxies: proxies}, acc ->
       # Skip if proxies is nil or empty
@@ -892,7 +918,7 @@ defmodule Octocon.Accounts do
     user = get_user!(system_identity)
 
     fields =
-      user.fields
+      (user.fields || [])
       |> Enum.map(fn field ->
         if field.id == id do
           struct(field, data)
@@ -912,7 +938,10 @@ defmodule Octocon.Accounts do
   """
   def add_field(system_identity, data) do
     user = get_user!(system_identity)
-    fields = (user.fields || []) ++ [struct(%Field{}, data)]
+    fields = (user.fields || []) ++ [struct(%Field{
+      id: Ecto.UUID.generate(),
+      locked: false
+    }, data)]
 
     user
     |> User.update_changeset(%{fields: fields})
@@ -942,7 +971,7 @@ defmodule Octocon.Accounts do
   def relocate_field(system_identity, id, index) do
     user = get_user!(system_identity)
 
-    old_fields = user.fields
+    old_fields = (user.fields || [])
     field = Enum.find(old_fields, fn field -> field.id == id end)
 
     fields =

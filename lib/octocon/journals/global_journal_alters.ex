@@ -9,9 +9,9 @@ defmodule Octocon.Journals.GlobalJournalAlters do
   @primary_key false
 
   schema "global_journal_alters" do
-    field :user_id, :string
-    field :global_journal_id, Ecto.UUID
-    field :alter_id, :integer
+    field :user_id, :string, primary_key: true
+    field :global_journal_id, Ecto.UUID, primary_key: true
+    field :alter_id, :integer, primary_key: true
 
     # belongs_to :global_journal, Octocon.Journals.GlobalJournalEntry,
     #  foreign_key: :global_journal_id,
