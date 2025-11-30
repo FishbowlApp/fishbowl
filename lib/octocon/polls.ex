@@ -30,7 +30,7 @@ defmodule Octocon.Polls do
       |> where(^where)
       |> select([p], p)
 
-    Repo.all(query)
+    Repo.all_regional(query, {:user, system_identity})
   end
 
   def get_poll(system_identity, poll_id) do

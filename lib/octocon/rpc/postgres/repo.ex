@@ -339,7 +339,7 @@ defmodule Octocon.RPC.Postgres.Repo do
         # Default behavior is to wait for replication. If `:await` is set to
         # false/falsey then skip the LSN query and waiting for replication.
 
-        default = if Octocon.RPC.NodeTracker.is_primary_no_endpoint?(), do: false, else: true
+        default = true
 
         if Keyword.get(opts, :await, default) do
           rpc_timeout = Keyword.get(opts, :rpc_timeout, @timeout)

@@ -45,15 +45,10 @@ defmodule Octocon.Tags do
       |> select([at], at.alter_id)
       |> Repo.all_regional({:user, system_identity})
 
-    cond do
-      tag == nil ->
-        nil
-
-      tag_alters == [] ->
-        %{tag: tag, alters: []}
-
-      true ->
-        %{tag: tag, alters: tag_alters}
+    if tag == nil do
+      nil
+    else
+      %{tag | alters: tag_alters}
     end
   end
 
@@ -106,7 +101,7 @@ defmodule Octocon.Tags do
 
     tags
     |> Enum.map(fn tag ->
-      %{tag: tag, alters: Map.get(tag_alters, tag.id, [])}
+      %{tag | alters: Map.get(tag_alters, tag.id, [])}
     end)
   end
 
@@ -417,13 +412,13 @@ defmodule Octocon.Tags do
       {count, _} when count > 0 ->
         system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-        spawn(fn ->
-          OctoconWeb.Endpoint.broadcast!(
-            "system:#{system_id}",
-            "alter_tags_deleted",
-            %{alter_id: alter_id}
-          )
-        end)
+        # spawn(fn ->
+        #   OctoconWeb.Endpoint.broadcast!(
+        #     "system:#{system_id}",
+        #     "alter_tags_deleted",
+        #     %{alter_id: alter_id}
+        #   )
+        # end)
 
         :ok
     end

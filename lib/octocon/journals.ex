@@ -36,11 +36,12 @@ defmodule Octocon.Journals do
   end
 
   def get_global_journal_entry(system_identity, entry_id) do
-    where = unwrap_system_identity_where(system_identity, id: entry_id)
+    where = unwrap_system_identity_where(system_identity)
 
     entry =
       GlobalJournalEntry
       |> where(^where)
+      |> where(id: ^entry_id)
       |> select([j], struct(j, ^@all_global_fields))
       |> Repo.one_regional({:user, system_identity})
 
@@ -83,7 +84,7 @@ defmodule Octocon.Journals do
       |> where(^where)
       |> select([j], struct(j, ^fields))
       |> Repo.all_regional({:user, system_identity})
-      |> Enum.sort_by(& &1.inserted_at, {:desc, :inserted_at})
+      |> Enum.sort_by(&(&1.inserted_at), {:desc, NaiveDateTime})
 
     entry_ids = Enum.map(entries, & &1.id)
 
@@ -245,6 +246,7 @@ defmodule Octocon.Journals do
     end
   end
 
+  # TODO: Delete alter references
   def delete_global_journal_entry(system_identity, entry_id) do
     where = unwrap_system_identity_where(system_identity, id: entry_id)
 
@@ -254,6 +256,13 @@ defmodule Octocon.Journals do
 
     case Repo.delete_all_regional(query, {:user, system_identity}) do
       {1, _} ->
+        query =
+          GlobalJournalAlters
+          |> where(^unwrap_system_identity_where(system_identity))
+          |> where(global_journal_id: ^entry_id)
+
+        Repo.delete_all_regional(query, {:user, system_identity})
+
         spawn(fn ->
           system_id = Accounts.id_from_system_identity(system_identity, :system)
 
@@ -309,7 +318,7 @@ defmodule Octocon.Journals do
         |> where(alter_id: ^alter_id)
         |> select([j], struct(j, ^fields))
         |> Repo.all_regional({:user, system_identity})
-        |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
+        |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
     end
   end
 

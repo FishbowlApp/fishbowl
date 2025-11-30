@@ -23,7 +23,7 @@ defmodule Octocon.MessageRepo.Migrations.AddMessages do
     )
 
     execute("SELECT add_compression_policy('messages', INTERVAL '1 week');")
-    execute("SELECT add_retention_policy('messages', INTERVAL '3 months');")
+    execute("SELECT add_retention_policy('messages', INTERVAL '6 months');")
   end
 
   def down do

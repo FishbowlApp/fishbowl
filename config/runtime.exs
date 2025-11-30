@@ -17,7 +17,7 @@ if config_env() == :prod do
           System.get_env("NODE_GROUP") ||
             raise """
             environment variable NODE_GROUP is missing (this node is not running on Fly to auto-detect).
-            It should be one of: primary, primary_no_endpoint, auxiliary, sidecar.
+            It should be one of: primary, auxiliary, sidecar.
             """
 
         String.to_atom(node_group)
@@ -95,13 +95,6 @@ if config_env() == :prod do
       environment variable DATABASE_PASSWORD is missing.
       """
 
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
-      """
-
   database_contact_points =
     System.get_env("DATABASE_CONTACT_POINTS") ||
       raise """
@@ -133,16 +126,9 @@ if config_env() == :prod do
       {Xandra.Authenticator.Password, [username: "octo", password: database_password]},
     pool_size: pool_size
 
-  config :octocon, Octocon.OldRepo.Local,
-    # ssl: true,
-    url: database_url,
-    pool_size: pool_size,
-    socket_options: maybe_ipv6
-
   config :octocon, Octocon.MessageRepo,
     url: msg_database_url,
-    pool_size: String.to_integer(System.get_env("MSG_POOL_SIZE") || "10"),
-    socket_options: maybe_ipv6
+    pool_size: String.to_integer(System.get_env("MSG_POOL_SIZE") || "10")#, socket_options: maybe_ipv6
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

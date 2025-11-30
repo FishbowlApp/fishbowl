@@ -85,15 +85,8 @@ defmodule Octocon.FCM do
   end
 
   defp gen_batch_notifications(user_id, alter_ids) do
-    # TODO: Notifications with new system without joins
-  end
-
-  defp gen_batch_notifications do
-    user_id = "a"
-    alter_ids = "b"
     user = Accounts.get_user!({:system, user_id})
-
-    username = then(user, fn user -> user.username || user.id end)
+    username = user.username || user.id
 
     image =
       case user.avatar_url do
@@ -118,8 +111,8 @@ defmodule Octocon.FCM do
         select: {f.friend_id, f.level}
       )
 
-    alters = Repo.all(alters_query)
-    friends = Repo.all(friends_query)
+    alters = Repo.all_regional(alters_query, {:user, {:system, user.id}})
+    friends = Repo.all_global(friends_query)
 
     friend_ids = Enum.map(friends, &elem(&1, 0))
 
@@ -130,20 +123,21 @@ defmodule Octocon.FCM do
         select: {n.user_id, n.push_token}
       )
 
-    # TODO
-    notification_tokens = Repo.all(notification_tokens_query) |> Enum.into(%{})
+    notification_tokens =
+      Repo.all_global(notification_tokens_query)
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
 
     data =
       friends
-      |> Enum.group_by(&elem(&1, 0))
-      |> Stream.map(fn {id, list} ->
+      |> Stream.map(fn {id, level} ->
         {
           id,
-          Enum.reduce(list, [], fn {_, _, token}, acc ->
-            [token.push_token | acc]
-          end),
-          hd(list) |> elem(1)
+          Map.get(notification_tokens, id, []),
+          level
         }
+      end)
+      |> Stream.filter(fn {_id, tokens, _level} ->
+        tokens != []
       end)
       |> Stream.map(fn {id, tokens, level} ->
         visible_alters =

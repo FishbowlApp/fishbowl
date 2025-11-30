@@ -9,9 +9,11 @@ defmodule Octocon.Tags.AlterTag do
   @primary_key false
 
   schema "alter_tags" do
-    field :user_id, :string
-    field :tag_id, Ecto.UUID
-    field :alter_id, :integer
+    field :user_id, :string, primary_key: true
+    field :tag_id, Ecto.UUID, primary_key: true
+    field :alter_id, :integer, primary_key: true
+
+    timestamps()
   end
 
   @doc """

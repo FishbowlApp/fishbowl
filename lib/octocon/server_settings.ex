@@ -37,7 +37,7 @@ defmodule Octocon.ServerSettings do
         {:error, :not_found}
 
       settings ->
-        data = struct((settings.data || %ServerSettingsData{}), attrs)
+        data = struct(settings.data || %ServerSettingsData{}, attrs)
 
         settings
         |> ServerSettingsEntry.changeset(%{data: data})

@@ -290,8 +290,8 @@ defmodule OctoconDiscord.Utils do
           inline: true,
           value:
             case alter.discord_proxies do
-              [] ->
-                "None"
+              nil -> "None"
+              [] -> "None"
 
               proxies ->
                 proxies
@@ -339,7 +339,7 @@ defmodule OctoconDiscord.Utils do
 
   def send_dm(%User{} = user, title, message) do
     spawn(fn ->
-      Octocon.ClusterUtils.run_on_primary_no_endpoint(fn ->
+      Octocon.ClusterUtils.run_on_primary(fn ->
         unless user.discord_id == nil do
           {:ok, channel} = Api.User.create_dm(Integer.parse(user.discord_id) |> elem(0))
 
