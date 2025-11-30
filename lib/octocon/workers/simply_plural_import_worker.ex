@@ -15,23 +15,13 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
   require Logger
 
-  use Oban.Worker,
-    queue: :sp_imports,
-    unique: [
-      fields: [:args, :worker],
-      keys: [:system_id],
-      states: [:available, :scheduled, :executing, :retryable],
-      period: :infinity
-    ],
-    max_attempts: 1
-
   alias OctoconWeb.Uploaders.Avatar
 
   @sp_endpoint URI.parse("https://api.apparyllis.com/v1/")
   @cdn_endpoint URI.parse("https://spaces.apparyllis.com/")
 
   @impl true
-  def perform(%Oban.Job{args: %{"system_id" => system_id, "sp_token" => sp_token}}) do
+  def perform(%{"system_id" => system_id, "sp_token" => sp_token}) do
     Logger.warning("Performing Simply Plural import for user #{system_id}")
 
     %{
@@ -72,7 +62,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     Repo.transaction(fn ->
       chunked_alters
       |> Enum.each(fn chunk ->
-        Repo.insert_all(Alter, chunk)
+        Repo.insert_all_regional(Alter, chunk, {:user, {:system, system_id}})
       end)
 
       user = Accounts.get_user!({:system, system_id})

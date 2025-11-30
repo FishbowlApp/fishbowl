@@ -1,45 +1,107 @@
 import Config
 
-# config/runtime.exs is executed for all environments, including
-# during releases. It is executed after compilation and before the
-# system starts, so it is typically used to load production configuration
-# and secrets from environment variables or elsewhere. Do not define
-# any compile-time configuration in here, as it won't be applied.
-# The block below contains prod specific runtime configuration.
-
-# ## Using releases
-#
-# If you use `mix release`, you need to explicitly enable the server
-# by passing the PHX_SERVER=true when you start it:
-#
-#     PHX_SERVER=true bin/octocon start
-#
-# Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
-# script that automatically sets the env var above.
-if System.get_env("PHX_SERVER") do
-  config :octocon, OctoconWeb.Endpoint, server: true
-end
-
-get_pool_size = fn ->
-  if System.get_env("FLY_PROCESS_GROUP") == "sidecar" do
-    2
-  else
-    String.to_integer(System.get_env("POOL_SIZE") || "10")
-  end
-end
-
 if config_env() == :prod do
+  node_group =
+    case System.get_env("FLY_PROCESS_GROUP") do
+      "primary" ->
+        :primary
+
+      "auxiliary" ->
+        :auxiliary
+
+      "sidecar" ->
+        :sidecar
+
+      _ ->
+        node_group =
+          System.get_env("NODE_GROUP") ||
+            raise """
+            environment variable NODE_GROUP is missing (this node is not running on Fly to auto-detect).
+            It should be one of: primary, auxiliary, sidecar.
+            """
+
+        String.to_atom(node_group)
+    end
+
+  current_db_region =
+    case System.get_env("FLY_REGION") do
+      "fra" ->
+        :eur
+
+      "iad" ->
+        :nam
+
+      "syd" ->
+        :ocn
+
+      "gru" ->
+        :sam
+
+      "bom" ->
+        :sas
+
+      "sin" ->
+        :eas
+
+      nil ->
+        region =
+          System.get_env("CURRENT_DB_REGION") ||
+            raise """
+            environment variable CURRENT_DB_REGION is missing (this node is not running on Fly to auto-detect).
+            It should be one of: nam, eur, ocn, eas, sam, sas, gdpr.
+            """
+
+        String.to_atom(region)
+    end
+
+  current_db_datacenter =
+    case current_db_region do
+      :nam -> "dedi-us-east"
+      :eur -> "fly-fra"
+      :gdpr -> "fly-fra"
+      :ocn -> "fly-syd"
+      :eas -> "fly-sin"
+      :sam -> "fly-gru"
+      :sas -> "fly-bom"
+    end
+
+  config :octocon, :node_group, node_group
+  config :octocon, :current_db_region, current_db_region
+
+  # TODO: Only :auxiliary
+  # TODO: Rename :auxiliary to :ingress
+  if node_group in [:primary, :auxiliary] || System.get_env("PHX_SERVER") do
+    config :octocon, OctoconWeb.Endpoint, server: true
+  else
+    config :octocon, OctoconWeb.Endpoint, server: false
+  end
+
+  pool_size =
+    if node_group == :sidecar do
+      2
+    else
+      String.to_integer(System.get_env("POOL_SIZE") || "10")
+    end
+
   config :octocon, dns_cluster_query: System.get_env("DNS_CLUSTER_QUERY")
 
   config :octocon,
          :primary_node_count,
          String.to_integer(System.get_env("PRIMARY_NODE_COUNT") || "1")
 
-  database_url =
-    System.get_env("DATABASE_URL") ||
+  database_password =
+    System.get_env("DATABASE_PASSWORD") ||
       raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
+      environment variable DATABASE_PASSWORD is missing.
+      """
+
+  database_contact_points =
+    System.get_env("DATABASE_CONTACT_POINTS") ||
+      raise """
+      environment variable DATABASE_CONTACT_POINTS is missing.
+      For example: 100.100.127.0,100.100.127.1,100.100.127.2
+
+      Whole env: #{inspect(System.get_env())}
       """
 
   msg_database_url =
@@ -51,16 +113,22 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
-  config :octocon, Octocon.Repo.Local,
-    # ssl: true,
-    url: database_url,
-    pool_size: get_pool_size.(),
-    socket_options: maybe_ipv6
+  config :octocon, :proxy_db, System.get_env("OCTO_PROXY_DB") in ~w(true 1)
+
+  config :octocon, Octocon.Repo,
+    nodes: String.split(database_contact_points, ","),
+    load_balancing:
+      {Xandra.Cluster.LoadBalancingPolicy.DCAwareRoundRobin,
+       [local_data_center: current_db_datacenter]},
+    refresh_topology_interval: :timer.minutes(1),
+    sync_connect: :infinity,
+    authentication:
+      {Xandra.Authenticator.Password, [username: "octo", password: database_password]},
+    pool_size: pool_size
 
   config :octocon, Octocon.MessageRepo,
     url: msg_database_url,
-    pool_size: String.to_integer(System.get_env("MSG_POOL_SIZE") || "10"),
-    socket_options: maybe_ipv6
+    pool_size: String.to_integer(System.get_env("MSG_POOL_SIZE") || "10")#, socket_options: maybe_ipv6
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -170,6 +238,13 @@ if config_env() == :prod do
       System.get_env("ENCRYPTION_PEPPER") ||
         raise("""
         environment variable ENCRYPTION_PEPPER is missing.
+        """)
+
+  config :octocon,
+    tailscale_api_authkey:
+      System.get_env("TAILSCALE_API_AUTHKEY") ||
+        raise("""
+        environment variable TAILSCALE_API_AUTHKEY is missing.
         """)
 
   config :octocon,

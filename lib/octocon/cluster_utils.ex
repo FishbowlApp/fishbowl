@@ -8,7 +8,11 @@ defmodule Octocon.ClusterUtils do
   @doc """
   Check if the current node is a primary node.
   """
-  def is_primary?, do: System.get_env("FLY_PROCESS_GROUP") == "primary"
+  def is_primary?, do: NodeTracker.is_primary?()
+
+  def current_db_region do
+    Application.get_env(:octocon, :current_db_region)
+  end
 
   @doc """
   Get a list of all primary nodes in the cluster.
@@ -51,8 +55,16 @@ defmodule Octocon.ClusterUtils do
     end)
   end
 
-  def run_on_sidecar(fun, opts) do
+  def run_on_sidecar(fun, opts \\ []) do
     NodeTracker.rpc_group(:sidecar, fun, opts)
+  end
+
+  def run_on_primary(fun, opts \\ []) do
+    NodeTracker.rpc_group(:primary, fun, opts)
+  end
+
+  def run_on_primary(m, f, a) do
+    NodeTracker.rpc_group(:primary, {m, f, a})
   end
 
   @doc """
@@ -64,7 +76,7 @@ defmodule Octocon.ClusterUtils do
 
   def check_primary(node) do
     Octocon.RPC.NodeTracker.rpc(node, fn ->
-      System.get_env("FLY_PROCESS_GROUP") == "primary"
+      NodeTracker.is_primary?()
     end)
   end
 end

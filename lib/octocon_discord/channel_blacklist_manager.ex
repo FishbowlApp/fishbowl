@@ -73,8 +73,6 @@ defmodule OctoconDiscord.ChannelBlacklistManager do
   @doc false
   @impl true
   def init([]) do
-    channels = ChannelBlacklists.list_channel_blacklists_bare()
-
     :ets.new(@table, [
       :set,
       :named_table,
@@ -84,13 +82,23 @@ defmodule OctoconDiscord.ChannelBlacklistManager do
       decentralized_counters: true
     ])
 
+    {:ok, [], {:continue, :load_blacklists}}
+  end
+
+  @impl true
+  def handle_continue(:load_blacklists, state) do
+    # TODO: Replace this with actual waiting
+    Process.sleep(:timer.seconds(5))
+
+    channels = ChannelBlacklists.list_channel_blacklists_bare()
+
     :ets.insert(
       @table,
       channels
       |> Enum.map(fn channel_id -> {channel_id, []} end)
     )
 
-    {:ok, []}
+    {:noreply, state}
   end
 
   @impl true

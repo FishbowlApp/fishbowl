@@ -19,13 +19,15 @@ defmodule Octocon.Accounts.User do
   """
   use Ecto.Schema
   import Ecto.Changeset
+  import Exandra, only: [embedded_type: 3]
 
   alias Octocon.Accounts.DiscordSettings
 
-  @primary_key {:id, :string, autogenerate: false}
+  @primary_key false
 
   schema "users" do
-    field :avatar_url, :string
+    field :id, :string, primary_key: true
+    field :region, :string, virtual: true
 
     field :discord_id, :string
     field :apple_id, :string
@@ -34,21 +36,14 @@ defmodule Octocon.Accounts.User do
 
     field :username, :string
 
+    field :avatar_url, :string
     field :description, :string
 
     field :lifetime_alter_count, :integer, default: 0
     field :primary_front, :integer
 
-    embeds_one :discord_settings, DiscordSettings, on_replace: :delete
-
-    has_many :alters, Octocon.Alters.Alter, foreign_key: :user_id, references: :id
-    has_many :fronts, Octocon.Fronts.Front, foreign_key: :user_id, references: :id
-
-    has_many :global_journals, Octocon.Journals.GlobalJournalEntry,
-      foreign_key: :user_id,
-      references: :id
-
-    embeds_many :fields, Octocon.Accounts.Field, on_replace: :delete
+    embedded_type(:discord_settings, Octocon.Accounts.DiscordSettings, cardinality: :one)
+    embedded_type(:fields, Octocon.Accounts.Field, cardinality: :many)
 
     field :salt, :string
     field :encryption_initialized, :boolean, default: false
@@ -90,22 +85,22 @@ defmodule Octocon.Accounts.User do
       :lifetime_alter_count,
       :primary_front,
       :description,
+      :discord_settings,
+      :fields,
       :salt,
       :encryption_initialized,
       :encryption_key_checksum
     ])
-    |> cast_embed(:fields)
-    |> cast_embed(:discord_settings)
     |> global_validations()
   end
 
   @doc """
   Builds a changeset to create a new user with the given `discord_id` and extra `attrs`.
   """
-  def create_from_discord_changeset(discord_id, attrs) do
+  def create_from_discord_changeset(discord_id, uuid, attrs) do
     %__MODULE__{
       discord_id: to_string(discord_id),
-      id: generate_uuid(),
+      id: uuid,
       salt: generate_salt()
     }
     |> cast(attrs, [:id, :email, :discord_id, :username])
@@ -116,10 +111,10 @@ defmodule Octocon.Accounts.User do
   @doc """
   Builds a changeset to create a new user with the given `apple_id` and extra `attrs`.
   """
-  def create_from_apple_changeset(apple_id, attrs) do
+  def create_from_apple_changeset(apple_id, uuid, attrs) do
     %__MODULE__{
       apple_id: to_string(apple_id),
-      id: generate_uuid(),
+      id: uuid,
       salt: generate_salt()
     }
     |> cast(attrs, [:id, :email, :apple_id, :username])
@@ -130,10 +125,10 @@ defmodule Octocon.Accounts.User do
   @doc """
   Builds a changeset to create a new user with the given `email` and extra `attrs`.
   """
-  def create_from_email_changeset(email, attrs) do
+  def create_from_email_changeset(email, uuid, attrs) do
     %__MODULE__{
       email: email,
-      id: generate_uuid(),
+      id: uuid,
       salt: generate_salt()
     }
     |> cast(attrs, [:id, :email, :discord_id, :username])
@@ -141,11 +136,11 @@ defmodule Octocon.Accounts.User do
     |> global_validations()
   end
 
-  defp generate_uuid do
+  def generate_uuid do
     Nanoid.generate(7, "abcdefghijklmnopqrstuvwxyz")
   end
 
-  defp generate_salt() do
+  defp generate_salt do
     :crypto.strong_rand_bytes(32) |> Base.encode64()
   end
 end

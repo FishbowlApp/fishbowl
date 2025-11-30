@@ -13,29 +13,16 @@ defmodule Octocon.Workers.PluralKitImportWorker do
   alias Octocon.Accounts
   alias Octocon.Repo
 
-  use Oban.Worker,
-    queue: :pk_imports,
-    unique: [
-      fields: [:args, :worker],
-      keys: [:system_id],
-      states: [:available, :scheduled, :executing, :retryable],
-      period: :infinity
-    ],
-    max_attempts: 1
-
   require Logger
 
   alias OctoconWeb.Uploaders.Avatar
 
   @pk_endpoint URI.parse("https://api.pluralkit.me/v2/")
 
-  @impl true
-  def perform(%Oban.Job{
-        args: %{
+  def perform(%{
           "system_id" => system_id,
           "pk_token" => pk_token
-        }
-      }) do
+        }) do
     Logger.warning("Performing PluralKit import for user #{system_id}")
 
     {:ok, %{body: self_body}} = send_pk_request(:get, "/systems/@me", pk_token)
@@ -74,7 +61,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
     Repo.transaction(fn ->
       chunked_alters
       |> Enum.each(fn chunk ->
-        Repo.insert_all(Alter, chunk)
+        Repo.insert_all_regional(Alter, chunk, {:user, {:system, system_id}})
       end)
 
       user = Accounts.get_user!({:system, system_id})

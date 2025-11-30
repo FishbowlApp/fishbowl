@@ -5,7 +5,6 @@ defmodule Octocon.Primary.Supervisor do
 
   def init([]) do
     children = [
-      Octocon.MessageRepo,
       Octocon.Primary.NodeListener,
       Octocon.Primary.HordeRegistry,
       Octocon.Primary.HordeSupervisor

@@ -2,7 +2,9 @@ defmodule Octocon.Accounts.DiscordSettings do
   @moduledoc false
 
   use Ecto.Schema
+
   import Ecto.Changeset
+  import Exandra, only: [embedded_type: 3]
 
   @primary_key false
   embedded_schema do
@@ -18,14 +20,7 @@ defmodule Octocon.Accounts.DiscordSettings do
     field :global_autoproxy_mode, Ecto.Enum, values: [off: 0, front: 1, latch: 2], default: :off
     field :global_latched_alter, :integer, default: nil
 
-    embeds_many :server_settings, ServerSettings, primary_key: false, on_replace: :delete do
-      field :guild_id, :string
-
-      field :proxying_disabled, :boolean, default: false
-
-      field :autoproxy_mode, Ecto.Enum, values: [off: 0, front: 1, latch: 2], default: :off
-      field :latched_alter, :integer, default: nil
-    end
+    embedded_type(:server_settings, Octocon.Accounts.ServerSettings, cardinality: :many)
   end
 
   def changeset(data, attrs \\ %{}) do
@@ -37,23 +32,17 @@ defmodule Octocon.Accounts.DiscordSettings do
       :show_pronouns,
       :ids_as_proxies,
       :silent_proxying,
+      :server_settings,
       :use_proxy_delay,
       :global_autoproxy_mode,
       :global_latched_alter
     ])
     |> validate_length(:system_tag, max: 20)
-    |> cast_embed(:server_settings, with: &server_settings_changeset/2)
-  end
-
-  def server_settings_changeset(data, attrs \\ %{}) do
-    data
-    |> cast(attrs, [:guild_id, :proxying_disabled, :autoproxy_mode, :latched_alter])
-    |> validate_required([:guild_id])
   end
 
   def server_settings_map(%__MODULE__{server_settings: server_settings}) do
-    server_settings
-    |> Enum.map(fn %__MODULE__.ServerSettings{
+    (server_settings || [])
+    |> Enum.map(fn %Octocon.Accounts.ServerSettings{
                      guild_id: guild_id,
                      proxying_disabled: proxying_disabled,
                      autoproxy_mode: autoproxy_mode,

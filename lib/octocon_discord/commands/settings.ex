@@ -267,9 +267,7 @@ defmodule OctoconDiscord.Commands.Settings do
 
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    %{"system_id" => system_id, "pk_token" => pk_token}
-    |> PluralKitImportWorker.new()
-    |> Octocon.ObanHandler.insert()
+    PluralKitImportWorker.perform(%{"system_id" => system_id, "pk_token" => pk_token})
 
     Utils.success_embed(
       "Octocon is attempting to import your alters from PluralKit. This may take a while; check your alters with `/alter list`."
@@ -280,9 +278,7 @@ defmodule OctoconDiscord.Commands.Settings do
     sp_token = Utils.get_command_option(options, "token")
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    %{"system_id" => system_id, "sp_token" => sp_token}
-    |> SimplyPluralImportWorker.new()
-    |> Octocon.ObanHandler.insert()
+    SimplyPluralImportWorker.perform(%{"system_id" => system_id, "sp_token" => sp_token})
 
     Utils.success_embed(
       "Octocon is attempting to import your alters from Simply Plural. This may take a while; check your alters with `/alter list`."

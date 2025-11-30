@@ -8,23 +8,21 @@ defmodule Octocon.Messages do
 
   alias Octocon.Messages.Message
 
-  defp ensure_on_primary do
-    unless Octocon.RPC.NodeTracker.is_primary?() do
-      raise "This module should only accessed on the primary region."
-    end
+  def insert_message(attrs) do
+    Octocon.RPC.NodeTracker.rpc_primary({__MODULE__, :insert_message_internal, [attrs]})
   end
 
-  def insert_message(attrs) do
-    ensure_on_primary()
-
+  def insert_message_internal(attrs) do
     %Message{}
     |> Message.changeset(attrs)
     |> Repo.insert()
   end
 
   def lookup_message(message_id) do
-    ensure_on_primary()
+    Octocon.RPC.NodeTracker.rpc_primary({__MODULE__, :lookup_message_internal, [message_id]})
+  end
 
+  def lookup_message_internal(message_id) do
     message_timestamp = Nostrum.Snowflake.creation_time(message_id)
 
     query =

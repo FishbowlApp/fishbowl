@@ -52,6 +52,9 @@ defmodule Octocon.MixProject do
       {:postgrex, "~> 0.20"},
       {:phoenix_live_dashboard, "~> 0.8"},
 
+      # Scylla
+      {:exandra, "~> 0.14"},
+
       # Use Bandit instead of Cowboy
       {:bandit, "~> 1.6"},
       {:websock_adapter, "~> 0.5"},
@@ -80,7 +83,7 @@ defmodule Octocon.MixProject do
       # github: "jchristgit/nosedrum", branch: "master", override: true},
 
       # Caching
-      {:cachex, "~> 3.6"},
+      {:cachex, "~> 4.1"},
       # Background jobs
       {:oban, "~> 2.19.4"},
       # Object storage
@@ -103,6 +106,7 @@ defmodule Octocon.MixProject do
       {:fly_postgres, "~> 0.3"},
       {:horde, "~> 0.9.0"},
       {:dns_cluster, "~> 0.2"},
+      {:libcluster, "~> 3.3"},
 
       # Time-series data
       {:timescale, "~> 0.1"},

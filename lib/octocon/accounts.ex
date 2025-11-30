@@ -13,25 +13,104 @@ defmodule Octocon.Accounts do
 
   alias Octocon.Accounts.{
     Field,
-    User
+    User,
+    UserRegistry
   }
 
-  alias Octocon.Alters.Alter
+  alias Octocon.Alters.{
+    Alter,
+    AlterWithProxies
+  }
+
+  alias Octocon.Tags.{
+    AlterTag,
+    Tag
+  }
+
+  alias Octocon.Polls.Poll
+
+  alias Octocon.Journals.{
+    AlterJournalEntry,
+    GlobalJournalAlters,
+    GlobalJournalEntry
+  }
+
   alias Octocon.Repo
 
   alias OctoconWeb.SystemJSON
-
-  @doc """
-  Returns a list of **all** users. This is a dangerous, long-running operation and should be used with caution.
-  """
-  def list_users do
-    Repo.all(User)
-  end
 
   defp unwrap_system_identity_where(system_identity, extra \\ []) do
     case system_identity do
       {:system, system_id} -> [id: system_id] |> Keyword.merge(extra)
       {:discord, discord_id} -> [discord_id: discord_id] |> Keyword.merge(extra)
+      {:username, username} -> [username: username] |> Keyword.merge(extra)
+      {:email, email} -> [email: email] |> Keyword.merge(extra)
+      {:apple, apple_id} -> [apple_id: apple_id] |> Keyword.merge(extra)
+      {:google, google_id} -> [google_id: google_id] |> Keyword.merge(extra)
+    end
+  end
+
+  # def unwrap_system_identity_where(system_identity, extra \\ []) do
+  #   case system_identity do
+  #     {:system, system_id} ->
+  #       [id: system_id] |> Keyword.merge(extra)
+
+  #     {:discord, _} = identity ->
+  #       [id: Accounts.id_from_system_identity(identity, :system)]
+  #       |> Keyword.merge(extra)
+  #   end
+  # end
+
+  def get_user_registry(system_identity) do
+    query =
+      case system_identity do
+        {:system, system_id} ->
+          UserRegistry
+          |> where([ur], ur.user_id == ^system_id)
+
+        {:discord, discord_id} ->
+          UserRegistry
+          |> where([ur], ur.discord_id == ^discord_id)
+
+        {:email, email} ->
+          UserRegistry
+          |> where([ur], ur.email == ^email)
+
+        {:username, username} ->
+          UserRegistry
+          |> where([ur], ur.username == ^username)
+
+        {:apple, apple_id} ->
+          UserRegistry
+          |> where([ur], ur.apple_id == ^apple_id)
+
+        {:google, google_id} ->
+          UserRegistry
+          |> where([ur], ur.google_id == ^google_id)
+      end
+      |> select([ur], ur)
+
+    Repo.one_global(query)
+  end
+
+  def delete_user_registry(system_identity) do
+    case get_user_registry(system_identity) do
+      nil ->
+        {:error, :not_found}
+
+      user_registry ->
+        Repo.delete_global(user_registry)
+    end
+  end
+
+  def user_exists?(system_identity) do
+    get_user_registry(system_identity) != nil
+  end
+
+  def region_for_user(system_identity) do
+    case get_user_registry(system_identity) do
+      nil -> nil
+      %UserRegistry{region: region} -> String.to_atom(region)
     end
   end
 
@@ -39,7 +118,7 @@ defmodule Octocon.Accounts do
   Returns the total number of users in the database.
   """
   def count do
-    Repo.aggregate(User, :count)
+    Octocon.Repo.aggregate(UserRegistry, :count, prefix: :global, consistency: :local_one)
   end
 
   @doc """
@@ -61,24 +140,28 @@ defmodule Octocon.Accounts do
   """
   def id_from_system_identity(system_identity, type)
 
-  def id_from_system_identity({:system, system_id}, :system), do: system_id
-  def id_from_system_identity({:discord, discord_id}, :discord), do: discord_id
+  # {:user, user_id} is an alias for {:system, user_id}
+  def id_from_system_identity({:user, user_id}, type),
+    do: id_from_system_identity({:system, user_id}, type)
+
+  # When we're asking for the type we already have, just return the given ID.
+  def id_from_system_identity({type, id}, type), do: id
 
   def id_from_system_identity(system_identity, type) do
-    where = unwrap_system_identity_where(system_identity)
+    registry = get_user_registry(system_identity)
 
-    select =
+    if registry == nil do
+      nil
+    else
       case type do
-        :system -> fn query -> select(query, [u], u.id) end
-        :discord -> fn query -> select(query, [u], u.discord_id) end
+        :system -> registry.user_id
+        :discord -> registry.discord_id
+        :email -> registry.email
+        :username -> registry.username
+        :apple -> registry.apple_id
+        :google -> registry.google_id
       end
-
-    query =
-      User
-      |> where(^where)
-      |> then(select)
-
-    Repo.one(query)
+    end
   end
 
   @doc """
@@ -91,7 +174,7 @@ defmodule Octocon.Accounts do
       User
       |> where(^where)
 
-    Repo.one(query)
+    Repo.one_regional(query, {:user, system_identity})
   end
 
   @doc """
@@ -112,48 +195,135 @@ defmodule Octocon.Accounts do
       from u in User,
         where: u.username == ^username
 
-    Repo.one(query)
+    Repo.one_regional(query, {:user, {:username, username}})
   end
 
   @doc """
   Given a username, returns the ID of the user associated with it. Returns `nil` if no user is found.
   """
   def get_user_id_by_username(username) do
-    query =
-      from u in User,
-        where: u.username == ^username,
-        select: u.id
+    id_from_system_identity({:username, username}, :system)
+  end
 
-    Repo.one(query)
+  def allocate_uuid do
+    uuid = Octocon.Accounts.User.generate_uuid()
+
+    case region_for_user({:system, uuid}) do
+      nil ->
+        uuid
+
+      _ ->
+        allocate_uuid()
+    end
+  end
+
+  def register_user(user_id, region, attrs \\ %{}) do
+    %UserRegistry{
+      user_id: user_id,
+      region: to_string(region)
+    }
+    |> UserRegistry.changeset(attrs)
+    |> Repo.insert_global()
+  end
+
+  def update_user_registry(user_id, attrs \\ %{}) do
+    case get_user_registry({:system, user_id}) do
+      nil ->
+        {:error, :not_found}
+
+      user_registry ->
+        user_registry
+        |> UserRegistry.changeset(attrs)
+        |> Repo.update_global()
+    end
   end
 
   @doc """
   Creates a user given the provided `email` address and extra `attrs`.
   """
   def create_user_from_email(email, attrs \\ %{}) do
-    email
-    |> User.create_from_email_changeset(attrs)
-    |> Repo.insert()
+    if user_exists?({:email, email}) do
+      {:error, :user_exists}
+    else
+      current_region = Octocon.ClusterUtils.current_db_region()
+      uuid = allocate_uuid()
+
+      user =
+        email
+        |> User.create_from_email_changeset(uuid, attrs)
+        |> Repo.insert_regional({:region, current_region})
+
+      case user do
+        {:ok, user_struct} = result ->
+          register_user(user_struct.id, current_region, %{
+            email: user_struct.email
+          })
+
+          result
+
+        err ->
+          err
+      end
+    end
   end
 
   @doc """
   Creates a user given the provided `discord_id` and extra `attrs`.
   """
   def create_user_from_discord(discord_id, attrs \\ %{}) do
-    OctoconDiscord.ProxyCache.invalidate(discord_id)
+    if user_exists?({:discord, discord_id}) do
+      {:error, :user_exists}
+    else
+      current_region = Octocon.ClusterUtils.current_db_region()
+      uuid = allocate_uuid()
+      OctoconDiscord.ProxyCache.invalidate(discord_id)
 
-    discord_id
-    |> User.create_from_discord_changeset(attrs)
-    |> Repo.insert()
+      user =
+        discord_id
+        |> User.create_from_discord_changeset(uuid, attrs)
+        |> Repo.insert_regional({:region, current_region})
+
+      case user do
+        {:ok, user_struct} = result ->
+          register_user(user_struct.id, current_region, %{
+            discord_id: user_struct.discord_id
+          })
+
+          result
+
+        err ->
+          err
+      end
+    end
   end
 
   @doc """
   Creates a user given the provided `apple_id` and extra `attrs`.
   """
   def create_user_from_apple(apple_id, attrs \\ %{}) do
-    apple_id
-    |> User.create_from_apple_changeset(attrs)
-    |> Repo.insert()
+    if user_exists?({:apple, apple_id}) do
+      {:error, :user_exists}
+    else
+      current_region = Octocon.ClusterUtils.current_db_region()
+      uuid = allocate_uuid()
+
+      user =
+        apple_id
+        |> User.create_from_apple_changeset(uuid, attrs)
+        |> Repo.insert_regional({:region, current_region})
+
+      case user do
+        {:ok, user_struct} = result ->
+          register_user(user_struct.id, current_region, %{
+            apple_id: user_struct.apple_id
+          })
+
+          result
+
+        err ->
+          err
+      end
+    end
   end
 
   @doc """
@@ -164,27 +334,36 @@ defmodule Octocon.Accounts do
   - {:error, :already_linked} when the user is already linked to a Discord account
   """
   def link_discord_to_user(%User{} = user, discord_id) do
-    if user.discord_id != nil do
-      {:error, :already_linked}
-    else
-      user
-      |> User.update_changeset(%{discord_id: discord_id})
-      |> Repo.update()
-      |> case do
-        {:ok, value} ->
-          OctoconDiscord.ProxyCache.invalidate(discord_id)
+    cond do
+      user.discord_id != nil ->
+        {:error, :already_linked}
 
-          spawn(fn ->
-            OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "discord_account_linked", %{
-              discord_id: discord_id
-            })
-          end)
+      user_exists?({:discord, discord_id}) ->
+        {:error, :user_exists}
 
-          {:ok, value}
+      true ->
+        user
+        |> User.update_changeset(%{discord_id: discord_id})
+        |> Repo.update_regional({:user, {:system, user.id}})
+        |> case do
+          {:ok, value} ->
+            OctoconDiscord.ProxyCache.invalidate(discord_id)
 
-        {:error, changeset} ->
-          {:error, changeset}
-      end
+            spawn(fn ->
+              update_user_registry(user.id, %{discord_id: discord_id})
+            end)
+
+            spawn(fn ->
+              OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "discord_account_linked", %{
+                discord_id: discord_id
+              })
+            end)
+
+            {:ok, value}
+
+          {:error, changeset} ->
+            {:error, changeset}
+        end
     end
   end
 
@@ -202,25 +381,34 @@ defmodule Octocon.Accounts do
   - {:error, :cannot_unlink} when the user is not linked to a Discord account (all accounts must be linked to at least one authentication method).
   """
   def link_email_to_user(%User{} = user, email) do
-    if user.email != nil do
-      {:error, :already_linked}
-    else
-      user
-      |> User.update_changeset(%{email: email})
-      |> Repo.update()
-      |> case do
-        {:ok, value} ->
-          spawn(fn ->
-            OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "google_account_linked", %{
-              email: email
-            })
-          end)
+    cond do
+      user.email != nil ->
+        {:error, :already_linked}
 
-          {:ok, value}
+      user_exists?({:email, email}) ->
+        {:error, :user_exists}
 
-        {:error, changeset} ->
-          {:error, changeset}
-      end
+      true ->
+        user
+        |> User.update_changeset(%{email: email})
+        |> Repo.update_regional({:user, {:system, user.id}})
+        |> case do
+          {:ok, value} ->
+            spawn(fn ->
+              update_user_registry(user.id, %{email: email})
+            end)
+
+            spawn(fn ->
+              OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "google_account_linked", %{
+                email: email
+              })
+            end)
+
+            {:ok, value}
+
+          {:error, changeset} ->
+            {:error, changeset}
+        end
     end
   end
 
@@ -238,25 +426,34 @@ defmodule Octocon.Accounts do
   - {:error, :cannot_unlink} when the user is not linked to a different account type (all accounts must be linked to at least one authentication method).
   """
   def link_apple_to_user(%User{} = user, apple_id) do
-    if user.apple_id != nil do
-      {:error, :already_linked}
-    else
-      user
-      |> User.update_changeset(%{apple_id: apple_id})
-      |> Repo.update()
-      |> case do
-        {:ok, value} ->
-          spawn(fn ->
-            OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "apple_account_linked", %{
-              apple_id: apple_id
-            })
-          end)
+    cond do
+      user.apple_id != nil ->
+        {:error, :already_linked}
 
-          {:ok, value}
+      user_exists?({:apple, apple_id}) ->
+        {:error, :user_exists}
 
-        {:error, changeset} ->
-          {:error, changeset}
-      end
+      true ->
+        user
+        |> User.update_changeset(%{apple_id: apple_id})
+        |> Repo.update_regional({:user, {:system, user.id}})
+        |> case do
+          {:ok, value} ->
+            spawn(fn ->
+              update_user_registry(user.id, %{apple_id: apple_id})
+            end)
+
+            spawn(fn ->
+              OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "apple_account_linked", %{
+                apple_id: apple_id
+              })
+            end)
+
+            {:ok, value}
+
+          {:error, changeset} ->
+            {:error, changeset}
+        end
     end
   end
 
@@ -283,9 +480,13 @@ defmodule Octocon.Accounts do
       true ->
         user
         |> User.update_changeset(%{email: nil})
-        |> Repo.update()
+        |> Repo.update_regional({:user, {:system, user.id}})
         |> case do
           {:ok, value} ->
+            spawn(fn ->
+              update_user_registry(user.id, %{email: nil})
+            end)
+
             spawn(fn ->
               OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "google_account_unlinked", %{})
             end)
@@ -321,9 +522,13 @@ defmodule Octocon.Accounts do
       true ->
         user
         |> User.update_changeset(%{discord_id: nil})
-        |> Repo.update()
+        |> Repo.update_regional({:user, {:system, user.id}})
         |> case do
           {:ok, value} ->
+            spawn(fn ->
+              update_user_registry(user.id, %{discord_id: nil})
+            end)
+
             spawn(fn ->
               OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "discord_account_unlinked", %{})
             end)
@@ -359,9 +564,13 @@ defmodule Octocon.Accounts do
       true ->
         user
         |> User.update_changeset(%{apple_id: nil})
-        |> Repo.update()
+        |> Repo.update_regional({:user, {:system, user.id}})
         |> case do
           {:ok, value} ->
+            spawn(fn ->
+              update_user_registry(user.id, %{apple_id: nil})
+            end)
+
             spawn(fn ->
               OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "apple_account_unlinked", %{})
             end)
@@ -385,7 +594,7 @@ defmodule Octocon.Accounts do
   def update_user(%User{} = user, attrs) do
     user
     |> User.update_changeset(attrs)
-    |> Repo.update()
+    |> Repo.update_regional({:user, {:system, user.id}})
     |> case do
       {:ok, value} ->
         spawn(fn ->
@@ -402,25 +611,6 @@ defmodule Octocon.Accounts do
   end
 
   @doc """
-  Updates a user given the provided system identity and extra `attrs`.
-
-  Raises when the changeset is invalid.
-  """
-  def update_user!(%User{} = user, attrs) do
-    user
-    |> User.update_changeset(attrs)
-    |> Repo.update!()
-  end
-
-  @doc """
-  Updates a user given the provided system identity and extra `attrs`.
-  """
-  def update_user_by_system_identity(system_identity, attrs) do
-    user = get_user(system_identity)
-    update_user(user, attrs)
-  end
-
-  @doc """
   Returns the primary front of the user associated with the provided system identity. May be `nil` if no primary front is set.
   """
   def get_primary_front(system_identity) do
@@ -431,7 +621,7 @@ defmodule Octocon.Accounts do
       |> where(^where)
       |> select([u], u.primary_front)
 
-    Repo.one(query)
+    Repo.one_regional(query, {:user, system_identity})
   end
 
   def get_proxy_cache_data(system_identity) do
@@ -445,7 +635,7 @@ defmodule Octocon.Accounts do
         :discord_settings
       ])
 
-    Repo.one(query)
+    Repo.one_regional(query, {:user, system_identity})
   end
 
   @doc """
@@ -479,20 +669,21 @@ defmodule Octocon.Accounts do
 
   def update_discord_settings(%User{} = user, attrs) do
     old_attrs =
-      user.discord_settings
-      |> Map.from_struct()
-      |> Map.put(
-        :server_settings,
-        Map.get(user.discord_settings, :server_settings)
-        |> Enum.map(&Map.from_struct/1)
-      )
+      user.discord_settings ||
+        %Octocon.Accounts.DiscordSettings{}
+        |> Map.from_struct()
+        |> Map.put(
+          :server_settings,
+          Map.get(user.discord_settings, :server_settings)
+          |> Enum.map(&Map.from_struct/1)
+        )
 
     result =
       user
       |> User.update_changeset(%{
         discord_settings: Map.merge(old_attrs, attrs)
       })
-      |> Repo.update()
+      |> Repo.update_regional({:user, {:system, user.id}})
 
     if match?({:ok, _}, result) do
       OctoconDiscord.ProxyCache.invalidate(user.discord_id)
@@ -509,8 +700,10 @@ defmodule Octocon.Accounts do
   def update_server_settings(%User{} = user, guild_id, settings) when is_binary(guild_id) do
     settings = Map.drop(settings, [:guild_id])
 
-    old_discord_settings = user.discord_settings |> Map.from_struct()
-    old_settings = user.discord_settings.server_settings |> Enum.map(&Map.from_struct/1)
+    old_discord_settings =
+      (user.discord_settings || %Octocon.Accounts.DiscordSettings{}) |> Map.from_struct()
+
+    old_settings = (user.discord_settings.server_settings || []) |> Enum.map(&Map.from_struct/1)
 
     result =
       if Enum.any?(old_settings, fn server ->
@@ -532,7 +725,7 @@ defmodule Octocon.Accounts do
           discord_settings: Map.merge(old_discord_settings, %{server_settings: new_settings})
         })
       end)
-      |> Repo.update()
+      |> Repo.update_regional({:user, {:system, user.id}})
 
     if match?({:ok, _}, result) do
       OctoconDiscord.ProxyCache.invalidate(user.discord_id)
@@ -552,12 +745,17 @@ defmodule Octocon.Accounts do
   def delete_user(system_identity) do
     user = get_user!(system_identity)
 
-    case Repo.delete(user) do
+    case Repo.delete_regional(user, {:user, {:system, user.id}}) do
       {:error, _} ->
         {:error, :not_deleted}
 
       {:ok, _} ->
         OctoconDiscord.ProxyCache.invalidate(user.discord_id)
+
+        spawn(fn ->
+          delete_user_registry({:system, user.id})
+          delete_user_data(user.id)
+        end)
 
         spawn(fn ->
           OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "account_deleted", %{})
@@ -567,25 +765,60 @@ defmodule Octocon.Accounts do
     end
   end
 
-  @doc false
-  def wipe_alters_internal(system_identity) do
-    Repo.transaction(fn ->
-      user = get_user!(system_identity)
+  defp delete_user_data(system_id) do
+    from(
+      a in Alter,
+      where: a.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
 
-      query =
-        from a in Alter,
-          where: a.user_id == ^user.id
+    from(
+      at in Octocon.Tags.AlterTag,
+      where: at.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
 
-      Repo.delete_all(query)
+    from(
+      f in Octocon.Fronts.Front,
+      where: f.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
 
-      user
-      |> User.update_changeset(%{primary_front: nil, lifetime_alter_count: 0})
-      |> Repo.update()
+    from(
+      f in Octocon.Fronts.CurrentFront,
+      where: f.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
 
-      spawn(fn ->
-        OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alters_wiped", %{})
-      end)
-    end)
+    from(
+      aj in Octocon.Journals.AlterJournalEntry,
+      where: aj.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
+
+    from(
+      aj in Octocon.Journals.GlobalJournalEntry,
+      where: aj.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
+
+    from(
+      p in Octocon.Polls.Poll,
+      where: p.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
+
+    from(
+      t in Octocon.Tags.Tag,
+      where: t.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
+
+    from(
+      gw in Octocon.Journals.GlobalJournalAlters,
+      where: gw.user_id == ^system_id
+    )
+    |> Repo.delete_all_regional({:user, {:system, system_id}})
   end
 
   @doc """
@@ -596,7 +829,44 @@ defmodule Octocon.Accounts do
   def wipe_alters(system_identity) do
     OctoconDiscord.ProxyCache.invalidate(system_identity)
 
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :wipe_alters_internal, [system_identity])
+    user = get_user!(system_identity)
+
+    q1 =
+      from a in Alter,
+        where: a.user_id == ^user.id
+
+    q2 =
+      from f in Octocon.Fronts.Front,
+        where: f.user_id == ^user.id
+
+    q3 =
+      from f in Octocon.Journals.AlterJournalEntry,
+        where: f.user_id == ^user.id
+
+    q4 =
+      from f in Octocon.Journals.GlobalJournalAlters,
+        where: f.user_id == ^user.id
+
+    q5 =
+      from f in Octocon.Tags.AlterTag,
+        where: f.user_id == ^user.id
+
+    q6 =
+      from f in Octocon.Fronts.CurrentFront,
+        where: f.user_id == ^user.id
+
+    [q1, q2, q3, q4, q5, q6]
+    |> Enum.each(fn query ->
+      Repo.delete_all_regional(query, {:user, {:system, user.id}})
+    end)
+
+    user
+    |> User.update_changeset(%{primary_front: nil, lifetime_alter_count: 0})
+    |> Repo.update_regional({:user, {:system, user.id}})
+
+    spawn(fn ->
+      OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alters_wiped", %{})
+    end)
   end
 
   @doc """
@@ -606,81 +876,27 @@ defmodule Octocon.Accounts do
     User.update_changeset(user, attrs)
   end
 
-  @doc """
-  Checks if a user exists given the provided system identity.
-  """
-  def user_exists?(system_identity) do
-    where = unwrap_system_identity_where(system_identity)
-
-    query =
-      User
-      |> where(^where)
-
-    Repo.exists?(query)
-  end
-
-  @doc """
-  Checks if a user exists given the provided email address.
-  """
-  def user_exists_with_email?(email) do
-    query =
-      from u in User,
-        where: u.email == ^email
-
-    Repo.exists?(query)
-  end
-
   @doc false
   def get_user_proxy_map_old(system_identity) do
     where = unwrap_system_identity_where(system_identity)
 
-    query =
-      User
-      |> where(^where)
-      |> join(:inner, [u], a in assoc(u, :alters))
-      |> select([u, a], {u.id, a.id, a.discord_proxies})
+    user = from(u in User, where: ^where) |> Repo.one_regional({:user, system_identity})
 
-    results = Repo.all(query)
+    alters =
+      from(
+        a in Alter,
+        where: a.user_id == ^user.id,
+        select: struct(a, [:id, :discord_proxies])
+      )
+      |> Repo.all_regional({:user, {:system, user.id}})
+      |> Enum.filter(fn alter -> alter.discord_proxies != [] && alter.discord_proxies != nil end)
 
-    Enum.reduce(results, %{}, fn {system_id, alter_id, proxies}, acc ->
+    Enum.reduce(alters, %{}, fn %{id: alter_id, discord_proxies: proxies}, acc ->
+      # Skip if proxies is nil or empty
       Enum.reduce(proxies, acc, fn proxy, map ->
-        Map.put(map, proxy, {system_id, alter_id})
+        Map.put(map, proxy, {user.id, alter_id})
       end)
     end)
-  end
-
-  @doc false
-  def get_user_proxy_map(system_identity) do
-    where = unwrap_system_identity_where(system_identity)
-
-    # query =
-    #   User
-    #   |> where(^where)
-    #   |> join(:inner, [u], a in assoc(u, :alters))
-    #   |> select([u, a], {u.id, a.id, a.discord_proxies})
-
-    query =
-      User
-      |> where(^where)
-      |> join(:inner, [u], a in assoc(u, :alters))
-      |> where([u, a], not is_nil(a.discord_proxies) and a.discord_proxies != [])
-      |> group_by([u, a], u.id)
-      |> select([u, a], %{
-        user_id: u.id,
-        proxies: fragment("array_agg((?, ?))", a.id, a.discord_proxies)
-      })
-
-    result = Repo.one(query)
-
-    new_proxies =
-      result.proxies
-      |> Enum.reduce(%{}, fn {alter_id, proxies}, acc ->
-        Enum.reduce(proxies, acc, fn proxy, map ->
-          Map.put(map, proxy, alter_id)
-        end)
-      end)
-
-    %{result | proxies: new_proxies}
   end
 
   @doc """
@@ -690,9 +906,8 @@ defmodule Octocon.Accounts do
     user = get_user!(system_identity)
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, [])
-    |> Repo.update()
+    |> User.update_changeset(%{fields: []})
+    |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
 
@@ -703,19 +918,18 @@ defmodule Octocon.Accounts do
     user = get_user!(system_identity)
 
     fields =
-      user.fields
+      (user.fields || [])
       |> Enum.map(fn field ->
         if field.id == id do
-          Field.changeset(field, data)
+          struct(field, data)
         else
           field
         end
       end)
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, fields)
-    |> Repo.update()
+    |> User.update_changeset(%{fields: fields})
+    |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
 
@@ -724,12 +938,14 @@ defmodule Octocon.Accounts do
   """
   def add_field(system_identity, data) do
     user = get_user!(system_identity)
-    fields = user.fields ++ [Field.changeset(nil, data)]
+    fields = (user.fields || []) ++ [struct(%Field{
+      id: Ecto.UUID.generate(),
+      locked: false
+    }, data)]
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, fields)
-    |> Repo.update()
+    |> User.update_changeset(%{fields: fields})
+    |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
 
@@ -740,13 +956,12 @@ defmodule Octocon.Accounts do
     user = get_user!(system_identity)
 
     fields =
-      user.fields
+      (user.fields || [])
       |> Enum.reject(fn field -> field.id == id end)
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, fields)
-    |> Repo.update()
+    |> User.update_changeset(%{fields: fields})
+    |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
 
@@ -756,7 +971,7 @@ defmodule Octocon.Accounts do
   def relocate_field(system_identity, id, index) do
     user = get_user!(system_identity)
 
-    old_fields = user.fields
+    old_fields = (user.fields || [])
     field = Enum.find(old_fields, fn field -> field.id == id end)
 
     fields =
@@ -765,9 +980,8 @@ defmodule Octocon.Accounts do
       |> List.insert_at(index, field)
 
     user
-    |> User.update_changeset()
-    |> Ecto.Changeset.put_embed(:fields, fields)
-    |> Repo.update()
+    |> User.update_changeset(%{fields: fields})
+    |> Repo.update_regional({:user, {:system, user.id}})
     |> wrap_fields_broadcast(system_identity)
   end
 
@@ -782,7 +996,7 @@ defmodule Octocon.Accounts do
       |> where(^where)
       |> select([u], u.fields)
 
-    Repo.one(query)
+    Repo.one_regional(query, {:user, system_identity})
   end
 
   defp wrap_fields_broadcast({:ok, _} = result, system_identity) do
@@ -801,45 +1015,41 @@ defmodule Octocon.Accounts do
   defp wrap_fields_broadcast({:error, _} = result, _), do: result
 
   def wipe_encrypted_data(system_identity) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :wipe_encrypted_data_internal, [system_identity])
-  end
+    alias Octocon.Journals.{AlterJournalEntry, GlobalJournalAlters, GlobalJournalEntry}
 
-  def wipe_encrypted_data_internal(system_identity) do
-    alias Octocon.Journals.{AlterJournalEntry, GlobalJournalEntry, GlobalJournalAlters}
+    user = get_user!(system_identity)
+    specifier = {:user, {:system, user.id}}
 
-    Repo.transaction(fn ->
-      user = get_user!(system_identity)
-
+    {:ok, _} =
       user
       |> User.update_changeset(%{
         encryption_initialized: false,
         encryption_key_checksum: nil
       })
-      |> Repo.update!()
+      |> Repo.update_regional(specifier)
 
-      global_journal_alters_query =
-        from ja in GlobalJournalAlters,
-          where: ja.user_id == ^user.id
+    from(
+      ja in GlobalJournalAlters,
+      where: ja.user_id == ^user.id
+    )
+    |> Repo.delete_all_regional(specifier)
 
-      Repo.delete_all(global_journal_alters_query)
+    from(
+      j in GlobalJournalEntry,
+      where: j.user_id == ^user.id
+    )
+    |> Repo.delete_all_regional(specifier)
 
-      global_journals_query =
-        from j in GlobalJournalEntry,
-          where: j.user_id == ^user.id
+    from(
+      j in AlterJournalEntry,
+      where: j.user_id == ^user.id
+    )
+    |> Repo.delete_all_regional(specifier)
 
-      Repo.delete_all(global_journals_query)
-
-      alter_journals_query =
-        from j in AlterJournalEntry,
-          where: j.user_id == ^user.id
-
-      Repo.delete_all(alter_journals_query)
-
-      spawn(fn ->
-        OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "encrypted_data_wiped", %{})
-      end)
-
-      :ok
+    spawn(fn ->
+      OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "encrypted_data_wiped", %{})
     end)
+
+    :ok
   end
 end

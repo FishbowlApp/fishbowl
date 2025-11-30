@@ -6,6 +6,8 @@ defmodule OctoconWeb.AuthController do
   alias Octocon.Auth.Guardian
   alias Octocon.Repo
 
+  import Ecto.Query
+
   plug :put_metadata
   plug Ueberauth
 
@@ -64,16 +66,16 @@ defmodule OctoconWeb.AuthController do
         "provider" => "discord"
       }) do
     user =
-      case Repo.get_by(User, discord_id: discord_id) do
+      case Accounts.get_user_registry({:discord, discord_id}) do
         nil -> Accounts.create_user_from_discord(discord_id) |> elem(1)
         user -> user
       end
 
-    {:ok, token, _claims} = Guardian.encode_and_sign(user.id)
+    {:ok, token, _claims} = Guardian.encode_and_sign(user.user_id)
 
     metadata = get_session(conn, :metadata) |> Jason.decode!()
 
-    url_params = "?token=#{token}&id=#{user.id}"
+    url_params = "?token=#{token}&id=#{user.user_id}"
 
     redirect_url =
       case metadata do
@@ -90,17 +92,16 @@ defmodule OctoconWeb.AuthController do
         "provider" => "google"
       }) do
     user =
-      case Repo.get_by(User, email: email) do
+      case Accounts.get_user_registry({:email, email}) do
         nil -> Accounts.create_user_from_email(email) |> elem(1)
         user -> user
       end
 
-    {:ok, token, _claims} = Guardian.encode_and_sign(user.id)
+    {:ok, token, _claims} = Guardian.encode_and_sign(user.user_id)
 
     metadata = get_session(conn, :metadata) |> Jason.decode!()
 
-    url_params = "?token=#{token}&id=#{user.id}"
-
+    url_params = "?token=#{token}&id=#{user.user_id}"
     redirect_url =
       case metadata do
         %{"platform" => "wasm", "is_beta" => "true"} -> "https://beta.octocon.app/app"
@@ -116,26 +117,19 @@ defmodule OctoconWeb.AuthController do
         "provider" => "apple"
       }) do
     user =
-      case Repo.get_by(User, apple_id: apple_id) do
+      case Accounts.get_user_registry({:apple, apple_id}) do
         nil -> Accounts.create_user_from_apple(apple_id) |> elem(1)
         user -> user
       end
 
-    {:ok, token, _claims} = Guardian.encode_and_sign(user.id)
+    {:ok, token, _claims} = Guardian.encode_and_sign(user.user_id)
 
-    url_params = "?token=#{token}&id=#{user.id}"
+    url_params = "?token=#{token}&id=#{user.user_id}"
 
     redirect(conn, external: "https://octocon.app/deep/auth/token#{url_params}")
   end
 
   def callback(conn, params) do
-    IO.inspect("START CONN")
-    IO.inspect(conn, limit: :infinity)
-    IO.inspect("END CONN")
-    IO.inspect("START PARAMS")
-    IO.inspect(params, limit: :infinity)
-    IO.inspect("END PARAMS")
-
     conn
     |> put_status(403)
     |> text("Failed to authenticate. Did you reload the page or copy-paste the URL?")

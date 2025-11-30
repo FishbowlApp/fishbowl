@@ -92,7 +92,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
     validate_proxy(context, options, fn proxy ->
       existing_proxies =
         Alters.get_alter_by_id!(system_identity, alter_identity, [:discord_proxies])
-        |> Map.get(:discord_proxies, [])
+        |> Map.get(:discord_proxies, []) || []
 
       ProxyCache.evict_proxies(discord_id)
 

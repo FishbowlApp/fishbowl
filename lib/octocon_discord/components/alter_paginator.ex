@@ -99,6 +99,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
                 pronouns -> "(#{pronouns})"
               end}　#{case alter.discord_proxies do
                 [] -> ""
+                nil -> ""
                 proxies -> "#{Enum.map_join(proxies, ", ", fn proxy -> "`#{proxy}`" end)}"
               end}"
             end),

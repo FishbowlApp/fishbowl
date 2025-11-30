@@ -328,13 +328,20 @@ defmodule Octocon.RPC.Postgres.Repo do
       end
 
       def __exec_local__(func, args) do
-        apply(@local_repo, func, args)
+        if Octocon.RPC.NodeTracker.current_group() == :primary_no_endpoint do
+          __exec_on_primary__(func, args, await: false)
+        else
+          apply(@local_repo, func, args)
+        end
       end
 
       def __exec_on_primary__(func, args, opts) do
         # Default behavior is to wait for replication. If `:await` is set to
         # false/falsey then skip the LSN query and waiting for replication.
-        if Keyword.get(opts, :await, true) do
+
+        default = true
+
+        if Keyword.get(opts, :await, default) do
           rpc_timeout = Keyword.get(opts, :rpc_timeout, @timeout)
           replication_timeout = Keyword.get(opts, :replication_timeout, @replication_timeout)
 

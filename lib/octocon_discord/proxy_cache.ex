@@ -72,6 +72,8 @@ defmodule OctoconDiscord.ProxyCache do
       %{discord_settings: settings, primary_front: primary_front} =
         Octocon.Accounts.get_proxy_cache_data({:discord, discord_id})
 
+      settings = settings || %Octocon.Accounts.DiscordSettings{}
+
       data = %{
         settings:
           settings
@@ -145,7 +147,6 @@ defmodule OctoconDiscord.ProxyCache do
   def update(nil, _, _), do: :ok
 
   def update(discord_id, key, value) do
-    # Now we propagate the change to all primary nodes
     ClusterUtils.run_on_all_primary_nodes(fn ->
       OctoconDiscord.ProxyCache.update_internal(discord_id, key, value)
     end)

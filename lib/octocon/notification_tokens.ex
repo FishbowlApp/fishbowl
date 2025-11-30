@@ -26,112 +26,111 @@ defmodule Octocon.NotificationTokens do
       ** (Ecto.NoResultsError)
 
   """
-  def get_notification_tokens(user_identity) do
-    user_id = Accounts.id_from_system_identity(user_identity, :system)
+  def get_notification_tokens(system_identity) do
+    user_id = Accounts.id_from_system_identity(system_identity, :system)
 
     from(n in NotificationToken,
       where: n.user_id == ^user_id,
       select: n
     )
-    |> Repo.all()
+    |> Repo.all_global()
   end
 
-  def batch_notifications(user_identity, alter_ids) do
-    user_id = Accounts.id_from_system_identity(user_identity, :system)
+  def batch_notifications(system_identity, alter_ids) do
+    user_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    alters_query =
+    # Load all alters belonging to the user and filtered by alter_ids
+    alters =
       from(
         a in Alter,
         where: a.user_id == ^user_id and a.id in ^alter_ids,
         select: a
       )
+      |> Repo.all_regional({:user, system_identity})
 
-    friends_query =
+    # Load all friendships for the user
+    friendships =
       from(
         f in Friendship,
         where: f.user_id == ^user_id,
-        # Get notification tokens
-        join: n in NotificationToken,
-        on: n.user_id == f.friend_id,
-        select: {f.friend_id, f.level, n}
+        select: {f.friend_id, f.level}
       )
+      |> Repo.all_global()
 
-    alters = Repo.all(alters_query)
+    friend_ids = Enum.map(friendships, fn {id, _level} -> id end)
 
-    Repo.all(friends_query)
-    |> Enum.group_by(&elem(&1, 0))
-    |> Enum.map(fn {id, list} ->
-      {id,
-       {
-         hd(list) |> elem(1),
-         Enum.reduce(list, [], fn {_, _, token}, acc ->
-           [token.token | acc]
-         end)
-       }}
-    end)
-    |> Enum.map(fn {_id, {level, tokens}} ->
+    # Load all notification tokens for those friends
+    tokens =
+      from(
+        n in NotificationToken,
+        where: n.user_id in ^friend_ids,
+        select: n
+      )
+      |> Repo.all_global()
+
+    # Group tokens by user_id
+    token_map = Enum.group_by(tokens, & &1.user_id)
+
+    # Build final notification map
+    friendships
+    |> Enum.map(fn {friend_id, level} ->
+      # Get tokens for this friend
+      tokens = Map.get(token_map, friend_id, []) |> Enum.map(& &1.push_token)
+
+      # Filter alters visible at this security level
       visible_alters =
         alters
         |> Enum.filter(fn alter ->
           Alters.can_view_entity?(level, alter.security_level)
         end)
         |> Enum.map_join(", ", & &1.name)
-        |> then(fn alters ->
-          case alters do
-            "" ->
-              "No one is fronting"
 
-            alters ->
-              case String.length(alters) do
-                length when length > 150 ->
-                  alters
-                  |> String.slice(0..150)
-                  |> Kernel.<>("\n...")
-
-                _ ->
-                  alters
-              end
-          end
-        end)
+      visible_alters =
+        cond do
+          visible_alters == "" -> "No one is fronting"
+          String.length(visible_alters) > 150 -> String.slice(visible_alters, 0..150) <> "\n..."
+          true -> visible_alters
+        end
 
       {tokens, visible_alters}
     end)
+    |> Enum.reject(fn {tokens, _} -> tokens == [] end)
     |> Enum.into(%{})
   end
 
-  def get_tokens_for_users(user_identities) do
-    user_ids = Enum.map(user_identities, &Accounts.id_from_system_identity(&1, :system))
+  def get_tokens_for_users(system_identities) do
+    user_ids = Enum.map(system_identities, &Accounts.id_from_system_identity(&1, :system))
 
     from(n in NotificationToken,
       where: n.user_id in ^user_ids,
       select: n
     )
-    |> Repo.all()
+    |> Repo.all_global()
     |> Enum.group_by(& &1.user_id)
   end
 
-  def add_notification_token(user_identity, token) do
-    user_id = Accounts.id_from_system_identity(user_identity, :system)
+  def add_notification_token(system_identity, token) do
+    user_id = Accounts.id_from_system_identity(system_identity, :system)
 
     changeset =
-      NotificationToken.changeset(%NotificationToken{}, %{user_id: user_id, token: token})
+      NotificationToken.changeset(%NotificationToken{}, %{user_id: user_id, push_token: token})
 
-    Repo.insert(changeset, on_conflict: :nothing)
+    Repo.insert_global(changeset)
   end
 
-  def invalidate_notification_token(user_identity, token) do
-    user_id = Accounts.id_from_system_identity(user_identity, :system)
+  def invalidate_notification_token(system_identity, token) do
+    user_id = Accounts.id_from_system_identity(system_identity, :system)
 
     from(n in NotificationToken,
-      where: n.user_id == ^user_id and n.token == ^token
+      where: n.user_id == ^user_id and n.push_token == ^token
     )
-    |> Repo.delete_all()
+    |> Repo.delete_all_global()
   end
 
   def invalidate_notification_token(token) do
     from(n in NotificationToken,
-      where: n.token == ^token
+      where: n.push_token == ^token
     )
-    |> Repo.delete_all()
+    |> Repo.delete_all_global()
   end
 end

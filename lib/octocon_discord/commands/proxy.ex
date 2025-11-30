@@ -73,7 +73,7 @@ defmodule OctoconDiscord.Proxy do
           if webhook == nil do
             :no_proxy
           else
-            settings_template = %Octocon.Accounts.DiscordSettings.ServerSettings{
+            settings_template = %Octocon.Accounts.ServerSettings{
               guild_id: to_string(message.guild_id)
             }
 
@@ -346,7 +346,6 @@ defmodule OctoconDiscord.Proxy do
                   |> Map.put(:message_id, to_string(message_id))
                   |> Map.put(:timestamp, Nostrum.Snowflake.creation_time(message_id))
 
-                # Log the message in Timescale
                 Messages.insert_message(attrs)
               end)
 

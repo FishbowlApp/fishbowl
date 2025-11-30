@@ -23,8 +23,9 @@ defmodule OctoconDiscord.Supervisor do
       Supervisor.child_spec(
         {Cachex,
          name: OctoconDiscord.Cache.ServerSettings,
-         limit: limit(size: 5000),
-         fallback: fallback(default: &OctoconDiscord.ServerSettingsManager.cache_function/1),
+         hooks: [
+           hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
+         ],
          expiration: expiration(default: :timer.minutes(10))},
         id: :server_settings_cache
       ),
@@ -32,8 +33,9 @@ defmodule OctoconDiscord.Supervisor do
       Supervisor.child_spec(
         {Cachex,
          name: OctoconDiscord.Cache.Webhooks,
-         limit: limit(size: 5000),
-         fallback: fallback(default: &OctoconDiscord.WebhookManager.cache_function/1),
+         hooks: [
+           hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
+         ],
          expiration: expiration(default: :timer.minutes(10))},
         id: :webhooks_cache
       ),
