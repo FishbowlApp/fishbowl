@@ -19,7 +19,9 @@ defmodule Octocon.Alters.Alter do
   """
 
   use Ecto.Schema
+
   import Ecto.Changeset
+  import Exandra, only: [embedded_type: 3]
 
   @primary_key false
 
@@ -32,8 +34,8 @@ defmodule Octocon.Alters.Alter do
   ]
 
   schema "alters" do
-    field :id, :id, primary_key: true
     field :user_id, :string, primary_key: true
+    field :id, :id, primary_key: true
 
     field :name, :string
     field :pronouns, :string
@@ -55,23 +57,10 @@ defmodule Octocon.Alters.Alter do
     field :last_fronted, :utc_datetime
 
     # Discord
-    field :discord_proxies, {:array, :string}, default: []
+    field :discord_proxies, {:array, :string}
     field :proxy_name, :string
 
-    belongs_to :user, Octocon.Accounts.User,
-      foreign_key: :user_id,
-      define_field: false
-
-    embeds_many :fields, Octocon.Alters.Field
-    has_many :fronts, Octocon.Fronts.Front, foreign_key: :alter_id, references: :id
-
-    many_to_many :global_journals, Octocon.Journals.GlobalJournalEntry,
-      join_through: Octocon.Journals.GlobalJournalAlters,
-      join_keys: [alter_id: :id, global_journal_id: :id]
-
-    many_to_many :tags, Octocon.Tags.Tag,
-      join_through: Octocon.Tags.AlterTag,
-      join_keys: [alter_id: :id, tag_id: :id]
+    embedded_type(:fields, Octocon.Alters.Field, cardinality: :many)
 
     timestamps()
   end
@@ -122,9 +111,9 @@ defmodule Octocon.Alters.Alter do
       :discord_proxies,
       :proxy_name,
       :pinned,
+      :fields,
       :last_fronted
     ])
-    |> cast_embed(:fields)
     |> global_validations()
   end
 end

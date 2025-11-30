@@ -10,10 +10,15 @@ import Config
 config :octocon, :env, config_env()
 
 config :octocon,
-  ecto_repos: [Octocon.Repo.Local, Octocon.MessageRepo]
+  ecto_repos: [Octocon.Repo, Octocon.MessageRepo]
 
-config :octocon, Octocon.Repo.Local, priv: "priv/repo"
 config :octocon, Octocon.MessageRepo, priv: "priv/msg_repo"
+
+config :octocon, Octocon.Repo,
+  target_pools: 1,
+  keyspace: "global",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true
 
 # Configures the endpoint
 config :octocon, OctoconWeb.Endpoint,
@@ -85,7 +90,7 @@ config :octocon, OctoconWeb.AuthPipeline,
   error_handler: OctoconWeb.AuthErrorHandler
 
 config :octocon, Oban,
-  repo: Octocon.Repo.Local,
+  repo: Octocon.MessageRepo,
   plugins: [Oban.Plugins.Pruner],
   queues: [
     default: 10,
@@ -132,3 +137,5 @@ config :sentry,
 config :hammer,
   backend:
     {Hammer.Backend.ETS, [expiry_ms: :timer.seconds(5), cleanup_interval_ms: :timer.minutes(10)]}
+
+config :libcluster, debug: true

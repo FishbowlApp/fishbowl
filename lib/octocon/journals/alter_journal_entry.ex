@@ -15,9 +15,9 @@ defmodule Octocon.Journals.AlterJournalEntry do
   @primary_key false
 
   schema "alter_journals" do
+    field :user_id, :string, primary_key: true
     field :id, Ecto.UUID, primary_key: true
-    field :user_id, :string
-    field :alter_id, :integer
+    field :alter_id, :integer, primary_key: true
 
     field :title, :string
     field :content, :string
@@ -25,13 +25,13 @@ defmodule Octocon.Journals.AlterJournalEntry do
     field :pinned, :boolean, default: false
     field :locked, :boolean, default: false
 
-    belongs_to :user, Octocon.Accounts.User,
-      foreign_key: :user_id,
-      define_field: false
+    # belongs_to :user, Octocon.Accounts.User,
+    #  foreign_key: :user_id,
+    #  define_field: false
 
-    belongs_to :alter, Octocon.Alters.Alter,
-      foreign_key: :alter_id,
-      define_field: false
+    # belongs_to :alter, Octocon.Alters.Alter,
+    #  foreign_key: :alter_id,
+    #  define_field: false
 
     timestamps()
   end

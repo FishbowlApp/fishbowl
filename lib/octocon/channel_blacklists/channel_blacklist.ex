@@ -11,8 +11,8 @@ defmodule Octocon.ChannelBlacklists.ChannelBlacklist do
   @primary_key false
 
   schema "channel_blacklists" do
-    field :guild_id, :string
     field :channel_id, :string, primary_key: true
+    field :guild_id, :string
 
     timestamps()
   end

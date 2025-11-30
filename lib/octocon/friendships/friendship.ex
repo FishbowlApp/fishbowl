@@ -21,15 +21,15 @@ defmodule Octocon.Friendships.Friendship do
 
     field :since, :utc_datetime
 
-    belongs_to :user, Octocon.Accounts.User,
-      foreign_key: :user_id,
-      references: :id,
-      define_field: false
+    # belongs_to :user, Octocon.Accounts.User,
+    #  foreign_key: :user_id,
+    #  references: :id,
+    #  define_field: false
 
-    belongs_to :friend, Octocon.Accounts.User,
-      foreign_key: :friend_id,
-      references: :id,
-      define_field: false
+    # belongs_to :friend, Octocon.Accounts.User,
+    #  foreign_key: :friend_id,
+    #  references: :id,
+    #  define_field: false
 
     timestamps()
   end

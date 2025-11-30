@@ -15,8 +15,8 @@ defmodule Octocon.Journals.GlobalJournalEntry do
   @primary_key false
 
   schema "global_journals" do
+    field :user_id, :string, primary_key: true
     field :id, Ecto.UUID, primary_key: true
-    field :user_id, :string
 
     field :title, :string
     field :content, :string
@@ -25,15 +25,6 @@ defmodule Octocon.Journals.GlobalJournalEntry do
     field :locked, :boolean, default: false
 
     field :alters, {:array, :integer}, virtual: true
-
-    belongs_to :user, Octocon.Accounts.User,
-      foreign_key: :user_id,
-      define_field: false
-
-    # many_to_many :alters, Octocon.Alters.Alter,
-    #   join_through: Octocon.Journals.GlobalJournalAlters,
-    #   join_keys: [global_journal_id: :id, alter_id: :id],
-    #   join_where: [user_id: :user_id]
 
     timestamps()
   end

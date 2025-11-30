@@ -30,7 +30,7 @@ defmodule Octocon.Polls do
       |> where(^where)
       |> select([p], p)
 
-    Repo.all(query)
+    Repo.all_regional(query, {:user, system_identity})
   end
 
   def get_poll(system_identity, poll_id) do
@@ -41,7 +41,7 @@ defmodule Octocon.Polls do
       |> where(^where)
       |> select([p], p)
 
-    Repo.one(query)
+    Repo.one_regional(query, {:user, system_identity})
   end
 
   def create_poll(system_identity, attrs) do
@@ -59,7 +59,7 @@ defmodule Octocon.Polls do
             data: %{}
           }
           |> change_poll(attrs)
-          |> Repo.insert()
+          |> Repo.insert_regional({:user, system_identity})
 
         case result do
           {:ok, poll} ->
@@ -89,7 +89,7 @@ defmodule Octocon.Polls do
       Poll
       |> where(^where)
 
-    case Repo.delete_all(query) do
+    case Repo.delete_all_regional(query, {:user, system_identity}) do
       {1, _} ->
         spawn(fn ->
           OctoconWeb.Endpoint.broadcast!(
@@ -106,7 +106,7 @@ defmodule Octocon.Polls do
     end
   end
 
-  def update_poll_internal(system_identity, poll_id, attrs) do
+  def update_poll(system_identity, poll_id, attrs) do
     case get_poll(system_identity, poll_id) do
       nil ->
         {:error, :not_found}
@@ -135,14 +135,6 @@ defmodule Octocon.Polls do
             {:error, :changeset}
         end
     end
-  end
-
-  def update_poll(system_identity, poll_id, attrs) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :update_poll_internal, [
-      system_identity,
-      poll_id,
-      attrs
-    ])
   end
 
   @doc """

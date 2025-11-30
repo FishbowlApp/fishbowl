@@ -3,6 +3,8 @@ defmodule Octocon.ChannelBlacklists do
   The ChannelBlacklists context.
   """
 
+  @region_specifier {:region, :nam}
+
   import Ecto.Query, warn: false
   alias Octocon.Repo
 
@@ -13,19 +15,22 @@ defmodule Octocon.ChannelBlacklists do
   with caution.
   """
   def list_channel_blacklists do
-    Repo.all(ChannelBlacklist)
+    Repo.all_regional(ChannelBlacklist, @region_specifier)
   end
 
   @doc false
   def list_channel_blacklists_bare do
-    Repo.all(from(c in ChannelBlacklist, select: c.channel_id))
+    Repo.all_regional(from(c in ChannelBlacklist, select: c.channel_id), @region_specifier)
   end
 
   @doc """
   Gets all channel blacklists for a given guild.
   """
   def list_channel_blacklists_by_guild(guild_id) do
-    Repo.all(from(c in ChannelBlacklist, where: c.guild_id == ^to_string(guild_id)))
+    Repo.all_regional(
+      from(c in ChannelBlacklist, where: c.guild_id == ^to_string(guild_id)),
+      @region_specifier
+    )
   end
 
   @doc """
@@ -34,7 +39,12 @@ defmodule Octocon.ChannelBlacklists do
   This should always be backed by a `OctoconDiscord.ChannelBlacklistManager` cache, as it is a latency-sensitive operation.
   """
   def is_channel_blacklisted?(channel_id) do
-    Repo.exists?(from(c in ChannelBlacklist, where: c.channel_id == ^to_string(channel_id)))
+    from(c in ChannelBlacklist, where: c.channel_id == ^to_string(channel_id))
+    |> Repo.all_regional(@region_specifier)
+    |> case do
+      [] -> false
+      _ -> true
+    end
   end
 
   @doc """
@@ -43,14 +53,14 @@ defmodule Octocon.ChannelBlacklists do
   def create_channel_blacklist(attrs \\ %{}) do
     %ChannelBlacklist{}
     |> change_channel_blacklist(attrs)
-    |> Repo.insert()
+    |> Repo.insert_regional(@region_specifier)
   end
 
   @doc """
   Deletes a channel blacklist given the entire struct.
   """
   def delete_channel_blacklist(%ChannelBlacklist{} = channel_blacklist) do
-    Repo.delete(channel_blacklist)
+    Repo.delete_regional(channel_blacklist, @region_specifier)
   rescue
     _ in Ecto.StaleEntryError -> :ok
   end

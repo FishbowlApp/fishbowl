@@ -17,30 +17,15 @@ defmodule Octocon.RPC.NodeTracker do
     end
   end
 
-  def primary_nodes do
-    group_nodes(:primary)
-  end
-
-  def auxiliary_nodes do
-    group_nodes(:auxiliary)
-  end
-
-  def sidecar_nodes do
-    group_nodes(:sidecar)
-  end
+  def primary_nodes, do: group_nodes(:primary)
+  def auxiliary_nodes, do: group_nodes(:auxiliary)
+  def sidecar_nodes, do: group_nodes(:sidecar)
 
   def current_group do
-    case System.get_env("FLY_PROCESS_GROUP") do
-      "primary" -> :primary
-      "auxiliary" -> :auxiliary
-      "sidecar" -> :sidecar
-      _ -> :unknown
-    end
+    Application.get_env(:octocon, :node_group)
   end
 
-  def is_primary? do
-    current_group() == :primary
-  end
+  def is_primary?(), do: current_group() == :primary
 
   @doc """
   Asks a node what group it is in.

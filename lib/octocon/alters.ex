@@ -14,8 +14,6 @@ defmodule Octocon.Alters do
 
   import Ecto.Query, warn: false
 
-  alias Ecto.Multi
-
   alias Octocon.{
     Accounts,
     Alters.Alter,
@@ -39,7 +37,7 @@ defmodule Octocon.Alters do
       {:system, system_id} ->
         [user_id: system_id] |> Keyword.merge(extra)
 
-      {:discord, _} = identity ->
+      {_, _} = identity ->
         [user_id: Accounts.id_from_system_identity(identity, :system)]
         |> Keyword.merge(extra)
     end
@@ -62,7 +60,10 @@ defmodule Octocon.Alters do
       Alter
       |> where(^where)
 
-    Repo.exists?(query)
+    case Repo.all(query, {:user, system_identity}) do
+      [] -> false
+      _ -> true
+    end
   end
 
   @doc """
@@ -82,7 +83,7 @@ defmodule Octocon.Alters do
       |> where(^where)
       |> select([a], a.id)
 
-    case Repo.one(query) do
+    case Repo.one_regional(query, {:user, system_identity}) do
       nil -> false
       id -> id
     end
@@ -92,7 +93,9 @@ defmodule Octocon.Alters do
   Returns the total number of alters in the database.
   """
   def count do
-    Repo.aggregate(Alter, :count)
+    Repo.region_list()
+    |> Enum.map(&Repo.aggregate(Alter, :count, prefix: &1))
+    |> Enum.sum()
   end
 
   @doc """
@@ -109,7 +112,7 @@ defmodule Octocon.Alters do
       |> where(^where)
       |> select([a], struct(a, ^fields))
 
-    case Repo.one(query) do
+    case Repo.one_regional(query, {:user, system_identity}) do
       nil ->
         case alter_identity do
           {:id, _} -> {:error, :no_alter_id}
@@ -145,13 +148,11 @@ defmodule Octocon.Alters do
   def get_alters_by_id(system_identity, fields \\ @all_fields) do
     where = unwrap_system_identity_where(system_identity)
 
-    query =
-      Alter
-      |> where(^where)
-      |> select([a], struct(a, ^fields))
-      |> order_by([a], asc: a.id)
-
-    Repo.all(query)
+    Alter
+    |> where(^where)
+    |> select([a], struct(a, ^fields))
+    |> Repo.all_regional({:user, system_identity})
+    |> Enum.sort_by(& &1.id, :asc)
   end
 
   @doc """
@@ -165,14 +166,12 @@ defmodule Octocon.Alters do
   def get_alters_by_id_bounded(system_identity, alter_ids, fields \\ @all_fields) do
     where = unwrap_system_identity_where(system_identity)
 
-    query =
-      Alter
-      |> where(^where)
-      |> where([a], a.id in ^alter_ids)
-      |> select([a], struct(a, ^fields))
-      |> order_by([a], asc: a.id)
-
-    Repo.all(query)
+    Alter
+    |> where(^where)
+    |> where([a], a.id in ^alter_ids)
+    |> select([a], struct(a, ^fields))
+    |> Repo.all_regional({:user, system_identity})
+    |> Enum.sort_by(& &1.id, :asc)
   end
 
   @doc """
@@ -207,7 +206,7 @@ defmodule Octocon.Alters do
 
     if can_view_entity?(friendship_level, security_level) and alter != {:error, :no_alter} do
       {:ok, alter} = alter
-      fields = get_guarded_fields(user_fields, alter.fields, friendship_level)
+      fields = get_guarded_fields(user_fields, (alter.fields || []), friendship_level)
       {:ok, %{alter | fields: fields}}
     else
       :error
@@ -227,7 +226,7 @@ defmodule Octocon.Alters do
     get_alters_by_id(system_identity)
     |> Enum.filter(&can_view_entity?(friendship_level, &1.security_level))
     |> Enum.map(fn alter ->
-      fields = get_guarded_fields(user_fields, alter.fields, friendship_level)
+      fields = get_guarded_fields(user_fields, (alter.fields || []), friendship_level)
       %{alter | fields: fields}
     end)
   end
@@ -282,37 +281,30 @@ defmodule Octocon.Alters do
   def create_alter_internal(user, attrs, force_id \\ nil) do
     alter_id = if force_id == nil, do: user.lifetime_alter_count + 1, else: force_id
 
-    transaction =
-      Multi.new()
-      # Increment the user's alter count
-      |> Multi.update(:user, Accounts.change_user(user, %{lifetime_alter_count: alter_id}))
-      # Create the alter
-      |> Multi.insert(:alter, change_alter(%Alter{user_id: user.id, id: alter_id}, attrs))
-      |> Repo.transaction()
+    case Accounts.update_user(user, %{lifetime_alter_count: alter_id}) do
+      {:ok, _user} ->
+        {:ok, alter} =
+          change_alter(%Alter{user_id: user.id, id: alter_id}, attrs)
+          |> Repo.insert_regional({:user, {:system, user.id}})
 
-    case transaction do
-      {:ok, %{alter: alter}} ->
         spawn(fn ->
           OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alter_created", %{
             alter: alter |> OctoconWeb.System.AlterJSON.data_me()
           })
         end)
 
-        {:ok, alter_id, alter}
+        {:ok, alter_id, get_alter_by_id!({:system, user.id}, {:id, alter_id})}
 
-      {:error, _, _, _} ->
+      {:error, _changeset} ->
         {:error, :database}
     end
   rescue
     e ->
-      # credo:disable-for-next-line
-      IO.inspect("ERROR IN create_alter_internal")
-      # credo:disable-for-next-line
-      IO.inspect(e)
-
-      # Manually resync the user's alter count
-      highest_alter_id = get_highest_alter_id({:system, user.id})
-      create_alter_internal(user, attrs, highest_alter_id + 1)
+      if force_id == nil do
+        # Manually resync the user's alter count
+        highest_alter_id = get_highest_alter_id({:system, user.id})
+        create_alter_internal(user, attrs, highest_alter_id + 1)
+      end
   end
 
   def get_highest_alter_id(system_identity) do
@@ -321,33 +313,46 @@ defmodule Octocon.Alters do
     query =
       Alter
       |> where(^where)
-      |> select([a], max(a.id))
+      |> select([a], a.id)
+      |> order_by([a], desc: a.id)
+      |> limit(1)
 
-    case Repo.one(query) do
+    case Repo.one_regional(query, {:user, system_identity}) do
       nil -> 0
       id -> id
     end
   end
 
-  @doc """
-  Creates a new alter given a system identity and a map of `attrs`.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-  """
-  def create_alter(system_identity, attrs \\ %{}) do
+  def create_alter(system_identity, attrs \\ %{}, force_id \\ nil) do
     case Accounts.get_user(system_identity) do
       nil ->
         {:error, :no_user}
 
       user ->
-        Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :create_alter_internal, [user, attrs, nil])
+        alter_id = if force_id == nil, do: user.lifetime_alter_count + 1, else: force_id
+
+        case Accounts.update_user(user, %{lifetime_alter_count: alter_id}) do
+          {:ok, _user} ->
+            {:ok, alter} =
+              change_alter(%Alter{user_id: user.id, id: alter_id}, attrs)
+              |> Repo.insert_regional({:user, {:system, user.id}})
+
+            spawn(fn ->
+              OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alter_created", %{
+                alter: alter |> OctoconWeb.System.AlterJSON.data_me()
+              })
+            end)
+
+            {:ok, alter_id, get_alter_by_id!({:system, user.id}, {:id, alter_id})}
+
+          {:error, _changeset} ->
+            {:error, :database}
+        end
     end
   end
 
   @doc """
   Creates a new alter given a system identity and a map of `attrs`.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
 
   Raises an error if a user is not found with the given `system_identity`.
   """
@@ -364,29 +369,30 @@ defmodule Octocon.Alters do
     end
   end
 
-  @doc false
-  def delete_alter_internal(system_identity, alter_identity) do
+  @doc """
+  Deletes an alter given a system identity and an alter identity.
+  """
+  def delete_alter(system_identity, alter_identity) do
     alter_id = resolve_alter(system_identity, alter_identity)
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     if alter_id != false do
-      transaction =
-        Repo.transaction(fn repo ->
-          where =
-            unwrap_system_identity_where(
-              system_identity,
-              unwrap_alter_identity_where(alter_identity)
-            )
+      where =
+        unwrap_system_identity_where(system_identity, unwrap_alter_identity_where(alter_identity))
 
-          query =
-            Alter
-            |> where(^where)
+      query =
+        Alter
+        |> where(^where)
 
-          repo.delete_all(query)
-        end)
+      case Repo.delete_all_regional(query, {:user, system_identity}) do
+        {1, _} ->
+          spawn(fn ->
+            system_identity = {:system, system_id}
+            Octocon.Journals.delete_alter_journal_entries(system_identity, alter_id)
+            Octocon.Tags.delete_alter_tags(system_identity, alter_id)
+            Octocon.Fronts.delete_alter_fronts(system_identity, alter_id)
+          end)
 
-      case transaction do
-        {:ok, _} ->
           spawn(fn ->
             OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "alter_deleted", %{
               alter_id: alter_id
@@ -399,7 +405,7 @@ defmodule Octocon.Alters do
 
           :ok
 
-        {:error, _} ->
+        _ ->
           {:error, :database}
       end
     else
@@ -411,20 +417,9 @@ defmodule Octocon.Alters do
   end
 
   @doc """
-  Deletes an alter given a system identity and an alter identity.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-
-  Raises an error if the alter is not found.
+  Updates an alter given a system identity, an alter identity, and a map of `attrs`.
   """
-  def delete_alter(system_identity, alter_identity) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :delete_alter_internal, [
-      system_identity,
-      alter_identity
-    ])
-  end
-
-  def update_alter_internal(system_identity, alter_identity, attrs) do
+  def update_alter(system_identity, alter_identity, attrs) do
     alter_id = resolve_alter(system_identity, alter_identity)
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
@@ -444,13 +439,7 @@ defmodule Octocon.Alters do
           end)
         end
 
-      changeset =
-        if fields == nil do
-          change_alter(base_struct, attrs)
-        else
-          change_alter(base_struct, Map.drop(attrs, [:fields]))
-          |> Ecto.Changeset.put_embed(:fields, fields)
-        end
+      changeset = change_alter(base_struct, attrs)
 
       if changeset.valid? do
         attrs! =
@@ -472,7 +461,10 @@ defmodule Octocon.Alters do
           # NOTE: Check
           |> update(set: ^Keyword.new(attrs!))
 
-        case Repo.update_all(query, []) do
+        case Repo.update_all_regional(query, [], {:user, system_identity}) do
+          {0, _} ->
+            {:error, :no_alter}
+
           {1, _} ->
             spawn(fn ->
               alter = get_alter_by_id!(system_identity, {:id, alter_id})
@@ -498,36 +490,10 @@ defmodule Octocon.Alters do
         {:alias, _} -> {:error, :no_alter_alias}
       end
     end
-  rescue
-    e in Postgrex.Error ->
-      case e.postgres.constraint do
-        "alters_user_id_alias_index" ->
-          {:error, :alias_taken}
-
-        _ ->
-          {:error, :database}
-      end
   end
 
   @doc """
   Updates an alter given a system identity, an alter identity, and a map of `attrs`.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-  """
-  def update_alter(system_identity, alter_identity, attrs) do
-    Octocon.RPC.Postgres.rpc_and_wait(__MODULE__, :update_alter_internal, [
-      system_identity,
-      alter_identity,
-      attrs
-    ])
-  end
-
-  @doc """
-  Updates an alter given a system identity, an alter identity, and a map of `attrs`.
-
-  **PROXIED**: If this function is executed on an **auxiliary** node, it will be proxied to a random **primary** node.
-
-  Raises an error if the alter is not found.
   """
   def update_alter!(system_identity, alter_identity, attrs) do
     case update_alter(system_identity, alter_identity, attrs) do

@@ -6,8 +6,8 @@ defmodule Octocon.Polls.Poll do
   @primary_key false
 
   schema "polls" do
+    field :user_id, :string, primary_key: true
     field :id, Ecto.UUID, primary_key: true
-    field :user_id, :string
 
     field :title, :string
     field :description, :string
@@ -16,9 +16,9 @@ defmodule Octocon.Polls.Poll do
 
     field :time_end, :utc_datetime
 
-    belongs_to :user, Octocon.Accounts.User,
-      foreign_key: :user_id,
-      define_field: false
+    # belongs_to :user, Octocon.Accounts.User,
+    #  foreign_key: :user_id,
+    #  define_field: false
 
     timestamps()
   end

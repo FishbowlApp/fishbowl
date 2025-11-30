@@ -395,9 +395,7 @@ defmodule OctoconWeb.SettingsController do
   def import_pk(conn, %{"token" => token}) do
     system_id = conn.private[:guardian_default_resource]
 
-    %{"system_id" => system_id, "pk_token" => String.trim(token)}
-    |> PluralKitImportWorker.new()
-    |> Octocon.ObanHandler.insert()
+    PluralKitImportWorker.perform(%{"system_id" => system_id, "pk_token" => String.trim(token)})
 
     send_resp(conn, :no_content, "")
   end
@@ -405,9 +403,7 @@ defmodule OctoconWeb.SettingsController do
   def import_sp(conn, %{"token" => token}) do
     system_id = conn.private[:guardian_default_resource]
 
-    %{"system_id" => system_id, "sp_token" => String.trim(token)}
-    |> SimplyPluralImportWorker.new()
-    |> Octocon.ObanHandler.insert()
+    SimplyPluralImportWorker.perform(%{"system_id" => system_id, "sp_token" => String.trim(token)})
 
     send_resp(conn, :no_content, "")
   end
