@@ -17,7 +17,7 @@ defmodule Octocon.Fronts do
   alias Octocon.Alters.Alter
   alias Octocon.Friendships
 
-  alias Octocon.Fronts.{CurrentFront, Front, FrontByAlter, FrontByTime, FrontByEndTime}
+  alias Octocon.Fronts.{CurrentFront, Front, FrontByAlter, FrontByEndTime, FrontByTime}
 
   def get_by_id(system_identity, id) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
