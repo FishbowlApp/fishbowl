@@ -439,16 +439,16 @@ defmodule Octocon.Alters do
           end)
         end
 
+      attrs =
+        if fields == nil do
+          attrs
+        else
+          Map.put(attrs, :fields, fields)
+        end
+
       changeset = change_alter(base_struct, attrs)
 
       if changeset.valid? do
-        attrs! =
-          if fields == nil do
-            attrs
-          else
-            Map.put(attrs, :fields, fields)
-          end
-
         where =
           unwrap_system_identity_where(
             system_identity,
@@ -458,8 +458,7 @@ defmodule Octocon.Alters do
         query =
           Alter
           |> where(^where)
-          # NOTE: Check
-          |> update(set: ^Keyword.new(attrs!))
+          |> update(set: ^Keyword.new(attrs))
 
         case Repo.update_all_regional(query, [], {:user, system_identity}) do
           {0, _} ->
