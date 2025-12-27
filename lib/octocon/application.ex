@@ -69,7 +69,6 @@ defmodule Octocon.Application do
       # Distribution
       {Cluster.Supervisor, [topologies, [name: Octocon.ClusterSupervisor]]},
       Octocon.RPC.NodeTracker,
-
       Supervisor.child_spec(
         {Cachex,
          name: Octocon.Cache.UserRegistry,

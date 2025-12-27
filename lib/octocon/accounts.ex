@@ -938,10 +938,18 @@ defmodule Octocon.Accounts do
   """
   def add_field(system_identity, data) do
     user = get_user!(system_identity)
-    fields = (user.fields || []) ++ [struct(%Field{
-      id: Ecto.UUID.generate(),
-      locked: false
-    }, data)]
+
+    fields =
+      (user.fields || []) ++
+        [
+          struct(
+            %Field{
+              id: Ecto.UUID.generate(),
+              locked: false
+            },
+            data
+          )
+        ]
 
     user
     |> User.update_changeset(%{fields: fields})
@@ -971,7 +979,7 @@ defmodule Octocon.Accounts do
   def relocate_field(system_identity, id, index) do
     user = get_user!(system_identity)
 
-    old_fields = (user.fields || [])
+    old_fields = user.fields || []
     field = Enum.find(old_fields, fn field -> field.id == id end)
 
     fields =

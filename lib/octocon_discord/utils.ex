@@ -290,8 +290,11 @@ defmodule OctoconDiscord.Utils do
           inline: true,
           value:
             case alter.discord_proxies do
-              nil -> "None"
-              [] -> "None"
+              nil ->
+                "None"
+
+              [] ->
+                "None"
 
               proxies ->
                 proxies

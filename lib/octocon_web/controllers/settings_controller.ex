@@ -403,7 +403,10 @@ defmodule OctoconWeb.SettingsController do
   def import_sp(conn, %{"token" => token}) do
     system_id = conn.private[:guardian_default_resource]
 
-    SimplyPluralImportWorker.perform(%{"system_id" => system_id, "sp_token" => String.trim(token)})
+    SimplyPluralImportWorker.perform(%{
+      "system_id" => system_id,
+      "sp_token" => String.trim(token)
+    })
 
     send_resp(conn, :no_content, "")
   end

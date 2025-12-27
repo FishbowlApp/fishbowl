@@ -20,9 +20,9 @@ defmodule Octocon.Workers.PluralKitImportWorker do
   @pk_endpoint URI.parse("https://api.pluralkit.me/v2/")
 
   def perform(%{
-          "system_id" => system_id,
-          "pk_token" => pk_token
-        }) do
+        "system_id" => system_id,
+        "pk_token" => pk_token
+      }) do
     Logger.warning("Performing PluralKit import for user #{system_id}")
 
     {:ok, %{body: self_body}} = send_pk_request(:get, "/systems/@me", pk_token)

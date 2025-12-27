@@ -206,7 +206,7 @@ defmodule Octocon.Alters do
 
     if can_view_entity?(friendship_level, security_level) and alter != {:error, :no_alter} do
       {:ok, alter} = alter
-      fields = get_guarded_fields(user_fields, (alter.fields || []), friendship_level)
+      fields = get_guarded_fields(user_fields, alter.fields || [], friendship_level)
       {:ok, %{alter | fields: fields}}
     else
       :error
@@ -226,7 +226,7 @@ defmodule Octocon.Alters do
     get_alters_by_id(system_identity)
     |> Enum.filter(&can_view_entity?(friendship_level, &1.security_level))
     |> Enum.map(fn alter ->
-      fields = get_guarded_fields(user_fields, (alter.fields || []), friendship_level)
+      fields = get_guarded_fields(user_fields, alter.fields || [], friendship_level)
       %{alter | fields: fields}
     end)
   end
