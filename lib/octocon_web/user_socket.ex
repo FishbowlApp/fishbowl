@@ -45,12 +45,11 @@ defmodule OctoconWeb.UserChannel do
   @impl true
   def join("system:" <> system_id, %{"token" => token} = params, socket) do
     # Only allow 2 socket joins per second to avoid abuse (especially from misconfigured Phoenix clients)
-    # TODO: Check token first?
 
-    case Hammer.check_rate("socket:#{system_id}", :timer.seconds(1), 2) do
-      {:allow, _count} ->
-        case Octocon.Auth.Guardian.resource_from_token(token) do
-          {:ok, claim_id, _claims} when claim_id == system_id ->
+    case Octocon.Auth.Guardian.resource_from_token(token) do
+      {:ok, claim_id, _claims} when claim_id == system_id ->
+        case Hammer.check_rate("socket:#{system_id}", :timer.seconds(1), 2) do
+          {:allow, _count} ->
             is_reconnect = Map.get(params, "isReconnect", false)
 
             if is_reconnect do
@@ -61,12 +60,12 @@ defmodule OctoconWeb.UserChannel do
               {:ok, generate_init_data(system_id), socket}
             end
 
-          _ ->
-            {:error, %{reason: "unauthorized"}}
+          {:deny, _limit} ->
+            {:error, %{reason: "rate_limited"}}
         end
 
       _ ->
-        {:error, %{reason: "rate_limited"}}
+        {:error, %{reason: "unauthorized"}}
     end
   rescue
     _ -> {:error, %{reason: "internal_error"}}
