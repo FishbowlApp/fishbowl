@@ -93,6 +93,7 @@ defmodule Octocon.Fronts do
       alter = Map.get(alters, front.alter_id, %{})
       %{front: front, alter: alter}
     end)
+    |> Enum.filter(fn x -> x.alter != %{} end)
     |> sort_fronts(primary_front)
   end
 
@@ -570,10 +571,16 @@ defmodule Octocon.Fronts do
         where: f.user_id == ^system_id and f.alter_id == ^alter_id,
         select: {f.id, f.time_start}
       )
-      |> Repo.all()
+      |> Repo.all_regional({:user, system_identity})
 
     front_ids = Enum.map(fronts, &elem(&1, 0))
     front_time_starts = Enum.map(fronts, &elem(&1, 1))
+
+    from(
+      f in CurrentFront,
+      where: f.user_id == ^system_id and f.alter_id == ^alter_id
+    )
+    |> Repo.delete_all_regional({:user, system_identity})
 
     from(
       f in Front,
