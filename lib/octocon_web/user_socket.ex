@@ -39,8 +39,8 @@ defmodule OctoconWeb.UserChannel do
     FrontingJSON
   }
 
-  alias OctoconWeb.SystemJSON
   alias OctoconWeb.System.TagJSON
+  alias OctoconWeb.SystemJSON
 
   @impl true
   def join("system:" <> system_id, %{"token" => token} = params, socket) do
