@@ -27,19 +27,20 @@ defmodule OctoconWeb.SystemJSON do
         show_system_tag: false
       })
 
-    fields = if map.fields != nil do
-      map.fields
-      |> Enum.map(fn field ->
-        if field.locked == nil do
-          Map.put(field, :locked, false)
-        else
-          field
-        end
-      end)
-      |> Enum.map(&Map.drop(&1, [:__struct__, :__meta__]))
-    else
-      []
-    end
+    fields =
+      if map.fields != nil do
+        map.fields
+        |> Enum.map(fn field ->
+          if field.locked == nil do
+            Map.put(field, :locked, false)
+          else
+            field
+          end
+        end)
+        |> Enum.map(&Map.drop(&1, [:__struct__, :__meta__]))
+      else
+        []
+      end
 
     %{map | fields: fields}
   end

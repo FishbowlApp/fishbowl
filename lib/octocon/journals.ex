@@ -84,7 +84,7 @@ defmodule Octocon.Journals do
       |> where(^where)
       |> select([j], struct(j, ^fields))
       |> Repo.all_regional({:user, system_identity})
-      |> Enum.sort_by(&(&1.inserted_at), {:desc, NaiveDateTime})
+      |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
 
     entry_ids = Enum.map(entries, & &1.id)
 

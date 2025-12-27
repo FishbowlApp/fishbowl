@@ -102,6 +102,7 @@ defmodule OctoconWeb.AuthController do
     metadata = get_session(conn, :metadata) |> Jason.decode!()
 
     url_params = "?token=#{token}&id=#{user.user_id}"
+
     redirect_url =
       case metadata do
         %{"platform" => "wasm", "is_beta" => "true"} -> "https://beta.octocon.app/app"
