@@ -398,12 +398,24 @@ defmodule Octocon.Tags do
   end
 
   def delete_alter_tags(system_identity, alter_id) do
-    where = unwrap_system_identity_where(system_identity)
+    system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     query =
-      AlterTag
-      |> where(^where)
-      |> where([at], at.alter_id == ^alter_id)
+      from(
+        at in AlterTag,
+        hints: ["ALLOW FILTERING"],
+        where: at.user_id == ^system_id and at.alter_id == ^alter_id
+      )
+
+    alter_tags = Repo.all_regional(query, {:user, system_identity})
+
+    ids = Enum.map(alter_tags, & &1.tag_id)
+
+    delete_query =
+      from(
+        at in AlterTag,
+        where: at.user_id == ^system_id and at.tag_id in ^ids and at.alter_id == ^alter_id
+      )
 
     case Repo.delete_all_regional(query, {:user, system_identity}) do
       {0, _} ->
