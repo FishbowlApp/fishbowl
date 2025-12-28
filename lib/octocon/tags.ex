@@ -417,7 +417,7 @@ defmodule Octocon.Tags do
         where: at.user_id == ^system_id and at.tag_id in ^ids and at.alter_id == ^alter_id
       )
 
-    case Repo.delete_all_regional(query, {:user, system_identity}) do
+    case Repo.delete_all_regional(delete_query, {:user, system_identity}) do
       {0, _} ->
         {:error, :not_found}
 
