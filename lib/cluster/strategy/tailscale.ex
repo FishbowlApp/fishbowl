@@ -60,7 +60,10 @@ defmodule Cluster.Strategy.Tailscale do
     tag = Keyword.fetch!(config, :tag)
     appname = Keyword.fetch!(config, :appname)
 
-    Octocon.Utils.Tailscale.list_devices() |> Enum.filter(fn device -> (("tag:" <> tag) in (device["tags"] || [])) && device["connectedToControl"] == true end)
+    Octocon.Utils.Tailscale.list_devices()
+    |> Enum.filter(fn device ->
+      ("tag:" <> tag) in (device["tags"] || []) && device["connectedToControl"] == true
+    end)
     |> Enum.map(&List.first(&1["addresses"]))
     |> Enum.map(&"#{appname}@#{&1}")
     |> Enum.map(&String.to_atom/1)
