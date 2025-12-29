@@ -258,6 +258,37 @@ defmodule Octocon.Alters do
     end)
   end
 
+  def get_random_alter(system_identity, fields \\ @all_fields) do
+    system_id = Accounts.id_from_system_identity(system_identity, :system)
+
+    all_alter_ids =
+      from(
+        a in Alter,
+        where: a.user_id == ^system_id,
+        select: a.id
+      )
+      |> Repo.all_regional({:user, system_identity})
+
+    if all_alter_ids == [] do
+      nil
+    else
+      random_alter_id = Enum.random(all_alter_ids)
+
+      where =
+        unwrap_system_identity_where(system_identity, [id: random_alter_id])
+
+      query =
+        Alter
+        |> where(^where)
+        |> select([a], struct(a, ^fields))
+
+      case Repo.one_regional(query, {:user, system_identity}) do
+        nil -> nil
+        alter -> {:ok, alter}
+      end
+    end
+  end
+
   @doc """
   Given the friendship level and security level of an entity, returns whether the entity can be viewed.
 

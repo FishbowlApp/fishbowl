@@ -19,6 +19,7 @@ defmodule OctoconDiscord.Commands.Alter do
     "delete" => &__MODULE__.delete/2,
     "view" => &__MODULE__.view/2,
     "avatar" => &__MODULE__.Avatar.command/2,
+    "random" => &__MODULE__.random/2,
     "remove-alias" => &__MODULE__.remove_alias/2,
     "remove-proxy-name" => &__MODULE__.remove_proxy_name/2,
     "extra-images" => &__MODULE__.extra_images/2,
@@ -102,6 +103,22 @@ defmodule OctoconDiscord.Commands.Alter do
           Utils.error_embed("You don't have an alter with alias **#{elem(alter_identity, 1)}**.")
       end
     end)
+  end
+
+  def random(%{system_identity: system_identity}, options) do
+    case Alters.get_random_alter(system_identity) do
+      nil ->
+        Utils.error_embed("You don't have any alters to choose from.")
+
+      {:ok, alter} ->
+        show = Utils.get_show_option(options)
+
+        [
+          embeds: [Utils.alter_embed(alter)],
+          ephemeral?: !show
+        ]
+    end
+
   end
 
   def list(%{system_identity: system_identity}, options) do
@@ -319,6 +336,12 @@ defmodule OctoconDiscord.Commands.Alter do
             }
           ]
           |> Utils.add_show_option()
+      },
+      %{
+        name: "random",
+        description: "Views a random alter.",
+        type: :sub_command,
+        options: Utils.add_show_option([])
       },
       %{
         name: "list",
