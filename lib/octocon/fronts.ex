@@ -52,9 +52,17 @@ defmodule Octocon.Fronts do
   def delete_front(system_identity, id) do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    result = Repo.delete_regional(%Front{id: id, user_id: system_id}, {:user, system_identity})
+    %{front: front} = get_by_id(system_identity, id)
 
-    if match?({:ok, _}, result) do
+    delete_query =
+      from(
+        f in Front,
+        where: f.user_id == ^system_id and f.id == ^id and f.time_start == ^front.time_start
+      )
+
+    result = Repo.delete_all_regional(delete_query, {:user, system_identity})
+
+    if match?({1, _}, result) do
       spawn(fn ->
         OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "front_deleted", %{
           front_id: id
