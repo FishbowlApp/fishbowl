@@ -275,7 +275,7 @@ defmodule Octocon.Alters do
       random_alter_id = Enum.random(all_alter_ids)
 
       where =
-        unwrap_system_identity_where(system_identity, [id: random_alter_id])
+        unwrap_system_identity_where(system_identity, id: random_alter_id)
 
       query =
         Alter

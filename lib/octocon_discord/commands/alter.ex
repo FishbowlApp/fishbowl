@@ -118,7 +118,6 @@ defmodule OctoconDiscord.Commands.Alter do
           ephemeral?: !show
         ]
     end
-
   end
 
   def list(%{system_identity: system_identity}, options) do
