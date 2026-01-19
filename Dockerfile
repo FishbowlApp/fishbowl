@@ -11,9 +11,9 @@
 #   - https://pkgs.org/ - resource for finding needed packages
 #   - Ex: hexpm/elixir:1.15.6-erlang-25.3.2.6-debian-bullseye-20230612-slim
 #
-ARG ELIXIR_VERSION=1.17.1
+ARG ELIXIR_VERSION=1.19.5
 ARG OTP_VERSION=27.0
-ARG DEBIAN_VERSION=bullseye-20240612-slim
+ARG DEBIAN_VERSION=trixie-20260112-slim
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
@@ -68,14 +68,14 @@ RUN mix release
 # the compiled release and other runtime necessities
 FROM ${RUNNER_IMAGE}
 
-RUN apt-get update -y && apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates curl gnupg iproute2 iputils-ping jq \
+RUN apt-get update -y && apt-get install -y libstdc++6 openssl libncurses6 locales ca-certificates curl gnupg iproute2 iputils-ping jq \
   && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 # ---- BEGIN DEPLOYMENT-SPECIFIC CONFIGURATION ----
 
 # Install Tailscale keyring
-RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/bullseye.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/bullseye.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list
+RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list
 
 # Install 1Password CLI keyring
 RUN curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
