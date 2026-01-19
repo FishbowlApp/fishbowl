@@ -60,7 +60,7 @@ defmodule Octocon.Alters do
       Alter
       |> where(^where)
 
-    case Repo.all(query, {:user, system_identity}) do
+    case Repo.all_regional(query, {:user, system_identity}) do
       [] -> false
       _ -> true
     end

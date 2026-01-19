@@ -135,7 +135,7 @@ defmodule Octocon.Accounts.User do
   end
 
   def generate_uuid do
-    Nanoid.generate(7, "abcdefghijklmnopqrstuvwxyz")
+    id = Nanoid.generate(7, "abcdefghijklmnopqrstuvwxyz")
   end
 
   defp generate_salt do

@@ -114,6 +114,7 @@ defmodule Octocon.Friendships do
         friend: Map.get(friend_data, friendship.friend_id)
       }
     end)
+    |> Enum.filter(fn f -> f.friend != nil end)
     |> Enum.sort_by(& &1.friendship.since, {:desc, DateTime})
   end
 
