@@ -17,17 +17,7 @@ defmodule Octocon.Accounts do
     UserRegistry
   }
 
-  alias Octocon.Alters.{
-    Alter,
-    AlterWithProxies
-  }
-
-  alias Octocon.Tags.{
-    AlterTag,
-    Tag
-  }
-
-  alias Octocon.Polls.Poll
+  alias Octocon.Alters.Alter
 
   alias Octocon.Journals.{
     AlterJournalEntry,
@@ -819,6 +809,30 @@ defmodule Octocon.Accounts do
       where: gw.user_id == ^system_id
     )
     |> Repo.delete_all_regional({:user, {:system, system_id}})
+
+    from(
+      f in Octocon.Friendships.Friendship,
+      where: f.user_id == ^system_id
+    )
+    |> Repo.delete_all_global()
+
+    from(
+      f in Octocon.Friendships.Friendship,
+      where: f.friend_id == ^system_id
+    )
+    |> Repo.delete_all_global()
+
+    from(
+      f in Octocon.Friendships.Request,
+      where: f.from_id == ^system_id
+    )
+    |> Repo.delete_all_global()
+
+    from(
+      f in Octocon.Friendships.Request,
+      where: f.to_id == ^system_id
+    )
+    |> Repo.delete_all_global()
   end
 
   @doc """
@@ -1059,5 +1073,7 @@ defmodule Octocon.Accounts do
     end)
 
     :ok
+  rescue
+    e -> {:error, e}
   end
 end
