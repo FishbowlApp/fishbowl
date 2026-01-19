@@ -205,7 +205,8 @@ defmodule Octocon.Alters do
         {:error, :no_alter_alias} -> :private
       end
 
-    if can_view_entity?(friendship_level, security_level) and alter != {:error, :no_alter_id} and alter != {:error, :no_alter_alias} do
+    if can_view_entity?(friendship_level, security_level) and alter != {:error, :no_alter_id} and
+         alter != {:error, :no_alter_alias} do
       {:ok, alter} = alter
       fields = get_guarded_fields(user_fields, alter.fields || [], friendship_level)
       {:ok, %{alter | fields: fields}}

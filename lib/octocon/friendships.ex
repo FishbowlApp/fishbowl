@@ -7,6 +7,8 @@ defmodule Octocon.Friendships do
   Most operations require system identities. See `Octocon.Accounts` for more information on system identities.
   """
 
+  @query_concurrency 10
+
   import Ecto.Query, warn: false
   alias Octocon.Alters.Alter
   alias Octocon.Repo
@@ -88,21 +90,21 @@ defmodule Octocon.Friendships do
       |> Repo.all_global()
 
     friend_data =
-      Enum.map(friendships, & &1.friend_id)
-      |> Enum.map(fn id ->
-        query =
-          from(
-            u in Octocon.Accounts.User,
-            where: u.id == ^id,
-            select: struct(u, [:avatar_url, :username, :discord_id, :id])
-          )
+      friendships
+      |> Task.async_stream(
+        fn %{friend_id: id} ->
+          query =
+            from(
+              u in Octocon.Accounts.User,
+              where: u.id == ^id,
+              select: struct(u, [:avatar_url, :username, :discord_id, :id])
+            )
 
-        {query, {:system, id}}
-      end)
-      |> Enum.map(fn {query, system_identity} ->
-        Repo.one_regional(query, {:user, system_identity})
-      end)
-      |> Enum.into(%{}, fn user -> {user.id, user} end)
+          Repo.one_regional(query, {:user, {:system, id}})
+        end,
+        max_concurrency: @query_concurrency
+      )
+      |> Enum.into(%{}, fn {:ok, user} -> {user.id, user} end)
 
     friendships
     |> Enum.map(fn friendship ->
@@ -123,49 +125,52 @@ defmodule Octocon.Friendships do
 
     fronts =
       friendship_ids
-      |> Enum.map(fn id ->
-        query =
-          from(
-            f in CurrentFront,
-            where: f.user_id == ^id,
-            select: struct(f, [:id, :user_id, :alter_id, :comment, :time_start])
-          )
+      |> Task.async_stream(
+        fn id ->
+          query =
+            from(
+              f in CurrentFront,
+              where: f.user_id == ^id,
+              select: struct(f, [:id, :user_id, :alter_id, :comment, :time_start])
+            )
 
-        {query, {:system, id}}
-      end)
-      |> Enum.map(fn {query, system_identity} ->
-        Repo.all_regional(query, {:user, system_identity})
-      end)
+          Repo.all_regional(query, {:user, {:system, id}})
+        end,
+        max_concurrency: @query_concurrency
+      )
+      |> Enum.map(fn {:ok, fronts} -> fronts end)
       |> List.flatten()
       |> Enum.map(&CurrentFront.to_front/1)
 
     alters =
       friendship_ids
-      |> Enum.map(fn id ->
-        alter_ids = Enum.filter(fronts, fn f -> f.user_id == id end) |> Enum.map(& &1.alter_id)
+      |> Task.async_stream(
+        fn id ->
+          alter_ids = Enum.filter(fronts, fn f -> f.user_id == id end) |> Enum.map(& &1.alter_id)
 
-        query =
-          from(
-            a in Alter,
-            where: a.user_id == ^id and a.id in ^alter_ids,
-            select:
-              struct(a, [
-                :id,
-                :user_id,
-                :name,
-                :avatar_url,
-                :pronouns,
-                :color,
-                :security_level,
-                :description
-              ])
-          )
+          query =
+            from(
+              a in Alter,
+              where: a.user_id == ^id and a.id in ^alter_ids,
+              select:
+                struct(a, [
+                  :id,
+                  :user_id,
+                  :name,
+                  :avatar_url,
+                  :pronouns,
+                  :color,
+                  :security_level,
+                  :description
+                ])
+            )
 
-        {query, {:system, id}}
-      end)
-      |> Enum.map(fn {query, system_identity} ->
-        Repo.all_regional(query, {:user, system_identity})
-      end)
+          Repo.all_regional(query, {:user, {:system, id}})
+        end,
+        max_concurrency: @query_concurrency
+      )
+      |> Enum.map(fn {:ok, alters} -> alters end)
+      |> Enum.into([])
       |> List.flatten()
 
     fronts =
@@ -181,29 +186,35 @@ defmodule Octocon.Friendships do
         }
       end)
 
-    Enum.map(friendships, fn friendship ->
-      fronting =
-        fronts
-        |> Enum.filter(fn front ->
-          front.front.user_id == friendship.friend.id
-        end)
-        |> then(fn fronts ->
-          friendship_level =
-            get_friendship({:system, friendship.friend.id}, user_identity).friendship.level
+    friendships
+    |> Task.async_stream(
+      fn friendship ->
+        fronting =
+          fronts
+          |> Enum.filter(fn front ->
+            front.front.user_id == friendship.friend.id
+          end)
+          |> then(fn fronts ->
+            friendship_level =
+              get_friendship({:system, friendship.friend.id}, user_identity).friendship.level
 
-          Fronts.currently_fronting_hoisted(
-            {:system, friendship.friend.id},
-            friendship_level,
-            fronts
-          )
-        end)
+            Fronts.currently_fronting_hoisted(
+              {:system, friendship.friend.id},
+              friendship_level,
+              fronts
+            )
+          end)
 
-      Map.put(
-        friendship,
-        :fronting,
-        fronting
-      )
-    end)
+        Map.put(
+          friendship,
+          :fronting,
+          fronting
+        )
+      end,
+      max_concurrency: @query_concurrency
+    )
+    |> Enum.map(fn {:ok, friendships} -> friendships end)
+    |> Enum.into([])
   end
 
   @doc """

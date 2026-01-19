@@ -139,7 +139,7 @@ defmodule OctoconDiscord.Commands.BotInfo do
         ]
       ]
       |> Map.new()
-      |> then(&(Nostrum.Api.Interaction.edit_response(interaction, &1)))
+      |> then(&Nostrum.Api.Interaction.edit_response(interaction, &1))
     end)
 
     [

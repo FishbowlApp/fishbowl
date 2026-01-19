@@ -537,15 +537,16 @@ defmodule Octocon.Fronts do
           )
         end)
 
-        front = %Front{
-          id: id,
-          user_id: system_id,
-          alter_id: alter_id,
-          comment: comment,
-          time_start: now,
-          time_end: nil
-        }
-        |> Repo.insert_regional(region_specifier)
+        front =
+          %Front{
+            id: id,
+            user_id: system_id,
+            alter_id: alter_id,
+            comment: comment,
+            time_start: now,
+            time_end: nil
+          }
+          |> Repo.insert_regional(region_specifier)
 
         %CurrentFront{
           id: id,
