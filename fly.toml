@@ -52,9 +52,15 @@ processes = ['auxiliary', 'sidecar']
 [[vm]]
 memory = '1gb'
 cpu_kind = 'shared'
-cpus = 2
+cpus = 1
 # processes = ['primary', 'auxiliary', 'sidecar']
-processes = ['auxiliary', 'sidecar']
+processes = ['auxiliary']
+
+[[vm]]
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 2
+processes = ['sidecar']
 
 [[services]]
 internal_port = 41641

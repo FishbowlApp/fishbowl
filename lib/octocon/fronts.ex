@@ -537,7 +537,7 @@ defmodule Octocon.Fronts do
           )
         end)
 
-        %Front{
+        front = %Front{
           id: id,
           user_id: system_id,
           alter_id: alter_id,
@@ -569,6 +569,8 @@ defmodule Octocon.Fronts do
             Octocon.Global.FrontNotifier.set(system_id, alter_id)
           end)
         end)
+
+        {:ok, front}
     end
   end
 

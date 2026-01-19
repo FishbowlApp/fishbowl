@@ -80,7 +80,12 @@ defmodule OctoconWeb.System.AlterController do
       :ok ->
         send_resp(conn, :no_content, "")
 
-      {:error, :no_alter} ->
+      {:error, :no_alter_id} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Alter not found.", code: "alter_not_found"})
+
+      {:error, :no_alter_alias} ->
         conn
         |> put_status(:not_found)
         |> json(%{error: "Alter not found.", code: "alter_not_found"})

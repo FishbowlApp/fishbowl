@@ -298,7 +298,7 @@ defmodule OctoconDiscord.Commands.Friend do
       {:error, :not_requested} ->
         Utils.error_embed("You do not have an incoming friend request from #{decorator}.")
 
-      {:error, %{errors: [from_id: {"does not exist", _}]}} ->
+      {:error, :no_user} ->
         Utils.error_embed("The system #{decorator} does not exist.")
 
       {:error, _} ->
@@ -316,7 +316,7 @@ defmodule OctoconDiscord.Commands.Friend do
       {:error, :not_requested} ->
         Utils.error_embed("You do not have an incoming friend request from #{decorator}.")
 
-      {:error, %{errors: [from_id: {"does not exist", _}]}} ->
+      {:error, :no_user} ->
         Utils.error_embed("The system #{decorator} does not exist.")
 
       {:error, _} ->
@@ -334,7 +334,7 @@ defmodule OctoconDiscord.Commands.Friend do
       {:error, :not_requested} ->
         Utils.error_embed("You do not have an outgoing friend request to #{decorator}.")
 
-      {:error, %{errors: [to_id: {"does not exist", _}]}} ->
+      {:error, :no_user} ->
         Utils.error_embed("The system #{decorator} does not exist.")
 
       {:error, _} ->

@@ -20,7 +20,6 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
   @sp_endpoint URI.parse("https://api.apparyllis.com/v1/")
   @cdn_endpoint URI.parse("https://spaces.apparyllis.com/")
 
-  @impl true
   def perform(%{"system_id" => system_id, "sp_token" => sp_token}) do
     Logger.warning("Performing Simply Plural import for user #{system_id}")
 

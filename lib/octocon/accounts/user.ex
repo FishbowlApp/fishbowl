@@ -21,8 +21,6 @@ defmodule Octocon.Accounts.User do
   import Ecto.Changeset
   import Exandra, only: [embedded_type: 3]
 
-  alias Octocon.Accounts.DiscordSettings
-
   @primary_key false
 
   schema "users" do
