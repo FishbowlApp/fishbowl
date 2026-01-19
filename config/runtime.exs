@@ -83,8 +83,6 @@ if config_env() == :prod do
       String.to_integer(System.get_env("POOL_SIZE") || "10")
     end
 
-  config :octocon, dns_cluster_query: System.get_env("DNS_CLUSTER_QUERY")
-
   config :octocon,
          :primary_node_count,
          String.to_integer(System.get_env("PRIMARY_NODE_COUNT") || "1")
