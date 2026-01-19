@@ -149,7 +149,6 @@ end
 defmodule Octocon.Fronts.FrontByEndTime do
   @moduledoc false
   use Ecto.Schema
-  import Ecto.Changeset
 
   @primary_key false
 

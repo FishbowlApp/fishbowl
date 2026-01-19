@@ -75,7 +75,7 @@ defmodule OctoconWeb.FriendController do
               code: "friendship_not_found"
             })
 
-          {:error, :database} ->
+          {:error, _} ->
             conn
             |> put_status(:internal_server_error)
             |> json(%{

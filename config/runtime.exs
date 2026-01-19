@@ -111,8 +111,6 @@ if config_env() == :prod do
       For example: ecto://USER:PASS@HOST/DATABASE
       """
 
-  maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
-
   config :octocon, :proxy_db, System.get_env("OCTO_PROXY_DB") in ~w(true 1)
 
   config :octocon, Octocon.Repo,

@@ -13,7 +13,7 @@ defmodule OctoconWeb.SettingsController do
     system_id = conn.private[:guardian_default_resource]
 
     case Accounts.wipe_encrypted_data({:system, system_id}) do
-      {:ok, _} ->
+      :ok ->
         conn
         |> send_resp(:no_content, "")
 

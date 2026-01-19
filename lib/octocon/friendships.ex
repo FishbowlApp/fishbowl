@@ -16,10 +16,7 @@ defmodule Octocon.Friendships do
   alias Octocon.Friendships.Friendship
   alias Octocon.Fronts
 
-  alias Octocon.Fronts.{
-    CurrentFront,
-    Front
-  }
+  alias Octocon.Fronts.CurrentFront
 
   @doc """
   Returns the friendship status between two users with the given identities, or `nil` if no friendship exists.
@@ -44,10 +41,14 @@ defmodule Octocon.Friendships do
       )
       |> Repo.one_regional({:user, {:system, friend_id}})
 
-    %{
-      friendship: friendship,
-      friend: friend
-    }
+    if friendship == nil do
+      nil
+    else
+      %{
+        friendship: friendship,
+        friend: friend
+      }
+    end
   end
 
   @doc """
@@ -479,6 +480,9 @@ defmodule Octocon.Friendships do
             {:error, :database}
         end
 
+      Accounts.get_user({:system, Accounts.id_from_system_identity(to_identity, :system)}) == nil ->
+        {:error, :no_user}
+
       true ->
         {:error, :not_requested}
     end
@@ -511,6 +515,9 @@ defmodule Octocon.Friendships do
         end)
 
         :ok
+
+      Accounts.get_user({:system, Accounts.id_from_system_identity(to_identity, :system)}) == nil ->
+        {:error, :no_user}
 
       true ->
         {:error, :not_requested}

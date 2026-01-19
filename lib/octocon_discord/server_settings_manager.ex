@@ -39,7 +39,7 @@ defmodule OctoconDiscord.ServerSettingsManager do
     guild_id = to_string(guild_id)
 
     case Persistence.delete_server_settings(guild_id) do
-      {:ok, _} ->
+      :ok ->
         invalidate_cache(guild_id)
         :ok
 

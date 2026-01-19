@@ -2,11 +2,7 @@ defmodule OctoconWeb.AuthController do
   use OctoconWeb, :controller
 
   alias Octocon.Accounts
-  alias Octocon.Accounts.User
   alias Octocon.Auth.Guardian
-  alias Octocon.Repo
-
-  import Ecto.Query
 
   plug :put_metadata
   plug Ueberauth
@@ -130,7 +126,7 @@ defmodule OctoconWeb.AuthController do
     redirect(conn, external: "https://octocon.app/deep/auth/token#{url_params}")
   end
 
-  def callback(conn, params) do
+  def callback(conn, _params) do
     conn
     |> put_status(403)
     |> text("Failed to authenticate. Did you reload the page or copy-paste the URL?")

@@ -30,7 +30,7 @@ defmodule Octocon.Application do
     Logger.warning("Starting node of type: #{group}")
 
     children =
-      global_children(group) ++
+      global_children() ++
         group_children(group) ++
         [
           # Web endpoint
@@ -50,7 +50,7 @@ defmodule Octocon.Application do
     :ok
   end
 
-  defp global_children(group) do
+  defp global_children() do
     topologies = [
       tailscale: [
         strategy: Cluster.Strategy.Tailscale,

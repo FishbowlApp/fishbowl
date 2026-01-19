@@ -422,8 +422,7 @@ defmodule Octocon.Tags do
         {:error, :not_found}
 
       {count, _} when count > 0 ->
-        system_id = Accounts.id_from_system_identity(system_identity, :system)
-
+        # system_id = Accounts.id_from_system_identity(system_identity, :system)
         # spawn(fn ->
         #   OctoconWeb.Endpoint.broadcast!(
         #     "system:#{system_id}",

@@ -201,10 +201,11 @@ defmodule Octocon.Alters do
     security_level =
       case alter do
         {:ok, alter} -> alter.security_level
-        {:error, :no_alter} -> :private
+        {:error, :no_alter_id} -> :private
+        {:error, :no_alter_alias} -> :private
       end
 
-    if can_view_entity?(friendship_level, security_level) and alter != {:error, :no_alter} do
+    if can_view_entity?(friendship_level, security_level) and alter != {:error, :no_alter_id} and alter != {:error, :no_alter_alias} do
       {:ok, alter} = alter
       fields = get_guarded_fields(user_fields, alter.fields || [], friendship_level)
       {:ok, %{alter | fields: fields}}
@@ -330,7 +331,7 @@ defmodule Octocon.Alters do
         {:error, :database}
     end
   rescue
-    e ->
+    _ ->
       if force_id == nil do
         # Manually resync the user's alter count
         highest_alter_id = get_highest_alter_id({:system, user.id})
