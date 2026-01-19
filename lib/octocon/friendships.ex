@@ -104,6 +104,7 @@ defmodule Octocon.Friendships do
         end,
         max_concurrency: @query_concurrency
       )
+      |> Enum.filter(fn {:ok, user} -> user != nil end)
       |> Enum.into(%{}, fn {:ok, user} -> {user.id, user} end)
 
     friendships
