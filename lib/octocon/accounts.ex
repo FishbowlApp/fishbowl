@@ -816,11 +816,20 @@ defmodule Octocon.Accounts do
     )
     |> Repo.delete_all_global()
 
+    # Delete reciprocal friendships (Scylla cannot directly DELETE from a secondary index)
     from(
       f in Octocon.Friendships.Friendship,
       where: f.friend_id == ^system_id
     )
-    |> Repo.delete_all_global()
+    |> Repo.all_global()
+    |> Enum.map(& &1.user_id)
+    |> Enum.each(fn user_id ->
+      from(
+        f in Octocon.Friendships.Friendship,
+        where: f.user_id == ^user_id and f.friend_id == ^system_id
+      )
+      |> Repo.delete_all_global()
+    end)
 
     from(
       f in Octocon.Friendships.Request,
@@ -828,11 +837,20 @@ defmodule Octocon.Accounts do
     )
     |> Repo.delete_all_global()
 
+    # Delete reciprocal friend requests (Scylla cannot directly DELETE from a secondary index)
     from(
       f in Octocon.Friendships.Request,
       where: f.to_id == ^system_id
     )
-    |> Repo.delete_all_global()
+    |> Repo.all_global()
+    |> Enum.map(& &1.from_id)
+    |> Enum.each(fn from_id ->
+      from(
+        f in Octocon.Friendships.Request,
+        where: f.from_id == ^from_id and f.to_id == ^system_id
+      )
+      |> Repo.delete_all_global()
+    end)
   end
 
   @doc """
