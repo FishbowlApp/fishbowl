@@ -665,7 +665,7 @@ defmodule Octocon.Accounts do
       |> Map.from_struct()
       |> Map.put(
         :server_settings,
-        Map.get(settings, :server_settings)
+        (Map.get(settings, :server_settings) || [])
         |> Enum.map(&Map.from_struct/1)
       )
 
