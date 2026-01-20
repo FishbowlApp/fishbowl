@@ -1,20 +1,12 @@
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      PGDATA: /var/lib/postgresql/data/pgdata
-    restart: always
+  scylla:
+    image: scylladb/scylla:2025.1
     ports:
-      - "4001:5432"
+      - "9042:9042"
+    restart: always
+    command: --smp 1 --memory 1G --overprovisioned 1 --developer-mode 1
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 4000M
+      - ./scylla_data:/var/lib/scylla
   msg_db:
     image: timescale/timescaledb:latest-pg16
     environment:
