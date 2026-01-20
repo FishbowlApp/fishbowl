@@ -658,15 +658,16 @@ defmodule Octocon.Accounts do
   end
 
   def update_discord_settings(%User{} = user, attrs) do
+    settings = user.discord_settings || %Octocon.Accounts.DiscordSettings{}
+
     old_attrs =
-      user.discord_settings ||
-        %Octocon.Accounts.DiscordSettings{}
-        |> Map.from_struct()
-        |> Map.put(
-          :server_settings,
-          Map.get(user.discord_settings, :server_settings)
-          |> Enum.map(&Map.from_struct/1)
-        )
+      settings
+      |> Map.from_struct()
+      |> Map.put(
+        :server_settings,
+        Map.get(settings, :server_settings)
+        |> Enum.map(&Map.from_struct/1)
+      )
 
     result =
       user
@@ -693,7 +694,7 @@ defmodule Octocon.Accounts do
     old_discord_settings =
       (user.discord_settings || %Octocon.Accounts.DiscordSettings{}) |> Map.from_struct()
 
-    old_settings = (user.discord_settings.server_settings || []) |> Enum.map(&Map.from_struct/1)
+    old_settings = ((user.discord_settings || %Octocon.Accounts.DiscordSettings{}).server_settings || []) |> Enum.map(&Map.from_struct/1)
 
     result =
       if Enum.any?(old_settings, fn server ->

@@ -197,6 +197,7 @@ defmodule OctoconDiscord.Utils do
     ]
 
   def system_embed_raw(system, self?) do
+    discord_settings = system.discord_settings || %Accounts.DiscordSettings{}
     %{
       title: "System information",
       description: system.description || nil,
@@ -231,7 +232,7 @@ defmodule OctoconDiscord.Utils do
               },
               %Nostrum.Struct.Embed.Field{
                 name: "System tag",
-                value: system.discord_settings.system_tag || "*None*",
+                value: discord_settings.system_tag || "*None*",
                 inline: true
               }
             ],

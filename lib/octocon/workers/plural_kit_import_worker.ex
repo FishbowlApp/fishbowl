@@ -78,7 +78,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
         user,
         %{
           system_tag:
-            default_if_empty(system_tag, 20, Map.get(user.discord_settings, :system_tag, nil))
+            default_if_empty(system_tag, 20, Map.get(user.discord_settings || %Octocon.Accounts.DiscordSettings{}, :system_tag, nil))
         }
       )
     end)
