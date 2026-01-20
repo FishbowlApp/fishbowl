@@ -694,7 +694,9 @@ defmodule Octocon.Accounts do
     old_discord_settings =
       (user.discord_settings || %Octocon.Accounts.DiscordSettings{}) |> Map.from_struct()
 
-    old_settings = ((user.discord_settings || %Octocon.Accounts.DiscordSettings{}).server_settings || []) |> Enum.map(&Map.from_struct/1)
+    old_settings =
+      ((user.discord_settings || %Octocon.Accounts.DiscordSettings{}).server_settings || [])
+      |> Enum.map(&Map.from_struct/1)
 
     result =
       if Enum.any?(old_settings, fn server ->

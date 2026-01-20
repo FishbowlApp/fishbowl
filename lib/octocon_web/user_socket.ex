@@ -181,10 +181,15 @@ defmodule OctoconWeb.UserChannel do
     |> Enum.each(fn {data_batch, index} ->
       Process.sleep(50)
 
-      push(socket, event_name, %{
-        "batch_index" => index + 1,
-        "total_batches" => total_batches
-      } |> Map.put(data_name, data_batch))
+      push(
+        socket,
+        event_name,
+        %{
+          "batch_index" => index + 1,
+          "total_batches" => total_batches
+        }
+        |> Map.put(data_name, data_batch)
+      )
     end)
   end
 
