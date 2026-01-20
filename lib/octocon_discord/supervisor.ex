@@ -43,7 +43,9 @@ defmodule OctoconDiscord.Supervisor do
       OctoconDiscord.ProxyCache,
       OctoconDiscord.ChannelBlacklistManager,
       # Gateway events
-      Supervisor.child_spec({Task, fn -> start_unique_consumer() end}, id: :start_unique_consumer),
+      Supervisor.child_spec({Task, fn -> start_unique_consumer() end},
+        id: :start_unique_consumer
+      ),
       # Component handlers
       OctoconDiscord.Components.HelpHandler,
       OctoconDiscord.Components.AlterPaginator,

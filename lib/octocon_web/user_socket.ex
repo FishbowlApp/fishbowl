@@ -3,17 +3,6 @@ defmodule OctoconWeb.UserSocket do
 
   channel "system:*", OctoconWeb.UserChannel
 
-  @base_version Version.parse("1.0.0")
-  @batched_init_version Version.parse("2.0.0")
-
-  @batched_dummy_response %{
-    "batched" => true,
-    "system" => nil,
-    "alters" => nil,
-    "fronts" => nil,
-    "tags" => nil
-  }
-
   def connect(%{"token" => token}, socket, _connect_info) do
     case Octocon.Auth.Guardian.resource_from_token(token) do
       {:ok, system_id, _claims} ->
@@ -37,6 +26,11 @@ end
 
 defmodule OctoconWeb.UserChannel do
   use Phoenix.Channel
+
+  @base_version Version.parse("1.0.0")
+  @batched_init_version Version.parse("2.0.0")
+
+  require Logger
 
   alias Octocon.{
     Accounts,
@@ -82,10 +76,19 @@ defmodule OctoconWeb.UserChannel do
                   # What the fuck
                   exceeds_ios_limit = :erlang.external_size(init_data) * 1.1 > 1_048_576
 
-                  if force_batch || (platform == "ios" && exceeds_ios_limit && version >= @batched_init_version) do
+                  if force_batch ||
+                       (platform == "ios" && exceeds_ios_limit && version >= @batched_init_version) do
                     send(self(), {:send_batched_init, init_data})
 
-                    {:ok, %{@batched_dummy_response | system: init_data["system"]}, socket}
+                    response = %{
+                      "batched" => true,
+                      "system" => init_data["system"],
+                      "alters" => nil,
+                      "fronts" => nil,
+                      "tags" => nil
+                    }
+
+                    {:ok, response, socket}
                   else
                     Process.send_after(socket.transport_pid, :garbage_collect, :timer.seconds(1))
                     {:ok, init_data, socket}
@@ -105,7 +108,8 @@ defmodule OctoconWeb.UserChannel do
     end
   rescue
     e ->
-      Logger.error("Error joining user socket: #{inspect(e)}")
+      Logger.error("Error joining user socket:")
+      Logger.error(Exception.format(:error, e, __STACKTRACE__))
       {:error, %{reason: "internal_error"}}
   end
 
@@ -140,50 +144,48 @@ defmodule OctoconWeb.UserChannel do
   end
 
   defp send_batched_init(socket, %{"alters" => alters, "tags" => tags, "fronts" => fronts}) do
-    batched_alters = Enum.chunk_every(alters, 3_000)
-    batched_tags = Enum.chunk_every(tags, 1_000)
-    batched_fronts = Enum.chunk_every(fronts, 50)
+    send_batched_data(
+      "batched_init_alters",
+      "alters",
+      3_000,
+      alters,
+      socket
+    )
 
-    alters_batch_count = length(batched_alters)
-    tags_batch_count = length(batched_tags)
-    fronts_batch_count = length(batched_fronts)
+    send_batched_data(
+      "batched_init_tags",
+      "tags",
+      1_000,
+      tags,
+      socket
+    )
 
-    Enum.with_index(batched_alters)
-    |> Enum.each(fn {alter_batch, index} ->
-      Process.sleep(50)
-
-      push(socket, "batched_init_alters", %{
-        "batch_index" => index + 1,
-        "total_batches" => alters_batch_count,
-        "alters" => alter_batch
-      })
-    end)
-
-    Enum.with_index(batched_tags)
-    |> Enum.each(fn {tag_batch, index} ->
-      Process.sleep(50)
-
-      push(socket, "batched_init_tags", %{
-        "batch_index" => index + 1,
-        "total_batches" => tags_batch_count,
-        "tags" => tag_batch
-      })
-    end)
-
-    Enum.with_index(batched_fronts)
-    |> Enum.each(fn {front_batch, index} ->
-      Process.sleep(50)
-
-      push(socket, "batched_init_fronts", %{
-        "batch_index" => index + 1,
-        "total_batches" => fronts_batch_count,
-        "fronts" => front_batch
-      })
-    end)
+    send_batched_data(
+      "batched_init_fronts",
+      "fronts",
+      50,
+      fronts,
+      socket
+    )
 
     Process.send_after(socket.transport_pid, :garbage_collect, :timer.seconds(1))
 
     push(socket, "batched_init_complete", %{})
+  end
+
+  defp send_batched_data(event_name, data_name, batch_size, data, socket) do
+    batched_data = Enum.chunk_every(data, batch_size)
+    total_batches = length(batched_data)
+
+    Enum.with_index(batched_data)
+    |> Enum.each(fn {data_batch, index} ->
+      Process.sleep(50)
+
+      push(socket, event_name, %{
+        "batch_index" => index + 1,
+        "total_batches" => total_batches
+      } |> Map.put(data_name, data_batch))
+    end)
   end
 
   @impl true
@@ -211,15 +213,16 @@ defmodule OctoconWeb.UserChannel do
   @impl true
   def handle_info({:plug_conn, :sent}, socket), do: {:noreply, socket}
 
+  @impl true
   def handle_info({:send_batched_init, init_data}, socket) do
     IO.inspect(socket, label: "Batched init socket")
-    IO.inspect(init_data.system.id, label: "Batched init system ID")
+    IO.inspect(init_data["system"].id, label: "Batched init system ID")
 
     if init_data do
       send_batched_init(socket, init_data)
     end
 
-    {:noreply, socket |> assign(:init_data, nil)}
+    {:noreply, socket}
   end
 
   defp encode_response(conn) do
