@@ -89,6 +89,18 @@ defmodule Octocon.Alters do
     end
   end
 
+  def resolve_alter_id_dumb(system_identity, {:id, alter_id}), do: alter_id
+  def resolve_alter_id_dumb(system_identity, {:alias, aliaz}) do
+    where = unwrap_system_identity_where(system_identity, alias: aliaz)
+
+    query =
+      Alter
+      |> where(^where)
+      |> select([a], a.id)
+
+    Repo.one_regional(query, {:user, system_identity})
+  end
+
   @doc """
   Returns the total number of alters in the database.
   """
@@ -482,15 +494,11 @@ defmodule Octocon.Alters do
       changeset = change_alter(base_struct, attrs)
 
       if changeset.valid? do
-        where =
-          unwrap_system_identity_where(
-            system_identity,
-            unwrap_alter_identity_where(alter_identity)
-          )
+        alter_id = resolve_alter_id_dumb(system_identity, alter_identity)
 
         query =
           Alter
-          |> where(^where)
+          |> where([a], a.id == ^alter_id and a.user_id == ^system_id)
           |> update(set: ^Keyword.new(attrs))
 
         case Repo.update_all_regional(query, [], {:user, system_identity}) do
