@@ -105,7 +105,7 @@ defmodule OctoconWeb.UserChannel do
     end
   rescue
     e ->
-      reraise e, __STACKTRACE__
+      Logger.error("Error joining user socket: #{inspect(e)}")
       {:error, %{reason: "internal_error"}}
   end
 
