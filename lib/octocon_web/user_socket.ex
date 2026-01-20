@@ -69,6 +69,9 @@ defmodule OctoconWeb.UserChannel do
                 version_str -> Version.parse(version_str)
               end
 
+            platform = Map.get(params, "platform", "unknown")
+            force_batch = Map.get(params, "forceBatch", false)
+
             case protocol_version do
               {:ok, version} ->
                 if is_reconnect do
@@ -79,7 +82,7 @@ defmodule OctoconWeb.UserChannel do
                   # What the fuck
                   exceeds_ios_limit = :erlang.external_size(init_data) * 1.1 > 1_048_576
 
-                  if exceeds_ios_limit && version >= @batched_init_version do
+                  if force_batch || (platform == "ios" && exceeds_ios_limit && version >= @batched_init_version) do
                     send(self(), :send_batched_init)
 
                     {:ok, %{@batched_dummy_response | system: init_data["system"]}, socket |> assign(:init_data, init_data)}
@@ -101,7 +104,9 @@ defmodule OctoconWeb.UserChannel do
         {:error, %{reason: "unauthorized"}}
     end
   rescue
-    _ -> {:error, %{reason: "internal_error"}}
+    e ->
+      reraise e, __STACKTRACE__
+      {:error, %{reason: "internal_error"}}
   end
 
   defp generate_init_data(system_id) do
