@@ -80,13 +80,9 @@ defmodule OctoconWeb.UserChannel do
                   exceeds_ios_limit = :erlang.external_size(init_data) * 1.1 > 1_048_576
 
                   if exceeds_ios_limit && version >= @batched_init_version do
-                    spawn(fn ->
-                      # TODO: Necessary delay?
-                      Process.sleep(50)
-                      send_batched_init(socket, init_data)
-                    end)
+                    send(self(), :send_batched_init)
 
-                    {:ok, %{@batched_dummy_response | system: init_data["system"]}, socket}
+                    {:ok, %{@batched_dummy_response | system: init_data["system"]}, socket |> assign(:init_data, init_data)}
                   else
                     Process.send_after(socket.transport_pid, :garbage_collect, :timer.seconds(1))
                     {:ok, init_data, socket}
@@ -209,6 +205,16 @@ defmodule OctoconWeb.UserChannel do
   @doc false
   @impl true
   def handle_info({:plug_conn, :sent}, socket), do: {:noreply, socket}
+
+  def handle_info(:send_batched_init, socket) do
+    init_data = socket.assigns[:init_data]
+
+    if init_data do
+      send_batched_init(socket, init_data)
+    end
+
+    {:noreply, socket |> assign(:init_data, nil)}
+  end
 
   defp encode_response(conn) do
     %{
