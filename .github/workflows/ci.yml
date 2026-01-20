@@ -30,7 +30,7 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: GHCR registry auth
-        uses: docker/login@v3
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
