@@ -133,44 +133,47 @@ defmodule OctoconDiscord.Events.MessageCreate do
            server_settings: server_settings
          } = context
        ) do
-    Logger.debug("Trying global autoproxy")
 
     case proxy_data.settings.global_autoproxy_mode do
       :off ->
         # Autoproxy disabled, ignore
-        Logger.debug("Global autoproxy disabled")
         false
 
       :front ->
-        Logger.debug("Global autoproxy front")
         try_front_autoproxy(context)
         true
 
       :latch ->
-        Logger.debug("Global autoproxy latch")
-
         case proxy_data.settings.global_latched_alter do
           nil ->
-            Logger.debug("No latched alter")
             # No one has proxied yet, ignore
             :ok
 
           alter_id ->
             # There's a global latched alter; proxy as them
-            Logger.debug("Latched alter found: #{alter_id}")
             system_id = proxy_data.system_id
 
-            send_proxy_message(
-              %{
-                webhook: webhook,
-                message: message,
-                alter: {system_id, alter_id},
-                proxy_data: proxy_data,
-                thread_id: thread_id,
-                server_settings: server_settings
-              },
-              false
-            )
+            try do
+              send_proxy_message(
+                %{
+                  webhook: webhook,
+                  message: message,
+                  alter: {system_id, alter_id},
+                  proxy_data: proxy_data,
+                  thread_id: thread_id,
+                  server_settings: server_settings
+                },
+                false
+              )
+            rescue
+              e in OctoconDiscord.Proxy.InvalidAlterError ->
+                Logger.debug(e.message)
+
+                Octocon.Accounts.update_discord_settings(
+                  {:system, proxy_data.system_id},
+                  %{global_latched_alter: nil}
+                )
+            end
         end
 
         true
@@ -186,33 +189,27 @@ defmodule OctoconDiscord.Events.MessageCreate do
            server_settings: server_settings
          } = context
        ) do
-    Logger.debug("Trying server autoproxy")
 
     case proxy_data.settings.server_settings.autoproxy_mode do
       :off ->
-        Logger.debug("Server autoproxy disabled")
         # Autoproxy disabled, ignore
         :ok
 
       :front ->
-        Logger.debug("Server autoproxy front")
         try_front_autoproxy(context)
 
       :latch ->
-        Logger.debug("Server autoproxy latch")
-
         case proxy_data.settings.server_settings.latched_alter do
           nil ->
             # No one has proxied yet, ignore
-            Logger.debug("No latched alter")
             :ok
 
           alter_id ->
-            Logger.debug("Latched alter found: #{alter_id}")
             # There's a latched alter on this server; proxy as them
             system_id = proxy_data.system_id
 
-            send_proxy_message(
+            try do
+              send_proxy_message(
               %{
                 webhook: webhook,
                 message: message,
@@ -224,6 +221,16 @@ defmodule OctoconDiscord.Events.MessageCreate do
               },
               false
             )
+            rescue
+              e in OctoconDiscord.Proxy.InvalidAlterError ->
+                Logger.debug(e.message)
+
+                Octocon.Accounts.update_server_settings(
+                  {:system, proxy_data.system_id},
+                  to_string(proxy_data.settings.server_settings.guild_id),
+                  %{latched_alter: nil}
+                )
+            end
         end
     end
   end

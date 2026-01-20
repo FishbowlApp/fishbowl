@@ -198,6 +198,7 @@ defmodule OctoconDiscord.Utils do
 
   def system_embed_raw(system, self?) do
     discord_settings = system.discord_settings || %Accounts.DiscordSettings{}
+
     %{
       title: "System information",
       description: system.description || nil,

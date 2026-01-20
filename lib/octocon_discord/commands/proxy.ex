@@ -1,3 +1,7 @@
+defmodule OctoconDiscord.Proxy.InvalidAlterError do
+  defexception [:message]
+end
+
 defmodule OctoconDiscord.Proxy do
   @moduledoc false
 
@@ -133,14 +137,21 @@ defmodule OctoconDiscord.Proxy do
         is_reproxy,
         proxy_fun \\ fn id, token, data -> Nostrum.Api.Webhook.execute(id, token, data, true) end
       ) do
-    {:ok, alter} =
-      Alters.get_alter_by_id({:system, system_id}, {:id, alter_id}, [
-        :name,
-        :avatar_url,
-        :pronouns,
-        :color,
-        :proxy_name
-      ])
+    alter =
+      case Alters.get_alter_by_id({:system, system_id}, {:id, alter_id}, [
+             :name,
+             :avatar_url,
+             :pronouns,
+             :color,
+             :proxy_name
+           ]) do
+        {:ok, alter} ->
+          alter
+
+        {:error, :no_alter_id} ->
+          raise OctoconDiscord.Proxy.InvalidAlterError,
+                "Alter with ID #{alter_id} does not exist."
+      end
 
     final_tag =
       cond do
