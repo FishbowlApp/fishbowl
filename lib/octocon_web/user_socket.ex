@@ -3,6 +3,17 @@ defmodule OctoconWeb.UserSocket do
 
   channel "system:*", OctoconWeb.UserChannel
 
+  @base_version Version.parse("1.0.0")
+  @batched_init_version Version.parse("2.0.0")
+
+  @batched_dummy_response %{
+    "batched" => true,
+    "system" => nil,
+    "alters" => nil,
+    "fronts" => nil,
+    "tags" => nil
+  }
+
   def connect(%{"token" => token}, socket, _connect_info) do
     case Octocon.Auth.Guardian.resource_from_token(token) do
       {:ok, system_id, _claims} ->
@@ -52,12 +63,38 @@ defmodule OctoconWeb.UserChannel do
           {:allow, _count} ->
             is_reconnect = Map.get(params, "isReconnect", false)
 
-            if is_reconnect do
-              {:ok, socket}
-            else
-              Process.send_after(socket.transport_pid, :garbage_collect, :timer.seconds(1))
+            protocol_version =
+              case Map.get(params, "protocolVersion") do
+                nil -> {:ok, @base_version}
+                version_str -> Version.parse(version_str)
+              end
 
-              {:ok, generate_init_data(system_id), socket}
+            case protocol_version do
+              {:ok, version} ->
+                if is_reconnect do
+                  {:ok, socket}
+                else
+                  init_data = generate_init_data(system_id)
+
+                  # What the fuck
+                  exceeds_ios_limit = :erlang.external_size(init_data) * 1.1 > 1_048_576
+
+                  if exceeds_ios_limit && version >= @batched_init_version do
+                    spawn(fn ->
+                      # TODO: Necessary delay?
+                      Process.sleep(50)
+                      send_batched_init(socket, init_data)
+                    end)
+
+                    {:ok, %{@batched_dummy_response | system: init_data["system"]}, socket}
+                  else
+                    Process.send_after(socket.transport_pid, :garbage_collect, :timer.seconds(1))
+                    {:ok, init_data, socket}
+                  end
+                end
+
+              _ ->
+                {:error, %{reason: "unsupported_protocol_version"}}
             end
 
           {:deny, _limit} ->
@@ -99,6 +136,53 @@ defmodule OctoconWeb.UserChannel do
       "fronts" => fronts,
       "tags" => tags
     }
+  end
+
+  defp send_batched_init(socket, %{"alters" => alters, "tags" => tags, "fronts" => fronts}) do
+    batched_alters = Enum.chunk_every(alters, 3_000)
+    batched_tags = Enum.chunk_every(tags, 1_000)
+    batched_fronts = Enum.chunk_every(fronts, 50)
+
+    alters_batch_count = length(batched_alters)
+    tags_batch_count = length(batched_tags)
+    fronts_batch_count = length(batched_fronts)
+
+    Enum.with_index(batched_alters)
+    |> Enum.each(fn {alter_batch, index} ->
+      Process.sleep(50)
+
+      push(socket, "batched_init_alters", %{
+        "batch_index" => index + 1,
+        "total_batches" => alters_batch_count,
+        "alters" => alter_batch
+      })
+    end)
+
+    Enum.with_index(batched_tags)
+    |> Enum.each(fn {tag_batch, index} ->
+      Process.sleep(50)
+
+      push(socket, "batched_init_tags", %{
+        "batch_index" => index + 1,
+        "total_batches" => tags_batch_count,
+        "tags" => tag_batch
+      })
+    end)
+
+    Enum.with_index(batched_fronts)
+    |> Enum.each(fn {front_batch, index} ->
+      Process.sleep(50)
+
+      push(socket, "batched_init_fronts", %{
+        "batch_index" => index + 1,
+        "total_batches" => fronts_batch_count,
+        "fronts" => front_batch
+      })
+    end)
+
+    Process.send_after(socket.transport_pid, :garbage_collect, :timer.seconds(1))
+
+    push(socket, "batched_init_complete", %{})
   end
 
   @impl true
