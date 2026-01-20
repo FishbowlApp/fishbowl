@@ -41,7 +41,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/octocondev/octocon:latest
+          tags: ghcr.io/octocondev/octocon:${{ github.sha }}
           build-args: |
             COMMIT_SHA=${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
