@@ -51,45 +51,38 @@ defmodule Octocon.Workers.PluralKitImportWorker do
 
     alter_count = length(alters)
 
-    chunked_alters =
-      alters
-      |> Stream.map(
-        &Map.drop(&1, [:__meta__, :__struct__, :fronts, :user, :global_journals, :tags])
-      )
-      |> Enum.chunk_every(1000)
+    alters
+    |> Task.async_stream(
+      &Repo.insert_regional(&1, {:user, {:system, system_id}}),
+      max_concurrency: 20,
+      ordered: false)
+    |> Stream.run()
 
-    Repo.transaction(fn ->
-      chunked_alters
-      |> Enum.each(fn chunk ->
-        Repo.insert_all_regional(Alter, chunk, {:user, {:system, system_id}})
-      end)
+    user = Accounts.get_user!({:system, system_id})
 
-      user = Accounts.get_user!({:system, system_id})
+    Accounts.update_user(
+      user,
+      %{
+        lifetime_alter_count: user.lifetime_alter_count + alter_count,
+        description: default_if_empty(description, 3000, user.description)
+      }
+    )
 
-      Accounts.update_user(
-        user,
-        %{
-          lifetime_alter_count: user.lifetime_alter_count + alter_count,
-          description: default_if_empty(description, 3000, user.description)
-        }
-      )
-
-      Accounts.update_discord_settings(
-        user,
-        %{
-          system_tag:
-            default_if_empty(
-              system_tag,
-              20,
-              Map.get(
-                user.discord_settings || %Octocon.Accounts.DiscordSettings{},
-                :system_tag,
-                nil
-              )
+    Accounts.update_discord_settings(
+      user,
+      %{
+        system_tag:
+          default_if_empty(
+            system_tag,
+            20,
+            Map.get(
+              user.discord_settings || %Octocon.Accounts.DiscordSettings{},
+              :system_tag,
+              nil
             )
-        }
-      )
-    end)
+          )
+      }
+    )
 
     OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "alters_created", %{
       alters: Enum.map(alters, &OctoconWeb.System.AlterJSON.data_me(&1))
