@@ -138,9 +138,9 @@ defmodule Octocon.MixProject do
       setup: ["deps.get", "ecto.setup"],
       "ecto.setup": [
         "ecto.create",
-        "ecto.migrate",
-        #"run priv/repo/seeds.exs",
-        #"run priv/msg_repo/seeds.exs"
+        "ecto.migrate"
+        # "run priv/repo/seeds.exs",
+        # "run priv/msg_repo/seeds.exs"
       ],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       "assets.deploy": [
