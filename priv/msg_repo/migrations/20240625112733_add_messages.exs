@@ -6,7 +6,7 @@ defmodule Octocon.MessageRepo.Migrations.AddMessages do
   def up do
     execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE")
 
-    create table(:messages, primary_key: false) do
+    create_if_not_exists table(:messages, primary_key: false) do
       add :timestamp, :utc_datetime, null: false
       add :message_id, :string, size: 22, null: false
       add :author_id, :string, size: 22, null: false

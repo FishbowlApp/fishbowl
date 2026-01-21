@@ -1,15 +1,5 @@
 import Config
 
-config :octocon, Octocon.MessageRepo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "octocon_dev",
-  port: "4002",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
-
 config :octocon, :primary_node_count, 1
 
 # Discord channel scope
@@ -69,9 +59,30 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 
+config :octocon, Octocon.Repo,
+  nodes: ["scylla-nam"],
+  load_balancing:
+    {Xandra.Cluster.LoadBalancingPolicy.DCAwareRoundRobin,
+      [local_data_center: "nam"]},
+    refresh_topology_interval: :timer.minutes(1),
+    sync_connect: :infinity,
+    pool_size: 10
+
+config :octocon, Octocon.MessageRepo,
+  username: "postgres",
+  password: "postgres",
+  hostname: "msg-db",
+  database: "octocon_dev",
+  port: "5432",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
+
 # Discord token
 config :nostrum,
   token: "TODO"
+
+config :octocon, :current_db_region, "nam"
 
 # Discord auth
 config :ueberauth, Ueberauth.Strategy.Discord.OAuth,
@@ -86,7 +97,9 @@ config :ueberauth, Ueberauth.Strategy.Google.OAuth,
 # Guardian
 config :octocon, Octocon.Auth.Guardian,
   issuer: "octocon",
-  secret_key: "TODO"
+  secret_key: "Vui-nVt36x8I-8EWN8Fg5xvv588aniMu5eubeD7ZTdwIBdwt4qHDVXyL-2NjAeE1"
+
+config :octocon, :pepper, "6dtfTrHA"
 
 config :waffle,
   storage: Waffle.Storage.S3,

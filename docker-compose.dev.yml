@@ -1,13 +1,133 @@
 services:
-  scylla:
+  scylla-nam:
     image: scylladb/scylla:2025.1
     ports:
       - "9042:9042"
     restart: always
-    command: --smp 1 --memory 1G --overprovisioned 1 --developer-mode 1
+    command: --seeds=scylla-nam --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
     volumes:
-      - ./scylla_data:/var/lib/scylla
-  msg_db:
+      - ./dev/scylla/cassandra-rackdc.nam.properties:/etc/scylla/cassandra-rackdc.properties
+      - ./dev/scylla/data/nam:/var/lib/scylla
+      - ./dev/scylla/scylla.yaml:/etc/scylla/scylla.yaml
+    networks:
+      octo_network:
+
+  scylla-eur:
+    image: scylladb/scylla:2025.1
+    restart: always
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    volumes:
+      - ./dev/scylla/cassandra-rackdc.eur.properties:/etc/scylla/cassandra-rackdc.properties
+      - ./dev/scylla/data/eur:/var/lib/scylla
+      - ./dev/scylla/scylla.yaml:/etc/scylla/scylla.yaml
+    depends_on:
+      - scylla-nam
+    networks:
+      octo_network:
+
+  scylla-gdpr:
+    image: scylladb/scylla:2025.1
+    restart: always
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    volumes:
+      - ./dev/scylla/cassandra-rackdc.gdpr.properties:/etc/scylla/cassandra-rackdc.properties
+      - ./dev/scylla/data/gdpr:/var/lib/scylla
+      - ./dev/scylla/scylla.yaml:/etc/scylla/scylla.yaml
+    depends_on:
+      - scylla-nam
+      - scylla-eur
+    networks:
+      octo_network:
+  
+  scylla-sam:
+    image: scylladb/scylla:2025.1
+    restart: always
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    volumes:
+      - ./dev/scylla/cassandra-rackdc.sam.properties:/etc/scylla/cassandra-rackdc.properties
+      - ./dev/scylla/data/sam:/var/lib/scylla
+      - ./dev/scylla/scylla.yaml:/etc/scylla/scylla.yaml
+    depends_on:
+      - scylla-nam
+      - scylla-eur
+      - scylla-gdpr
+    networks:
+      octo_network:
+
+  scylla-sas:
+    image: scylladb/scylla:2025.1
+    restart: always
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    volumes:
+      - ./dev/scylla/cassandra-rackdc.sas.properties:/etc/scylla/cassandra-rackdc.properties
+      - ./dev/scylla/data/sas:/var/lib/scylla
+      - ./dev/scylla/scylla.yaml:/etc/scylla/scylla.yaml
+    depends_on:
+      - scylla-nam
+      - scylla-eur
+      - scylla-gdpr
+      - scylla-sam
+    networks:
+      octo_network:
+
+  scylla-eas:
+    image: scylladb/scylla:2025.1
+    restart: always
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    volumes:
+      - ./dev/scylla/cassandra-rackdc.eas.properties:/etc/scylla/cassandra-rackdc.properties
+      - ./dev/scylla/data/eas:/var/lib/scylla
+      - ./dev/scylla/scylla.yaml:/etc/scylla/scylla.yaml
+    depends_on:
+      - scylla-nam
+      - scylla-eur
+      - scylla-gdpr
+      - scylla-sam
+      - scylla-sas
+    networks:
+      octo_network:
+
+  scylla-ocn:
+    image: scylladb/scylla:2025.1
+    restart: always
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    volumes:
+      - ./dev/scylla/cassandra-rackdc.ocn.properties:/etc/scylla/cassandra-rackdc.properties
+      - ./dev/scylla/data/ocn:/var/lib/scylla
+      - ./dev/scylla/scylla.yaml:/etc/scylla/scylla.yaml
+    depends_on:
+      - scylla-nam
+      - scylla-eur
+      - scylla-gdpr
+      - scylla-sam
+      - scylla-sas
+      - scylla-eas
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", "cqlsh --execute='describe keyspaces'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+    networks:
+      octo_network:
+
+  scylla-load-keyspaces:
+    image: scylladb/scylla:2025.1
+    depends_on:
+      scylla-ocn:
+        condition: service_healthy
+    volumes:
+      - ./dev/scylla/scripts/init.cql:/init.cql
+    entrypoint: ["/bin/bash", "-c", "echo Loading Scylla keyspaces... && cqlsh scylla-ocn -f /init.cql"]
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+    networks:
+      octo_network:
+
+  msg-db:
     image: timescale/timescaledb:latest-pg16
     environment:
       POSTGRES_USER: postgres
@@ -15,11 +135,33 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     restart: always
     ports:
-      - "4002:5432"
+      - "4200:5432"
     volumes:
       - ./msg_pgdata:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 4000M
+    networks:
+      octo_network:
+
+  octocon-app:
+    container_name: octocon-app
+    build:
+      context: .
+      dockerfile: dev/Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - app_build:/build
+      - app_deps:/deps
+      - .:/app
+    depends_on:
+      scylla-ocn:
+        condition: service_healthy
+    networks:
+      octo_network:
+
+networks:
+  octo_network:
+    driver: bridge
+
+volumes:
+  app_build:
+  app_deps:

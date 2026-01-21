@@ -57,7 +57,7 @@ defmodule OctoconDiscord.Consumer do
           Logger.info("Registered all commands!")
 
         {:error, e} ->
-          Logger.error("Failed to register all commands: #{e}")
+          Logger.error("Failed to register all commands: #{inspect(e)}")
       end
     end
 
