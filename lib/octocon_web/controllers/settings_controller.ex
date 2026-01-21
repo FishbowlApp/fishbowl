@@ -548,7 +548,7 @@ defmodule OctoconWeb.SettingsController do
     system_id = conn.private[:guardian_default_resource]
 
     case Accounts.wipe_alters({:system, system_id}) do
-      {:ok, _} ->
+      :ok ->
         send_resp(conn, :no_content, "")
 
       {:error, _} ->
