@@ -10,24 +10,29 @@ defmodule Octocon.Utils.Import do
     datetime
   end
 
-  def alter_to_insert_query(%Alter{
-    user_id: user_id,
-    id: id,
-    name: name,
-    proxy_name: proxy_name,
-    discord_proxies: discord_proxies,
-    pronouns: pronouns,
-    description: description,
-    alias: aliaz,
-    pinned: pinned,
-    archived: archived,
-    last_fronted: last_fronted,
-    color: color,
-    fields: fields,
-    inserted_at: inserted_at,
-    updated_at: updated_at
-  }, region) do
-    query = "INSERT INTO #{region}.alters (user_id, id, name, proxy_name, discord_proxies, pronouns, description, alias, pinned, archived, last_fronted, color, fields, inserted_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  def alter_to_insert_query(
+        %Alter{
+          user_id: user_id,
+          id: id,
+          name: name,
+          proxy_name: proxy_name,
+          discord_proxies: discord_proxies,
+          pronouns: pronouns,
+          description: description,
+          alias: aliaz,
+          pinned: pinned,
+          archived: archived,
+          last_fronted: last_fronted,
+          color: color,
+          fields: fields,
+          inserted_at: inserted_at,
+          updated_at: updated_at
+        },
+        region
+      ) do
+    query =
+      "INSERT INTO #{region}.alters (user_id, id, name, proxy_name, discord_proxies, pronouns, description, alias, pinned, archived, last_fronted, color, fields, inserted_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+
     values = [
       user_id,
       id,
