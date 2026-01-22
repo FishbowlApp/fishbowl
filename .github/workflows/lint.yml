@@ -1,4 +1,4 @@
-name: Build PRs
+name: Lint
 on:
   push:
     branches:
@@ -6,12 +6,16 @@ on:
   pull_request:
 
 jobs:
-  lint_pr:
-      name: Lint PR
+  lint:
+      name: Lint codebase
       runs-on: ubuntu-latest
       steps:
         - name: Checkout repo
           uses: actions/checkout@v4
+
+        - name: Create dummy dev.exs config
+          run: |
+            cp config/dev-template.exs config/dev.exs
         
         - name: Set up Elixir
           uses: erlef/setup-beam@v1
