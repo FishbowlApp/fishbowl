@@ -8,6 +8,8 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
   - `sp_token` (binary): The Simply Plural API token to use for the request.
   """
 
+  @insert_concurrency 10
+
   alias Octocon.{
     Accounts,
     Alters,
@@ -56,7 +58,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     alters
     |> Task.async_stream(
       &Repo.insert_regional(&1, {:user, {:system, system_id}}),
-      max_concurrency: 20,
+      max_concurrency: @insert_concurrency,
       ordered: false
     )
     |> Stream.run()

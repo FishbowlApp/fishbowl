@@ -8,6 +8,8 @@ defmodule Octocon.Workers.PluralKitImportWorker do
   - `pk_token` (binary): The PluralKit API token to use for the request.
   """
 
+  @insert_concurrency 10
+
   alias Octocon.{
     Accounts,
     Alters,
@@ -56,8 +58,9 @@ defmodule Octocon.Workers.PluralKitImportWorker do
     alters
     |> Task.async_stream(
       &Repo.insert_regional(&1, {:user, {:system, system_id}}),
-      max_concurrency: 20,
-      ordered: false)
+      max_concurrency: @insert_concurrency,
+      ordered: false
+    )
     |> Stream.run()
 
     user = Accounts.get_user!({:system, system_id})
