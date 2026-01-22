@@ -902,6 +902,10 @@ defmodule Octocon.Accounts do
     spawn(fn ->
       OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alters_wiped", %{})
     end)
+
+    :ok
+  rescue
+    e -> {:error, e}
   end
 
   @doc """
