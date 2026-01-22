@@ -164,6 +164,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
         alias: nil,
         pinned: false,
         archived: false,
+        untracked: false,
         last_fronted: nil,
         fields: [],
         security_level: 3,
