@@ -25,13 +25,14 @@ defmodule Octocon.Utils.Import do
           last_fronted: last_fronted,
           color: color,
           fields: fields,
+          security_level: security_level,
           inserted_at: inserted_at,
           updated_at: updated_at
         },
         region
       ) do
     query =
-      "INSERT INTO #{region}.alters (user_id, id, name, proxy_name, discord_proxies, pronouns, description, alias, pinned, archived, last_fronted, color, fields, inserted_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO #{region}.alters (user_id, id, name, proxy_name, discord_proxies, pronouns, description, alias, pinned, archived, last_fronted, color, fields, security_level, inserted_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
     values = [
       user_id,
@@ -47,6 +48,7 @@ defmodule Octocon.Utils.Import do
       last_fronted,
       color,
       fields,
+      security_level,
       inserted_at,
       updated_at
     ]
