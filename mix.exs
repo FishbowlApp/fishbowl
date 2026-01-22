@@ -145,6 +145,11 @@ defmodule Octocon.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       "assets.deploy": [
         "phx.digest"
+      ],
+      lint: [
+        "compile --force",
+        "format --check-formatted",
+        "credo --strict --ignore 'TagTODO'"
       ]
     ]
   end

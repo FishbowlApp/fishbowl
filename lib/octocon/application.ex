@@ -24,7 +24,7 @@ defmodule Octocon.Application do
 
   require Logger
 
-  @impl true
+  @impl Application
   def start(_type, _args) do
     group = Octocon.RPC.NodeTracker.current_group()
     Logger.warning("Starting node of type: #{group}")
@@ -44,13 +44,13 @@ defmodule Octocon.Application do
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
-  @impl true
+  @impl Application
   def config_change(changed, _new, removed) do
     OctoconWeb.Endpoint.config_change(changed, removed)
     :ok
   end
 
-  defp global_children() do
+  defp global_children do
     [
       # Telemetry
       OctoconWeb.Telemetry,
@@ -106,7 +106,7 @@ defmodule Octocon.Application do
 
   defp group_children(_), do: []
 
-  defp generate_libcluster_child() do
+  defp generate_libcluster_child do
     node_list = Application.get_env(:octocon, :node_list, nil)
     use_tailscale = Application.get_env(:octocon, :use_tailscale, false)
 
