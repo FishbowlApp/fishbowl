@@ -8,10 +8,12 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
   - `sp_token` (binary): The Simply Plural API token to use for the request.
   """
 
-  alias Octocon.Accounts
-  alias Octocon.Alters
-  alias Octocon.Alters.Alter
-  alias Octocon.Repo
+  alias Octocon.{
+    Accounts,
+    Alters,
+    Alters.Alter,
+    Repo
+  }
 
   require Logger
 

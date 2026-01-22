@@ -100,7 +100,7 @@ defmodule Octocon.Accounts do
   def region_for_user(system_identity) do
     case get_user_registry(system_identity) do
       nil -> nil
-      %UserRegistry{region: region} -> String.to_atom(region)
+      %UserRegistry{region: region} -> String.to_existing_atom(region)
     end
   end
 
