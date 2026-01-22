@@ -182,6 +182,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
         alias: nil,
         pinned: false,
         archived: false,
+        untracked: false,
         last_fronted: nil,
         color: parse_color(alter["color"]),
         fields: [],
