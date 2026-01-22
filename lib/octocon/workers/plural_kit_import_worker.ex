@@ -8,7 +8,9 @@ defmodule Octocon.Workers.PluralKitImportWorker do
   - `pk_token` (binary): The PluralKit API token to use for the request.
   """
 
-  @insert_concurrency 10
+  import Octocon.Utils.Import
+
+  require Logger
 
   alias Octocon.{
     Accounts,
@@ -16,8 +18,6 @@ defmodule Octocon.Workers.PluralKitImportWorker do
     Alters.Alter,
     Repo
   }
-
-  require Logger
 
   alias OctoconWeb.Uploaders.Avatar
 
@@ -32,6 +32,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
     {:ok, %{body: self_body}} = send_pk_request(:get, "/systems/@me", pk_token)
     {:ok, %{body: alters_body}} = send_pk_request(:get, "/systems/@me/members", pk_token)
 
+    user_region = Octocon.UserRegistryCache.get_region({:system, system_id})
     start_count = Accounts.get_user!({:system, system_id}).lifetime_alter_count + 1
 
     %{
@@ -45,6 +46,9 @@ defmodule Octocon.Workers.PluralKitImportWorker do
       |> Stream.map(fn {alter, index} ->
         parse_alter(system_id, alter, index)
       end)
+      |> Stream.map(fn {alter, avatar} ->
+        {alter_to_insert_query(alter, user_region), avatar}
+      end)
       |> Enum.reduce({[], []}, fn
         {alter, nil}, {alters, avatars} ->
           {[alter | alters], avatars}
@@ -56,12 +60,12 @@ defmodule Octocon.Workers.PluralKitImportWorker do
     alter_count = length(alters)
 
     alters
-    |> Task.async_stream(
-      &Repo.insert_regional(&1, {:user, {:system, system_id}}),
-      max_concurrency: @insert_concurrency,
-      ordered: false
-    )
-    |> Stream.run()
+    |> Enum.chunk_every(500)
+    |> Enum.each(fn chunk ->
+      batch = %Exandra.Batch{queries: chunk}
+
+      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
+    end)
 
     user = Accounts.get_user!({:system, system_id})
 
@@ -176,8 +180,8 @@ defmodule Octocon.Workers.PluralKitImportWorker do
         last_fronted: nil,
         color: parse_color(alter["color"]),
         fields: [],
-        inserted_at: NaiveDateTime.utc_now(:second),
-        updated_at: NaiveDateTime.utc_now(:second)
+        inserted_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime(),
+        updated_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime()
       },
       if alter["avatar_url"] do
         random_id = Nanoid.generate(30)
@@ -194,45 +198,6 @@ defmodule Octocon.Workers.PluralKitImportWorker do
         nil
       end
     }
-  end
-
-  defp alter_to_insert_query(%Alter{
-    user_id: user_id,
-    id: id,
-    name: name,
-    proxy_name: proxy_name,
-    discord_proxies: discord_proxies,
-    pronouns: pronouns,
-    description: description,
-    alias: aliaz,
-    pinned: pinned,
-    archived: archived,
-    last_fronted: last_fronted,
-    color: color,
-    fields: fields,
-    inserted_at: inserted_at,
-    updated_at: updated_at
-  }, region) do
-    query = "INSERT INTO #{region}.alters (user_id, id, name, proxy_name, discord_proxies, pronouns, description, alias, pinned, archived, last_fronted, color, fields, inserted_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    values = [
-      user_id,
-      id,
-      name,
-      proxy_name,
-      discord_proxies,
-      pronouns,
-      description,
-      aliaz,
-      pinned,
-      archived,
-      last_fronted,
-      color,
-      fields,
-      inserted_at,
-      updated_at
-    ]
-
-    {query, values}
   end
 
   defp default_if_empty(string, max, default \\ nil)

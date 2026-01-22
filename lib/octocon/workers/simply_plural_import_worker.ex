@@ -8,7 +8,9 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
   - `sp_token` (binary): The Simply Plural API token to use for the request.
   """
 
-  @insert_concurrency 10
+  import Octocon.Utils.Import
+
+  require Logger
 
   alias Octocon.{
     Accounts,
@@ -16,8 +18,6 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     Alters.Alter,
     Repo
   }
-
-  require Logger
 
   alias OctoconWeb.Uploaders.Avatar
 
@@ -36,6 +36,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
     {:ok, %{body: body}} = send_sp_request(:get, "/members/#{id}", sp_token)
 
+    user_region = Octocon.UserRegistryCache.get_region({:system, system_id})
     start_count = Accounts.get_user!({:system, system_id}).lifetime_alter_count + 1
 
     {alters, avatars} =
@@ -44,6 +45,9 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
       |> Stream.with_index(start_count)
       |> Stream.map(fn {alter, index} ->
         parse_alter(system_id, alter, index)
+      end)
+      |> Stream.map(fn {alter, avatar} ->
+        {alter_to_insert_query(alter, user_region), avatar}
       end)
       |> Enum.reduce({[], []}, fn
         {alter, nil}, {alters, avatars} ->
@@ -56,12 +60,12 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     alter_count = length(alters)
 
     alters
-    |> Task.async_stream(
-      &Repo.insert_regional(&1, {:user, {:system, system_id}}),
-      max_concurrency: @insert_concurrency,
-      ordered: false
-    )
-    |> Stream.run()
+    |> Enum.chunk_every(500)
+    |> Enum.each(fn chunk ->
+      batch = %Exandra.Batch{queries: chunk}
+
+      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
+    end)
 
     user = Accounts.get_user!({:system, system_id})
 
@@ -155,8 +159,8 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
         archived: false,
         last_fronted: nil,
         fields: [],
-        inserted_at: NaiveDateTime.utc_now(:second),
-        updated_at: NaiveDateTime.utc_now(:second)
+        inserted_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime(),
+        updated_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime()
       },
       if alter["avatarUuid"] != nil and String.length(alter["avatarUuid"]) != 0 do
         random_id = Nanoid.generate(30)
