@@ -21,6 +21,8 @@ defmodule Octocon.RPC.NodeTracker do
   def auxiliary_nodes, do: group_nodes(:auxiliary)
   def sidecar_nodes, do: group_nodes(:sidecar)
 
+  def sidecar_exists?(), do: sidecar_nodes() != []
+
   def current_group do
     Application.get_env(:octocon, :node_group)
   end
