@@ -25,7 +25,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
   @cdn_endpoint URI.parse("https://spaces.apparyllis.com/")
 
   def perform(%{"system_id" => system_id, "sp_token" => sp_token}) do
-    Logger.warning("Performing Simply Plural import for user #{system_id}")
+    Logger.info("Performing Simply Plural import for user #{system_id}")
 
     %{
       "id" => id,
@@ -47,7 +47,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
         parse_alter(system_id, alter, index)
       end)
       |> Stream.map(fn {alter, avatar} ->
-        {alter_to_insert_query(alter, user_region), avatar}
+        {{alter, alter_to_insert_query(alter, user_region)}, avatar}
       end)
       |> Enum.reduce({[], []}, fn
         {alter, nil}, {alters, avatars} ->
@@ -60,6 +60,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     alter_count = length(alters)
 
     alters
+    |> Enum.map(fn {_alter, query} -> query end)
     |> Enum.chunk_every(500)
     |> Enum.each(fn chunk ->
       batch = %Exandra.Batch{queries: chunk}
@@ -78,7 +79,8 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     )
 
     OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "alters_created", %{
-      alters: Enum.map(alters, &OctoconWeb.System.AlterJSON.data_me(&1))
+      alters:
+        Enum.map(alters, fn {alter, _query} -> OctoconWeb.System.AlterJSON.data_me(alter) end)
     })
 
     OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "sp_import_complete", %{
@@ -93,38 +95,43 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
     OctoconDiscord.ProxyCache.invalidate({:system, system_id})
 
-    Task.async_stream(
-      avatars,
-      fn {avatar_url, avatar_scope} ->
-        case Octocon.ClusterUtils.run_on_sidecar(
-               fn -> Avatar.store({avatar_url, avatar_scope}) end,
-               timeout: 10_000
-             ) do
-          {:ok, _} ->
-            octo_url = Avatar.url({"primary.webp", avatar_scope}, :primary)
+    spawn(fn ->
+      Task.async_stream(
+        avatars,
+        fn {avatar_url, avatar_scope} ->
+          case Octocon.ClusterUtils.run_on_sidecar(
+                 fn -> Avatar.store({avatar_url, avatar_scope}) end,
+                 timeout: 10_000
+               ) do
+            {:ok, _} ->
+              octo_url = Avatar.url({"primary.webp", avatar_scope}, :primary)
 
-            Alters.update_alter(
-              {:system, avatar_scope.system_id},
-              {:id, avatar_scope.alter_id},
-              %{avatar_url: octo_url}
-            )
+              Alters.update_alter(
+                {:system, avatar_scope.system_id},
+                {:id, avatar_scope.alter_id},
+                %{avatar_url: octo_url}
+              )
 
-          _ ->
-            # Avatar doesn't exist; stale reference on SP's end?
-            :ok
-        end
-      end,
-      # NOTE: Potentially replace with schedulers_online on a beefier server?
-      max_concurrency: 2,
-      ordered: false,
-      timeout: :timer.seconds(10),
-      on_timeout: :kill_task
-    )
-    |> Stream.run()
+            _ ->
+              # Avatar doesn't exist; stale reference on SP's end?
+              :ok
+          end
+        end,
+        # NOTE: Potentially replace with schedulers_online on a beefier server?
+        max_concurrency: 2,
+        ordered: false,
+        timeout: :timer.seconds(10),
+        on_timeout: :kill_task
+      )
+      |> Stream.run()
+    end)
 
     :ok
   rescue
-    e -> reraise e, __STACKTRACE__
+    e ->
+      Logger.error("Error importing Simply Plural alters")
+      Logger.error(Exception.format(:error, e, __STACKTRACE__))
+      {:error, e}
   end
 
   defp get_system_data(token) do
