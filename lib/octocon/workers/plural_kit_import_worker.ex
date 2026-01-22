@@ -8,10 +8,12 @@ defmodule Octocon.Workers.PluralKitImportWorker do
   - `pk_token` (binary): The PluralKit API token to use for the request.
   """
 
-  alias Octocon.Alters
-  alias Octocon.Alters.Alter
-  alias Octocon.Accounts
-  alias Octocon.Repo
+  alias Octocon.{
+    Accounts,
+    Alters,
+    Alters.Alter,
+    Repo
+  }
 
   require Logger
 
