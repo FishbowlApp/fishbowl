@@ -84,7 +84,7 @@ defmodule Octocon.MixProject do
 
       # Caching
       {:cachex, "~> 4.1"},
-      {:trie_hard, "~> 0.2"},
+      {:radix, "~> 0.5"},
       # Background jobs
       {:oban, "~> 2.19.4"},
       # Object storage
