@@ -17,45 +17,31 @@ defmodule OctoconDiscord.Supervisor do
   @impl Supervisor
   def init([]) do
     children = [
-      Nostrum.Application,
-      Supervisor.child_spec({Task, fn -> start_status_updater() end}, id: :start_status_updater),
-      # Server settings cache (each guild cached for 10 minutes)
-      Supervisor.child_spec(
-        {Cachex,
-         name: OctoconDiscord.Cache.ServerSettings,
-         hooks: [
-           hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
-         ],
-         expiration: expiration(default: :timer.minutes(10))},
-        id: :server_settings_cache
-      ),
-      # Webhooks cache (each channel cached for 10 minutes)
-      Supervisor.child_spec(
-        {Cachex,
-         name: OctoconDiscord.Cache.Webhooks,
-         hooks: [
-           hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
-         ],
-         expiration: expiration(default: :timer.minutes(10))},
-        id: :webhooks_cache
-      ),
+      # Cachex-backed cache managers
+      OctoconDiscord.ServerSettingsManager,
+      OctoconDiscord.WebhookManager,
+      OctoconDiscord.AutocompleteManagers.Alter,
+
       # Custom ETS-backed persistent caches
       OctoconDiscord.ProxyCache,
       OctoconDiscord.ChannelBlacklistManager,
-      # Gateway events
-      Supervisor.child_spec({Task, fn -> start_unique_consumer() end},
-        id: :start_unique_consumer
-      ),
+
       # Component handlers
       OctoconDiscord.Components.HelpHandler,
       OctoconDiscord.Components.AlterPaginator,
       OctoconDiscord.Components.WipeAltersHandler,
       OctoconDiscord.Components.DeleteAccountHandler,
       OctoconDiscord.Components.ReproxyHandler,
+      Nostrum.Application,
+      Supervisor.child_spec({Task, fn -> start_status_updater() end}, id: :start_status_updater),
+
+      # Gateway events
+      Supervisor.child_spec({Task, fn -> start_unique_consumer() end},
+        id: :start_unique_consumer
+      ),
+
       # Application commands
       {Nosedrum.Storage.Dispatcher, name: Nosedrum.Storage.Dispatcher}
-      # TODO: Manual sharding
-      # Supervisor.child_spec({Task, fn -> init_shards() end}, id: :init_shards)
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

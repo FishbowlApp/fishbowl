@@ -28,7 +28,9 @@ defmodule OctoconDiscord.Commands.BotInfo do
         |> Map.values()
         |> Enum.filter(fn latency -> latency != nil && latency != 0 end)
         |> case do
-          [] -> "Unknown"
+          [] ->
+            "Unknown"
+
           latencies ->
             (Enum.sum(latencies) / Enum.count(latencies))
             |> round()
