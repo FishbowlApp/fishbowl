@@ -153,7 +153,7 @@ defmodule OctoconWeb.DummyConnAdapter do
     content_type = List.keyfind(headers, "content-type", 0, content_type_header)
     headers = List.keystore(headers, "content-type", 0, content_type)
 
-    body_params = stringify_params(params, & &1)
+    body_params = stringify_params(params, &(&1))
     query_params = Plug.Conn.Query.decode(query)
     params = Map.merge(query_params, body_params)
 

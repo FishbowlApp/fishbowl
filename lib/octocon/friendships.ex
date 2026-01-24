@@ -116,7 +116,7 @@ defmodule Octocon.Friendships do
       }
     end)
     |> Enum.filter(fn f -> f.friend != nil end)
-    |> Enum.sort_by(& &1.friendship.since, {:desc, DateTime})
+    |> Enum.sort_by(&(&1.friendship.since), {:desc, DateTime})
   end
 
   @doc """
@@ -149,7 +149,7 @@ defmodule Octocon.Friendships do
       friendship_ids
       |> Task.async_stream(
         fn id ->
-          alter_ids = Enum.filter(fronts, fn f -> f.user_id == id end) |> Enum.map(& &1.alter_id)
+          alter_ids = Enum.filter(fronts, fn f -> f.user_id == id end) |> Enum.map(&(&1.alter_id))
 
           query =
             from(
@@ -694,7 +694,7 @@ defmodule Octocon.Friendships do
       )
       |> Repo.all_global()
 
-    to_ids = Enum.map(requests, & &1.to_id)
+    to_ids = Enum.map(requests, &(&1.to_id))
 
     users =
       to_ids
@@ -720,7 +720,7 @@ defmodule Octocon.Friendships do
         to: Map.get(users, request.to_id)
       }
     end)
-    |> Enum.sort_by(& &1.request.date_sent, {:desc, DateTime})
+    |> Enum.sort_by(&(&1.request.date_sent), {:desc, DateTime})
   end
 
   @doc """
@@ -737,7 +737,7 @@ defmodule Octocon.Friendships do
       )
       |> Repo.all_global()
 
-    from_ids = Enum.map(requests, & &1.from_id)
+    from_ids = Enum.map(requests, &(&1.from_id))
 
     users =
       from_ids
@@ -763,7 +763,7 @@ defmodule Octocon.Friendships do
         from: Map.get(users, request.from_id)
       }
     end)
-    |> Enum.sort_by(& &1.request.date_sent, {:desc, DateTime})
+    |> Enum.sort_by(&(&1.request.date_sent), {:desc, DateTime})
   end
 
   @doc """

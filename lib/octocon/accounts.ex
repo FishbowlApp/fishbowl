@@ -825,7 +825,7 @@ defmodule Octocon.Accounts do
       where: f.friend_id == ^system_id
     )
     |> Repo.all_global()
-    |> Enum.map(& &1.user_id)
+    |> Enum.map(&(&1.user_id))
     |> Enum.each(fn user_id ->
       from(
         f in Octocon.Friendships.Friendship,
@@ -846,7 +846,7 @@ defmodule Octocon.Accounts do
       where: f.to_id == ^system_id
     )
     |> Repo.all_global()
-    |> Enum.map(& &1.from_id)
+    |> Enum.map(&(&1.from_id))
     |> Enum.each(fn from_id ->
       from(
         f in Octocon.Friendships.Request,

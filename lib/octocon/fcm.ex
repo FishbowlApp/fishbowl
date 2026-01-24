@@ -147,7 +147,7 @@ defmodule Octocon.FCM do
           |> Stream.filter(fn alter ->
             Alters.can_view_entity?(level, alter.security_level)
           end)
-          |> Enum.map_join(", ", & &1.name)
+          |> Enum.map_join(", ", &(&1.name))
           |> then(fn alters ->
             case alters do
               "" ->

@@ -142,7 +142,7 @@ defmodule OctoconDiscord.Commands.Alter do
     sorted_alters =
       case sort do
         :id -> alters
-        :alphabetical -> alters |> Enum.sort_by(& &1.name)
+        :alphabetical -> alters |> Enum.sort_by(&(&1.name))
       end
 
     AlterPaginator.handle_init(system_id, sorted_alters, length(sorted_alters))
@@ -316,7 +316,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             max_length: 80,
             description: "The ID (or alias) of the alter to delete.",
-            required: true
+            required: true,
+            autocomplete: true
           }
         ]
       },
@@ -331,7 +332,8 @@ defmodule OctoconDiscord.Commands.Alter do
               type: :string,
               max_length: 80,
               description: "The ID (or alias) of the alter to view.",
-              required: true
+              required: true,
+              autocomplete: true
             }
           ]
           |> Utils.add_show_option()
@@ -368,7 +370,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             description: "The ID (or alias) of the alter to update.",
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           },
           %{
             name: "level",
@@ -399,7 +402,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 max_length: 80,
                 description: "The ID (or alias) of the alter to set the avatar of.",
-                required: true
+                required: true,
+                autocomplete: true
               },
               %{
                 name: "avatar",
@@ -419,7 +423,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 description: "The ID (or alias) of the alter to remove the avatar of.",
                 max_length: 80,
-                required: true
+                required: true,
+                autocomplete: true
               }
             ]
           }
@@ -440,7 +445,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 max_length: 80,
                 description: "The ID (or alias) of the alter to set the proxy of.",
-                required: true
+                required: true,
+                autocomplete: true
               },
               %{
                 name: "prefix",
@@ -468,7 +474,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 description: "The ID (or alias) of the alter to add a new proxy to.",
                 max_length: 80,
-                required: true
+                required: true,
+                autocomplete: true
               },
               %{
                 name: "prefix",
@@ -496,7 +503,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 description: "The ID (or alias) of the alter to remove the proxy from.",
                 max_length: 80,
-                required: true
+                required: true,
+                autocomplete: true
               },
               %{
                 name: "prefix",
@@ -524,7 +532,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 description: "The ID (or alias) of the alter to clear the proxies from.",
                 max_length: 80,
-                required: true
+                required: true,
+                autocomplete: true
               }
             ]
           }
@@ -618,7 +627,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             description: "The ID (or alias) of the alter to remove the alias from.",
             max_length: 80,
-            required: true
+            required: true,
+                autocomplete: true
           }
         ]
       },
@@ -632,7 +642,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             description: "The ID (or alias) of the alter to remove the proxy name from.",
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           }
         ]
       },
@@ -646,7 +657,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             description: "The ID (or alias) of the alter to update.",
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           },
           %{
             name: "name",
