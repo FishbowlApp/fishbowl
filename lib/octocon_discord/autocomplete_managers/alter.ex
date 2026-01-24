@@ -1,13 +1,9 @@
 defmodule OctoconDiscord.AutocompleteManagers.Alter do
   @moduledoc false
 
-  @timeout :timer.seconds(5)
+  use OctoconDiscord.AutocompleteManagers
 
   import Cachex.Spec
-
-  require Logger
-
-  use OctoconDiscord.AutocompleteManagers
 
   def cache_function(user) do
     alters =
