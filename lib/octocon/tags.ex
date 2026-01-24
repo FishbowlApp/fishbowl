@@ -89,7 +89,7 @@ defmodule Octocon.Tags do
       |> select([t], t)
       |> Repo.all_regional({:user, system_identity})
 
-    tag_ids = Enum.map(tags, & &1.id)
+    tag_ids = Enum.map(tags, &(&1.id))
 
     tag_alters =
       AlterTag
@@ -97,7 +97,7 @@ defmodule Octocon.Tags do
       |> where([at], at.tag_id in ^tag_ids)
       |> select([at], struct(at, [:tag_id, :alter_id]))
       |> Repo.all_regional({:user, system_identity})
-      |> Enum.group_by(& &1.tag_id, & &1.alter_id)
+      |> Enum.group_by(&(&1.tag_id), &(&1.alter_id))
 
     tags
     |> Enum.map(fn tag ->
@@ -409,7 +409,7 @@ defmodule Octocon.Tags do
 
     alter_tags = Repo.all_regional(query, {:user, system_identity})
 
-    ids = Enum.map(alter_tags, & &1.tag_id)
+    ids = Enum.map(alter_tags, &(&1.tag_id))
 
     delete_query =
       from(

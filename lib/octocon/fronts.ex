@@ -91,14 +91,14 @@ defmodule Octocon.Fronts do
         where: f.user_id == ^system_id
       )
       |> Repo.all_regional({:user, system_identity})
-      |> Enum.sort_by(& &1.time_start, {:desc, DateTime})
+      |> Enum.sort_by(&(&1.time_start), {:desc, DateTime})
       |> Enum.filter(fn front -> front.alter_id != nil end)
       |> Enum.map(&CurrentFront.to_front/1)
 
     alters =
       from(
         a in Alter,
-        where: a.user_id == ^system_id and a.id in ^Enum.map(fronts, & &1.alter_id),
+        where: a.user_id == ^system_id and a.id in ^Enum.map(fronts, &(&1.alter_id)),
         select:
           struct(a, [:id, :name, :avatar_url, :pronouns, :color, :security_level, :description])
       )
@@ -231,9 +231,9 @@ defmodule Octocon.Fronts do
       ((Repo.all_regional(q1, {:user, system_identity}) |> Enum.map(&FrontByTime.to_front/1)) ++
          (Repo.all_regional(q2, {:user, system_identity}) |> Enum.map(&FrontByEndTime.to_front/1)) ++
          (Repo.all_regional(q3, {:user, system_identity}) |> Enum.map(&FrontByTime.to_front/1)))
-      |> Enum.uniq_by(& &1.id)
+      |> Enum.uniq_by(&(&1.id))
       |> Enum.filter(fn front -> front.time_end != nil && front.alter_id != nil end)
-      |> Enum.sort_by(& &1.time_start, {:desc, DateTime})
+      |> Enum.sort_by(&(&1.time_start), {:desc, DateTime})
 
     results
   end
@@ -265,9 +265,9 @@ defmodule Octocon.Fronts do
       ((Repo.all_regional(q1, {:user, system_identity}) |> Enum.each(&FrontByTime.to_front/1)) ++
          (Repo.all_regional(q2, {:user, system_identity})
           |> Enum.each(&FrontByEndTime.to_front/1)))
-      |> Enum.uniq_by(& &1.id)
+      |> Enum.uniq_by(&(&1.id))
       |> Enum.filter(fn front -> front.alter_id != nil end)
-      |> Enum.sort_by(& &1.time_start, {:desc, DateTime})
+      |> Enum.sort_by(&(&1.time_start), {:desc, DateTime})
 
     results
   end

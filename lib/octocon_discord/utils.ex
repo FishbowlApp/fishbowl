@@ -452,7 +452,7 @@ defmodule OctoconDiscord.Utils do
         | acc
       ]
     end)
-    |> Enum.sort_by(& &1.member_count, :desc)
+    |> Enum.sort_by(&(&1.member_count), :desc)
   end
 
   # Components V2

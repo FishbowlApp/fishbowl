@@ -69,29 +69,57 @@ defmodule OctoconDiscord.Consumer do
     :ok
   end
 
-  def handle_event({:INTERACTION_CREATE, interaction, _ws_state}) do
-    if interaction.type in [3, 5] do
-      Components.dispatch(interaction)
-    else
-      Nosedrum.Storage.Dispatcher.handle_interaction(interaction)
-    end
+  def handle_event({:INTERACTION_CREATE, %{type: type} = interaction, _ws_state})
+      when type in [3, 5] do
+    Components.dispatch(interaction)
   rescue
     e ->
-      Nostrum.Api.create_interaction_response(interaction, %{
-        type: :integer,
+      create_error_response(interaction)
+      reraise e, __STACKTRACE__
+  end
+
+  def handle_event({:INTERACTION_CREATE, %{type: 4} = interaction, _ws_state}) do
+    Nostrum.Api.Interaction.create_response(
+      interaction,
+      %{
+        type: 8,
         data: %{
-          flags: 64,
-          embeds: [
-            %{
-              title: ":x: Whoops!",
-              description: "An error occurred while processing your command.",
-              color: 0xFF0000
-            }
-          ]
+          choices: OctoconDiscord.AutocompleteManagers.dispatch(interaction)
+        }
+      }
+    )
+  rescue
+    e ->
+      Nostrum.Api.Interaction.create_response(interaction, %{
+        type: 8,
+        data: %{
+          choices: []
         }
       })
+  end
 
+  def handle_event({:INTERACTION_CREATE, interaction, _ws_state}) do
+    Nosedrum.Storage.Dispatcher.handle_interaction(interaction)
+  rescue
+    e ->
+      create_error_response(interaction)
       reraise e, __STACKTRACE__
+  end
+
+  defp create_error_response(interaction) do
+    Nostrum.Api.Interaction.create_response(interaction, %{
+      type: 4,
+      data: %{
+        flags: 64,
+        embeds: [
+          %{
+            title: ":x: Whoops!",
+            description: "An error occurred while processing your command.",
+            color: 0xFF0000
+          }
+        ]
+      }
+    })
   end
 
   def handle_event({:MESSAGE_CREATE, data, _ws_state}) do

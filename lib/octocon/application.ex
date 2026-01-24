@@ -59,7 +59,6 @@ defmodule Octocon.Application do
       # Distribution
       generate_libcluster_child(),
       Octocon.RPC.NodeTracker,
-
       Octocon.UserRegistryCache,
       Octocon.Repo,
 

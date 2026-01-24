@@ -70,7 +70,7 @@ defmodule Nosedrum.TextCommand.Predicates do
   @spec evaluate(Message.t(), [predicate]) :: evaluation_result
   def evaluate(message, predicates) do
     predicates
-    |> Stream.map(& &1.(message))
+    |> Stream.map(&(&1.(message)))
     |> Enum.find(:passthrough, &match?({kind, _reason} when kind in [:error, :noperm], &1))
   end
 

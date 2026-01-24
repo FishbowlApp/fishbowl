@@ -165,7 +165,7 @@ defmodule Octocon.Alters do
     |> where(^where)
     |> select([a], struct(a, ^fields))
     |> Repo.all_regional({:user, system_identity})
-    |> Enum.sort_by(& &1.id, :asc)
+    |> Enum.sort_by(&(&1.id), :asc)
   end
 
   @doc """
@@ -184,7 +184,7 @@ defmodule Octocon.Alters do
     |> where([a], a.id in ^alter_ids)
     |> select([a], struct(a, ^fields))
     |> Repo.all_regional({:user, system_identity})
-    |> Enum.sort_by(& &1.id, :asc)
+    |> Enum.sort_by(&(&1.id), :asc)
   end
 
   @doc """
@@ -348,6 +348,7 @@ defmodule Octocon.Alters do
     _ ->
       if force_id == nil do
         expected_alter_id = get_highest_alter_id({:system, user.id}) + 1
+
         if user.lifetime_alter_count + 1 != expected_alter_id + 1 do
           # Retry with the correct alter ID
           create_alter_internal(user, attrs, expected_alter_id)
