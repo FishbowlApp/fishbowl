@@ -41,7 +41,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
     {alters, avatars} =
       Jason.decode!(body)
-      |> Stream.map(&(&1["content"]))
+      |> Stream.map(& &1["content"])
       |> Stream.with_index(start_count)
       |> Stream.map(fn {alter, index} ->
         parse_alter(system_id, alter, index)

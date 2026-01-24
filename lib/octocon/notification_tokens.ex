@@ -71,13 +71,13 @@ defmodule Octocon.NotificationTokens do
       |> Repo.all_global()
 
     # Group tokens by user_id
-    token_map = Enum.group_by(tokens, &(&1.user_id))
+    token_map = Enum.group_by(tokens, & &1.user_id)
 
     # Build final notification map
     friendships
     |> Enum.map(fn {friend_id, level} ->
       # Get tokens for this friend
-      tokens = Map.get(token_map, friend_id, []) |> Enum.map(&(&1.push_token))
+      tokens = Map.get(token_map, friend_id, []) |> Enum.map(& &1.push_token)
 
       # Filter alters visible at this security level
       visible_alters =
@@ -85,7 +85,7 @@ defmodule Octocon.NotificationTokens do
         |> Enum.filter(fn alter ->
           Alters.can_view_entity?(level, alter.security_level)
         end)
-        |> Enum.map_join(", ", &(&1.name))
+        |> Enum.map_join(", ", & &1.name)
 
       visible_alters =
         cond do
@@ -108,7 +108,7 @@ defmodule Octocon.NotificationTokens do
       select: n
     )
     |> Repo.all_global()
-    |> Enum.group_by(&(&1.user_id))
+    |> Enum.group_by(& &1.user_id)
   end
 
   def add_notification_token(system_identity, token) do

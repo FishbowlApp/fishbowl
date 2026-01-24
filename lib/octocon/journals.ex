@@ -84,9 +84,9 @@ defmodule Octocon.Journals do
       |> where(^where)
       |> select([j], struct(j, ^fields))
       |> Repo.all_regional({:user, system_identity})
-      |> Enum.sort_by(&(&1.inserted_at), {:desc, NaiveDateTime})
+      |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
 
-    entry_ids = Enum.map(entries, &(&1.id))
+    entry_ids = Enum.map(entries, & &1.id)
 
     alters =
       GlobalJournalAlters
@@ -94,7 +94,7 @@ defmodule Octocon.Journals do
       |> where([gja], gja.global_journal_id in ^entry_ids)
       |> select([gja], %{global_journal_id: gja.global_journal_id, alter_id: gja.alter_id})
       |> Repo.all_regional({:user, system_identity})
-      |> Enum.group_by(&(&1.global_journal_id), &(&1.alter_id))
+      |> Enum.group_by(& &1.global_journal_id, & &1.alter_id)
 
     entries
     |> Enum.map(fn entry ->
@@ -318,7 +318,7 @@ defmodule Octocon.Journals do
         |> where(alter_id: ^alter_id)
         |> select([j], struct(j, ^fields))
         |> Repo.all_regional({:user, system_identity})
-        |> Enum.sort_by(&(&1.inserted_at), {:desc, NaiveDateTime})
+        |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
     end
   end
 
@@ -438,7 +438,7 @@ defmodule Octocon.Journals do
 
     entries = Repo.all_regional(query, {:user, system_identity})
 
-    ids = Enum.map(entries, &(&1.id))
+    ids = Enum.map(entries, & &1.id)
 
     delete_query =
       from aje in AlterJournalEntry,

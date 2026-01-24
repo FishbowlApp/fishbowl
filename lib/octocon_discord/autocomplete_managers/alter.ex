@@ -37,13 +37,7 @@ defmodule OctoconDiscord.AutocompleteManagers.Alter do
   def handle_interaction(discord_id, focused_option, _interaction) do
     case focused_option do
       %{name: "id", value: prefix} ->
-        suggestions =
-          OctoconDiscord.AutocompleteManagers.Alter.get_autocomplete_responses(
-            discord_id,
-            prefix
-          )
-
-        suggestions
+        get_autocomplete_responses(discord_id, prefix)
 
       _ ->
         []
