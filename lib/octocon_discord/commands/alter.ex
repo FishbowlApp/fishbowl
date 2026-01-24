@@ -142,7 +142,7 @@ defmodule OctoconDiscord.Commands.Alter do
     sorted_alters =
       case sort do
         :id -> alters
-        :alphabetical -> alters |> Enum.sort_by(&(&1.name))
+        :alphabetical -> alters |> Enum.sort_by(& &1.name)
       end
 
     AlterPaginator.handle_init(system_id, sorted_alters, length(sorted_alters))
@@ -628,7 +628,7 @@ defmodule OctoconDiscord.Commands.Alter do
             description: "The ID (or alias) of the alter to remove the alias from.",
             max_length: 80,
             required: true,
-                autocomplete: true
+            autocomplete: true
           }
         ]
       },

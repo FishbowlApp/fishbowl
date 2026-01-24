@@ -15,7 +15,8 @@ defmodule OctoconDiscord.AutocompleteManagers do
         ],
         expiration: expiration(default: :timer.minutes(5))
 
-      import OctoconDiscord.AutocompleteManagers, only: [format_name_for_search: 1, generate_autocomplete_responses: 2]
+      import OctoconDiscord.AutocompleteManagers,
+        only: [format_name_for_search: 1, generate_autocomplete_responses: 2]
 
       @timeout :timer.seconds(5)
 
@@ -64,10 +65,10 @@ defmodule OctoconDiscord.AutocompleteManagers do
           value: value
         }
       end)
-      |> Enum.sort_by(&(&1.name))
+      |> Enum.sort_by(& &1.name)
   end
 
-    def wrap_cache_function(cache_function) when is_function(cache_function, 1) do
+  def wrap_cache_function(cache_function) when is_function(cache_function, 1) do
     fn discord_id ->
       case Octocon.Accounts.get_user({:discord, discord_id}) do
         nil ->
@@ -89,7 +90,11 @@ defmodule OctoconDiscord.AutocompleteManagers do
     focused_option =
       Enum.find(flatten_leaf_options(options), fn opt -> Map.get(opt, :focused, false) end)
 
-    @manager_associations[command].handle_interaction(to_string(discord_id), focused_option, interaction)
+    @manager_associations[command].handle_interaction(
+      to_string(discord_id),
+      focused_option,
+      interaction
+    )
   rescue
     e ->
       Logger.error("Error handling autocomplete interaction: #{inspect(e)}")

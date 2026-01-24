@@ -28,7 +28,7 @@ defmodule OctoconDiscord.Commands.Messages.Reproxy do
        } = raw_message}
     ] =
       messages
-      |> Enum.map(&(&1))
+      |> Enum.map(& &1)
 
     if is_bot do
       case Messages.lookup_message(message_id) do

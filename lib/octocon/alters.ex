@@ -165,7 +165,7 @@ defmodule Octocon.Alters do
     |> where(^where)
     |> select([a], struct(a, ^fields))
     |> Repo.all_regional({:user, system_identity})
-    |> Enum.sort_by(&(&1.id), :asc)
+    |> Enum.sort_by(& &1.id, :asc)
   end
 
   @doc """
@@ -184,7 +184,7 @@ defmodule Octocon.Alters do
     |> where([a], a.id in ^alter_ids)
     |> select([a], struct(a, ^fields))
     |> Repo.all_regional({:user, system_identity})
-    |> Enum.sort_by(&(&1.id), :asc)
+    |> Enum.sort_by(& &1.id, :asc)
   end
 
   @doc """
