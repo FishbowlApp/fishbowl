@@ -21,6 +21,8 @@ defmodule OctoconDiscord.AutocompleteManagers do
 
   defmacro __using__(_opts) do
     quote do
+      import Cachex.Spec
+
       use Octocon.CachexChild,
         name: __MODULE__,
         hooks: [
