@@ -1,7 +1,20 @@
 defmodule OctoconDiscord.AutocompleteManagers do
+  @moduledoc false
+
+  use Supervisor
+
   @manager_associations %{
     "alter" => OctoconDiscord.AutocompleteManagers.Alter
   }
+
+  def start_link(_), do: Supervisor.start_link(__MODULE__, [], name: __MODULE__)
+  def init([]) do
+    children = [
+      OctoconDiscord.AutocompleteManagers.Alter
+    ]
+
+    Supervisor.init(children, strategy: :one_for_one)
+  end
 
   defmacro __using__(_opts) do
     quote do
@@ -41,8 +54,15 @@ defmodule OctoconDiscord.AutocompleteManagers do
         end
       end
 
-      def invalidate(discord_id) when is_binary(discord_id) do
+      def invalidate({:discord, discord_id}) when is_binary(discord_id) do
         Cachex.del(__MODULE__, discord_id)
+      end
+
+      def invalidate(system_identity) do
+        case Octocon.Accounts.get_user(system_identity) do
+          %{discord_id: discord_id} when discord_id != nil -> invalidate({:discord, discord_id})
+          _ -> {:ok, true}
+        end
       end
     end
   end

@@ -20,7 +20,7 @@ defmodule OctoconDiscord.Supervisor do
       # Cachex-backed cache managers
       OctoconDiscord.ServerSettingsManager,
       OctoconDiscord.WebhookManager,
-      OctoconDiscord.AutocompleteManagers.Alter,
+      OctoconDiscord.AutocompleteManagers,
 
       # Custom ETS-backed persistent caches
       OctoconDiscord.ProxyCache,
