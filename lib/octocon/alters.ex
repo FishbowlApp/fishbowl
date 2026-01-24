@@ -347,9 +347,13 @@ defmodule Octocon.Alters do
   rescue
     _ ->
       if force_id == nil do
-        # Manually resync the user's alter count
-        highest_alter_id = get_highest_alter_id({:system, user.id})
-        create_alter_internal(user, attrs, highest_alter_id + 1)
+        expected_alter_id = get_highest_alter_id({:system, user.id}) + 1
+        if user.lifetime_alter_count + 1 != expected_alter_id + 1 do
+          # Retry with the correct alter ID
+          create_alter_internal(user, attrs, expected_alter_id)
+        else
+          {:error, :database}
+        end
       end
   end
 
