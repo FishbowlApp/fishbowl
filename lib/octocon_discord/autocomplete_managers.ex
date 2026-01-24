@@ -3,11 +3,14 @@ defmodule OctoconDiscord.AutocompleteManagers do
 
   use Supervisor
 
+  require Logger
+
   @manager_associations %{
     "alter" => OctoconDiscord.AutocompleteManagers.Alter
   }
 
   def start_link(_), do: Supervisor.start_link(__MODULE__, [], name: __MODULE__)
+
   def init([]) do
     children = [
       OctoconDiscord.AutocompleteManagers.Alter
