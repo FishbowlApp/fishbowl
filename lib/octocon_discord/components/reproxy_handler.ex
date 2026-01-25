@@ -155,7 +155,7 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
                },
                true,
                fn id, token, data ->
-                 NostrumShim.edit_webhook_message(
+                 Api.Webhook.edit_message(
                    id,
                    token,
                    message.id,
