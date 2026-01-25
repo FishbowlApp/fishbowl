@@ -32,10 +32,10 @@ defmodule OctoconDiscord.Commands.Alter.Avatar do
       else
         case alter_identity do
           {:id, alter_id} ->
-            Utils.error_embed("You don't have an alter with ID **#{alter_id}**.")
+            Utils.error_component("You don't have an alter with ID **#{alter_id}**.")
 
           {:alias, aliaz} ->
-            Utils.error_embed("You don't have an alter with alias **#{aliaz}**.")
+            Utils.error_component("You don't have an alter with alias **#{aliaz}**.")
         end
       end
     end)
@@ -50,22 +50,22 @@ defmodule OctoconDiscord.Commands.Alter.Avatar do
 
     cond do
       attachment.height == nil or attachment.width == nil ->
-        Utils.error_embed(
+        Utils.error_component(
           "That file doesn't appear to be a valid image. Please provide an image under 20 MB."
         )
 
       attachment.size > 20_000_000 ->
-        Utils.error_embed(
+        Utils.error_component(
           "The image you provided is too large. Please provide an image that is less than 20 MB."
         )
 
       true ->
         case upload_avatar(system_identity, alter_identity, attachment.url) do
           :ok ->
-            Utils.success_embed("Successfully set alter's avatar!")
+            Utils.success_component("Successfully set alter's avatar!")
 
           _ ->
-            Utils.error_embed(
+            Utils.error_component(
               "An unknown error occurred while processing the image. Please try again."
             )
         end
@@ -73,7 +73,7 @@ defmodule OctoconDiscord.Commands.Alter.Avatar do
   end
 
   # def set_url(_context, _options) do
-  #   Utils.error_embed("This command is not yet implemented.")
+  #   Utils.error_component("This command is not yet implemented.")
   # end
 
   def remove(

@@ -39,7 +39,7 @@ defmodule OctoconDiscord.Commands.Messages.DeleteProxiedMessage do
     if is_bot do
       case Messages.lookup_message(message_id) do
         nil ->
-          Utils.error_embed(
+          Utils.error_component(
             "This message either:\n\n- Was not proxied by Octocon.\n- Is more than 6 months old."
           )
 
@@ -47,16 +47,16 @@ defmodule OctoconDiscord.Commands.Messages.DeleteProxiedMessage do
           try_delete_message(user_id, channel_id, message)
       end
     else
-      Utils.error_embed("You can only do this with messages proxied by Octocon.")
+      Utils.error_component("You can only do this with messages proxied by Octocon.")
     end
   end
 
   defp try_delete_message(user_id, channel_id, %Messages.Message{} = message) do
     if message.author_id == to_string(user_id) do
-      Api.delete_message(channel_id, String.to_integer(message.message_id))
-      Utils.success_embed("Message deleted!")
+      Api.Message.delete(channel_id, String.to_integer(message.message_id))
+      Utils.success_component("Message deleted!")
     else
-      Utils.error_embed("You can only delete your own messages.")
+      Utils.error_component("You can only delete your own messages.")
     end
   end
 

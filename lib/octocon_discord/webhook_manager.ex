@@ -32,14 +32,14 @@ defmodule OctoconDiscord.WebhookManager do
   end
 
   def cache_function(channel_id) do
-    case Api.get_channel_webhooks(channel_id) do
+    case Api.Channel.webhooks(channel_id) do
       {:ok, webhooks} ->
         case Enum.find(webhooks, fn webhook -> webhook.name == @proxy_name end) do
           webhook when is_map(webhook) ->
             {:commit, %{id: webhook.id, token: webhook.token}}
 
           nil ->
-            {:ok, webhook} = Api.create_webhook(channel_id, %{name: @proxy_name})
+            {:ok, webhook} = Api.Webhook.create(channel_id, %{name: @proxy_name})
             {:commit, %{id: webhook.id, token: webhook.token}}
         end
 

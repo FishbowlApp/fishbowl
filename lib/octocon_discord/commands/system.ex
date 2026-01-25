@@ -43,7 +43,7 @@ defmodule OctoconDiscord.Commands.System do
 
   def me(%{discord_id: discord_id}, _options) do
     system = Accounts.get_user!({:discord, discord_id})
-    Utils.system_embed(system, true)
+    Utils.system_component(system, true)
   end
 
   def view(_context, options) do
@@ -55,7 +55,7 @@ defmodule OctoconDiscord.Commands.System do
 
     Utils.system_id_from_opts(opts, fn identity, _ ->
       system = Accounts.get_user!(identity)
-      Utils.system_embed(system, false)
+      Utils.system_component(system, false)
     end)
   end
 
@@ -72,24 +72,21 @@ defmodule OctoconDiscord.Commands.System do
       if Utils.alter_id_valid?(alter_id) do
         case Alters.get_alter_guarded(identity, {:id, alter_id}, {:discord, discord_id}) do
           :error ->
-            Utils.error_embed(
+            Utils.error_component(
               "Could not access this alter. You may not have permission to view them."
             )
 
           {:ok, alter} ->
             [
-              content:
-                if(alter.security_level !== :public,
-                  do:
-                    "**NOTE:** This alter's information is only visible to you. You probably shouldn't share this with anyone else.",
-                  else: nil
-                ),
-              embeds: [Utils.alter_embed(alter, true)],
-              ephemeral?: true
+              components: [
+                Utils.text("**NOTE:** This alter's information is only visible to you. You probably shouldn't share this with anyone else."),
+                Utils.alter_component(alter, false, true)
+              ] |> List.flatten(),
+              flags: Utils.cv2_flags()
             ]
         end
       else
-        Utils.error_embed("**#{alter_id}** is not a valid alter ID.")
+        Utils.error_component("**#{alter_id}** is not a valid alter ID.")
       end
     end)
   end
@@ -106,7 +103,7 @@ defmodule OctoconDiscord.Commands.System do
         Fronts.currently_fronting_guarded(identity, {:discord, discord_id})
 
       if currently_fronting == [] do
-        Utils.error_embed(
+        Utils.error_component(
           "No alters are currently fronting in that system, or you do not have permission to view them."
         )
       else

@@ -18,23 +18,25 @@ defmodule OctoconDiscord.Commands.Octo do
   def description, do: "Displays an all-in-one interface to interact with Octocon."
 
   @impl Nosedrum.ApplicationCommand
-  def command(interaction) do
-    %{guild_id: guild_id, user: %{id: discord_id}} = interaction
-    guild_id = to_string(guild_id)
-    discord_id = to_string(discord_id)
+  def command(_interaction) do
+    # %{guild_id: guild_id, user: %{id: discord_id}} = interaction
+    # guild_id = to_string(guild_id)
+    # discord_id = to_string(discord_id)
 
-    Utils.ensure_registered(discord_id, fn ->
-      system_identity = {:discord, discord_id}
+    # Utils.ensure_registered(discord_id, fn ->
+    #   system_identity = {:discord, discord_id}
 
-      context = %__MODULE__.Context{
-        initial_interaction: interaction,
-        guild_id: guild_id,
-        discord_id: discord_id,
-        system_identity: system_identity
-      }
+    #   context = %__MODULE__.Context{
+    #     initial_interaction: interaction,
+    #     guild_id: guild_id,
+    #     discord_id: discord_id,
+    #     system_identity: system_identity
+    #   }
 
-      Utils.success_embed("Test")
-    end)
+    #   Utils.success_component("Test")
+    # end)
+
+    Utils.success_component("This command is under construction.")
   end
 
   @impl Nosedrum.ApplicationCommand

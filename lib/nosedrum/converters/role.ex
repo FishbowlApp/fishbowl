@@ -100,7 +100,7 @@ defmodule Nosedrum.Converters.Role do
         find_role(Map.values(guild.roles), text, ilike)
 
       {:error, _reason} ->
-        case Api.get_guild_roles(guild_id) do
+        case Api.Guild.roles(guild_id) do
           {:ok, roles} ->
             find_role(roles, text, ilike)
 

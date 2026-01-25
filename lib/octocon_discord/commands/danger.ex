@@ -37,13 +37,13 @@ defmodule OctoconDiscord.Commands.Danger do
   def delete_account(%{system_identity: system_identity}, _options) do
     DeleteAccountHandler.handle_init(system_identity)
 
-    Utils.success_embed("Check your DMs!")
+    Utils.success_component("Check your DMs!")
   end
 
   def wipe_alters(%{system_identity: system_identity}, _options) do
     WipeAltersHandler.handle_init(system_identity)
 
-    Utils.success_embed("Check your DMs!")
+    Utils.success_component("Check your DMs!")
   end
 
   @impl Nosedrum.ApplicationCommand

@@ -51,12 +51,12 @@ defmodule OctoconDiscord.Commands.Autoproxy do
         {:ok, _} ->
           ProxyCache.invalidate(discord_id)
 
-          Utils.success_embed(
+          Utils.success_component(
             "Server autoproxy mode set to `#{mode |> String.capitalize()}`.\n\n#{@autoproxy_descriptions[mode_atom]}\n\n⚠️ Please note that this setting only applies to the server you just ran this command in. If you wish to set your autoproxy mode globally, please use `/global-autoproxy`."
           )
 
         {:error, _} ->
-          Utils.error_embed("An unknown error occurred while updating your autoproxy mode.")
+          Utils.error_component("An unknown error occurred while updating your autoproxy mode.")
       end
     end)
   end

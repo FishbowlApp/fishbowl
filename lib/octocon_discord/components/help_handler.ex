@@ -158,7 +158,7 @@ defmodule OctoconDiscord.Components.HelpHandler do
     Api.create_interaction_response(interaction, %{
       type: 7,
       data:
-        Utils.error_embed("This help interface has expired. Please run `/help` again.")
+        Utils.error_component("This help interface has expired. Please run `/help` again.")
         |> Enum.into(%{})
         |> Map.drop([:ephemeral?])
         |> Map.put(:components, nil)

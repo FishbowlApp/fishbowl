@@ -58,7 +58,7 @@ defmodule OctoconDiscord.ServerSettingsManager do
 
   def invalidate_cache(guild_id) do
     guild_id = to_string(guild_id)
-    Cachex.del!(@cache, guild_id)
+    Cachex.del!(__MODULE__, guild_id)
   end
 
   def cache_function(guild_id) do

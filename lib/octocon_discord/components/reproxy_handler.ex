@@ -108,7 +108,7 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
           alter_id = Alters.resolve_alter({:system, system_id}, alter_identity)
 
           if alter_id == false do
-            Utils.error_embed(
+            Utils.error_component(
               "You don't have an alter with the ID or alias `#{alter_identity |> elem(1)}`."
             )
           else
@@ -165,8 +165,8 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
              )
            end
          ) do
-      :no_proxy -> Utils.error_embed("Failed to reproxy the message.")
-      :ok -> Utils.success_embed("Message reproxied!")
+      :no_proxy -> Utils.error_component("Failed to reproxy the message.")
+      :ok -> Utils.success_component("Message reproxied!")
     end
   end
 
@@ -200,8 +200,8 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
              false
            )
          end) do
-      :no_proxy -> Utils.error_embed("Failed to reproxy the message.")
-      :ok -> Utils.success_embed("Message reproxied!")
+      :no_proxy -> Utils.error_component("Failed to reproxy the message.")
+      :ok -> Utils.success_component("Message reproxied!")
     end
   end
 

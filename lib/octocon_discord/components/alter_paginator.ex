@@ -2,11 +2,6 @@ defmodule OctoconDiscord.Components.AlterPaginator do
   @moduledoc false
   use GenServer
 
-  alias Nostrum.Struct.Component.{
-    ActionRow,
-    Button
-  }
-
   alias Nostrum.Api
 
   alias OctoconDiscord.Utils
@@ -21,7 +16,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
   def page_size, do: @page_size
 
   def handle_init(_system_id, [], 0) do
-    Utils.error_embed("You don't have any alters, yet. Create one with `/alter create`!")
+    Utils.error_component("You don't have any alters, yet. Create one with `/alter create`!")
   end
 
   def handle_init(system_id, alters, alters_length) when alters_length <= @page_size do
@@ -187,7 +182,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
       Api.create_interaction_response(interaction, %{
         type: 7,
         data:
-          Utils.error_embed("This list has expired. Please run `/alter list` again.")
+          Utils.error_component("This list has expired. Please run `/alter list` again.")
           |> Enum.into(%{})
           |> Map.drop([:ephemeral?])
       })
@@ -215,7 +210,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
       Api.create_interaction_response(interaction, %{
         type: 7,
         data:
-          Utils.error_embed("This list has expired. Please run `/alter list` again.")
+          Utils.error_component("This list has expired. Please run `/alter list` again.")
           |> Enum.into(%{})
           |> Map.drop([:ephemeral?])
       })

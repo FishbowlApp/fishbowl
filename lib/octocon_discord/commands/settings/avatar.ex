@@ -32,38 +32,40 @@ defmodule OctoconDiscord.Commands.Settings.Avatar do
 
     cond do
       attachment.height == nil or attachment.width == nil ->
-        Utils.error_embed(
+        Utils.error_component(
           "That file doesn't appear to be a valid image. Please provide an image under 20 MB."
         )
 
       attachment.size > 20_000_000 ->
-        Utils.error_embed(
+        Utils.error_component(
           "The image you provided is too large. Please provide an image that is less than 20 MB."
         )
 
       true ->
         case upload_avatar(system, attachment.url) do
           {:ok, _} ->
-            Utils.success_embed("Your avatar has been updated.")
+            Utils.success_component("Your avatar has been updated.")
 
           {:error, _} ->
-            Utils.error_embed("An unknown error occurred updating your avatar. Please try again.")
+            Utils.error_component(
+              "An unknown error occurred updating your avatar. Please try again."
+            )
         end
     end
   end
 
   def set_url(_context, _options) do
-    Utils.error_embed("This command is not yet implemented.")
+    Utils.error_component("This command is not yet implemented.")
   end
 
   def remove(%{system: system}, _options) do
     case Accounts.update_user(system, %{avatar_url: nil}) do
       {:ok, _} ->
         Octocon.Utils.nuke_existing_avatars!(system.id, "self")
-        Utils.success_embed("Your avatar has been removed.")
+        Utils.success_component("Your avatar has been removed.")
 
       {:error, _} ->
-        Utils.error_embed("An unknown error occurred removing your avatar. Please try again.")
+        Utils.error_component("An unknown error occurred removing your avatar. Please try again.")
     end
   end
 end

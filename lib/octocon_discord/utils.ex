@@ -10,12 +10,6 @@ defmodule OctoconDiscord.Utils do
   alias Octocon.Accounts
   alias Octocon.Accounts.User
 
-  @separator_field %Nostrum.Struct.Embed.Field{
-    name: "\u200B",
-    value: "\u200B",
-    inline: false
-  }
-
   @alias_regex ~r/^(?![\s\d])[^\n]{1,80}$/
 
   # [TODO] Replace `get_from_guild_cache/1` with `Nostrum.Cache.GuildCache.get/1`
@@ -70,7 +64,7 @@ defmodule OctoconDiscord.Utils do
     if alter_id_valid?(alter_id) do
       callback.()
     else
-      error_embed("You don't have an alter with ID **#{alter_id}**.")
+      error_component("You don't have an alter with ID **#{alter_id}**.")
     end
   end
 
@@ -109,14 +103,14 @@ defmodule OctoconDiscord.Utils do
 
   def with_id_or_alias(idalias, callback, allow_nil) when is_binary(idalias) do
     case parse_idalias(idalias, allow_nil) do
-      {:error, error} -> error_embed(error)
+      {:error, error} -> error_component(error)
       result -> callback.(result)
     end
   end
 
   def register_message,
     do:
-      error_embed(
+      error_component(
         "You're not registered. Use the `/register` command or link your Discord account to your existing system."
       )
 
@@ -148,124 +142,54 @@ defmodule OctoconDiscord.Utils do
     end
   end
 
-  def error_embed(error, ephemeral? \\ true),
-    do: [
-      components: [
-        container(
-          [
-            text("### :x: Whoops!"),
-            text(error)
-          ],
-          %{
-            accent_color: 0xFF0000
-          }
-        )
+  def error_component_raw(error) do
+    container(
+      [
+        text("### :x: Whoops!"),
+        text(error)
       ],
-      flags:
-        Bitwise.bsl(1, 15)
-        |> then(fn flags ->
-          if(ephemeral?, do: Bitwise.bor(flags, Bitwise.bsl(1, 6)), else: flags)
-        end)
-    ]
-
-  def success_embed_raw(success) do
-    %{
-      title: ":white_check_mark: Success!",
-      description: success,
-      color: 0x00FF00
-    }
+      %{
+        accent_color: 0xFF0000
+      }
+    )
   end
 
-  def success_embed(success, ephemeral? \\ true),
+  def error_component(error, ephemeral? \\ true),
     do: [
-      components: [
-        container(
-          [
-            text("### :white_check_mark: Success!"),
-            text(success)
-          ],
-          %{
-            accent_color: 0x00FF00
-          }
-        )
-      ],
-      flags:
-        Bitwise.bsl(1, 15)
-        |> then(fn flags ->
-          if(ephemeral?, do: Bitwise.bor(flags, Bitwise.bsl(1, 6)), else: flags)
-        end)
+      components: [error_component_raw(error)],
+      flags: cv2_flags(ephemeral?)
     ]
 
-  def system_embed_raw(system, self?) do
+  def success_component_raw(success) do
+    container(
+      [
+        text("### :white_check_mark: Success!"),
+        text(success)
+      ],
+      %{
+        accent_color: 0x00FF00
+      }
+    )
+  end
+
+  def success_component(success, ephemeral? \\ true),
+    do: [
+      components: [success_component_raw(success)],
+      flags: cv2_flags(ephemeral?)
+    ]
+
+  def system_component_raw(system, self?) do
     discord_settings = system.discord_settings || %Accounts.DiscordSettings{}
 
-    %{
-      title: "System information",
-      description: system.description || nil,
-      thumbnail: %{
-        url: system.avatar_url || nil
-      },
-      fields:
-        [
-          %Nostrum.Struct.Embed.Field{
-            name: "ID",
-            value: system.id,
-            inline: true
-          },
-          %Nostrum.Struct.Embed.Field{
-            name: "Username",
-            value: system.username || "*None*",
-            inline: true
-          },
-          %Nostrum.Struct.Embed.Field{
-            name: "Discord",
-            value: if(system.discord_id, do: "<@#{system.discord_id}>", else: "Not linked"),
-            inline: true
-          }
-        ] ++
-          if(self?,
-            do: [
-              @separator_field,
-              %Nostrum.Struct.Embed.Field{
-                name: "Email linked",
-                value: if(system.email, do: "Yes", else: "No"),
-                inline: true
-              },
-              %Nostrum.Struct.Embed.Field{
-                name: "System tag",
-                value: discord_settings.system_tag || "*None*",
-                inline: true
-              }
-            ],
-            else: []
-          ),
-      footer: %Nostrum.Struct.Embed.Footer{
-        text:
-          if(self? and system.username == nil,
-            do: "Tip: register a username with `/settings username <username>.`",
-            else: nil
-          )
-      }
-    }
-  end
-
-  def system_embed(system, self?) do
-    [
-      embeds: [system_embed_raw(system, self?)],
-      ephemeral?: true
-    ]
-  end
-
-  def alter_embed(alter, _guarded \\ false) do
     normalized_description =
-      (alter.description || "")
+      (system.description || "")
       |> String.replace("\\n", "\n")
       |> String.trim()
 
     description =
       case String.length(normalized_description) do
         0 ->
-          "*No description*"
+          "*This system does not have a description.*"
 
         length when length > 1500 ->
           normalized_description
@@ -276,70 +200,44 @@ defmodule OctoconDiscord.Utils do
           normalized_description
       end
 
-    # TODO: Fields
-    %{
-      title: alter.name,
-      description: description,
-      color: hex_to_int(alter.color),
-      fields: [
-        %{
-          name: "Pronouns",
-          value: alter.pronouns || "None",
-          inline: true
-        },
-        %{
-          name: "Proxies",
-          inline: true,
-          value:
-            case alter.discord_proxies do
-              nil ->
-                "None"
+    upper_text = "## Information for <@#{system.discord_id}>\n\n#{description}"
 
-              [] ->
-                "None"
+    container(
+      [
+        case system.avatar_url do
+          url when url != nil and url != "" ->
+            section([upper_text], thumbnail(url))
 
-              proxies ->
-                proxies
-                |> Enum.map_join("\n", fn proxy ->
-                  "- `#{proxy}`"
-                end)
-            end
-        },
-        %{
-          name: "ID",
-          value: alter.id,
-          inline: true
-        },
-        %{
-          name: "Alias",
-          value: alter.alias || "None",
-          inline: true
-        },
-        %{
-          name: "Proxy name",
-          value: alter.proxy_name || "None",
-          inline: true
-        },
-        %{
-          name: "Color",
-          value: alter.color || "None",
-          inline: true
-        }
-        # %{
-        #    name: "Description",
-        #    value: case alter.description do
-        #      "" -> "None"
-        #      nil -> "None"
-        #      description ->
-        #       description
-        #       |> String.replace("\\n", "\n")
-        #    end
-        # }
-      ],
-      thumbnail: %{
-        url: alter.avatar_url
-      }
-    }
+          _ ->
+            text(upper_text)
+        end,
+        separator(spacing: :large),
+        text("**ID:** `#{system.id}`"),
+        text("**Username:** #{if system.username, do: system.username, else: "None"}"),
+        text(
+          "**Discord:** #{if system.discord_id, do: "<@#{system.discord_id}>", else: "Not linked"}"
+        ),
+        if self? do
+          [
+            separator(spacing: :large),
+            text("**Email linked:** #{if system.email, do: "Yes", else: "No"}"),
+            text(
+              "**System tag:** #{if discord_settings.system_tag, do: discord_settings.system_tag, else: "None"}"
+            )
+          ]
+        else
+          []
+        end
+      ]
+      |> List.flatten()
+    )
+  end
+
+  def system_component(system, self?) do
+    [
+      components: [system_component_raw(system, self?)],
+      flags: cv2_flags()
+    ]
   end
 
   def alter_component(alter, fronts, guarded \\ false) do
@@ -434,7 +332,7 @@ defmodule OctoconDiscord.Utils do
             inserted_at =
               alter.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
 
-            updated_at = alter.updated_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+            # updated_at = alter.updated_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
 
             [
               separator(spacing: :large),
@@ -524,16 +422,16 @@ defmodule OctoconDiscord.Utils do
 
     cond do
       num_nil == 3 ->
-        error_embed("You must specify a system ID, Discord ping, or username.")
+        error_component("You must specify a system ID, Discord ping, or username.")
 
       num_nil != 2 ->
-        error_embed("You must *only* specify a system ID, Discord ping, *or* username.")
+        error_component("You must *only* specify a system ID, Discord ping, *or* username.")
 
       opts.system_id ->
         if Accounts.user_exists?({:system, opts.system_id}) do
           callback.({:system, opts.system_id}, "**#{opts.system_id}**")
         else
-          error_embed("A system does not exist with ID **#{opts.system_id}**.")
+          error_component("A system does not exist with ID **#{opts.system_id}**.")
         end
 
       opts.discord_id ->
@@ -542,20 +440,20 @@ defmodule OctoconDiscord.Utils do
         if Accounts.user_exists?({:discord, discord_id}) do
           callback.({:discord, discord_id}, "<@#{discord_id}>")
         else
-          error_embed("A system does not exist with that Discord account.")
+          error_component("A system does not exist with that Discord account.")
         end
 
       opts.username ->
         case Accounts.get_user_id_by_username(opts.username) do
           nil ->
-            error_embed("A system does not exist with username **#{opts.username}**.")
+            error_component("A system does not exist with username **#{opts.username}**.")
 
           system_id ->
             callback.({:system, system_id}, "**#{opts.username}**")
         end
 
       true ->
-        error_embed("An unknown error occurred.")
+        error_component("An unknown error occurred.")
     end
   end
 

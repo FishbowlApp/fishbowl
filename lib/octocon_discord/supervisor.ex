@@ -4,10 +4,6 @@ defmodule OctoconDiscord.Supervisor do
   """
   use Supervisor
 
-  import Cachex.Spec
-
-  alias Octocon.ClusterUtils
-
   require Logger
 
   def start_link(_init_arg) do
@@ -47,21 +43,21 @@ defmodule OctoconDiscord.Supervisor do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  defp init_shards do
-    node_count = ClusterUtils.primary_node_count()
-    desired_shards = OctoconDiscord.get_desired_shards()
+  # defp init_shards do
+  #   node_count = ClusterUtils.primary_node_count()
+  #   desired_shards = OctoconDiscord.get_desired_shards()
 
-    for i <- 1..node_count do
-      # If desired_shards is 100, and we have 4 nodes, we want to start shards 0-24 on node 1, 25-49 on node 2, etc.
-      start_shard = div((i - 1) * desired_shards, node_count)
-      end_shard = div(i * desired_shards, node_count) - 1
+  #   for i <- 1..node_count do
+  #     # If desired_shards is 100, and we have 4 nodes, we want to start shards 0-24 on node 1, 25-49 on node 2, etc.
+  #     start_shard = div((i - 1) * desired_shards, node_count)
+  #     end_shard = div(i * desired_shards, node_count) - 1
 
-      Horde.DynamicSupervisor.start_child(
-        Octocon.Primary.HordeSupervisor,
-        {OctoconDiscord.ShardManager, {i, start_shard, end_shard, desired_shards}}
-      )
-    end
-  end
+  #     Horde.DynamicSupervisor.start_child(
+  #       Octocon.Primary.HordeSupervisor,
+  #       {OctoconDiscord.ShardManager, {i, start_shard, end_shard, desired_shards}}
+  #     )
+  #   end
+  # end
 
   def start_unique_consumer do
     Logger.info("Starting unique consumer")

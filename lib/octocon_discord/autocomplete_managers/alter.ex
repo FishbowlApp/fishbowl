@@ -3,8 +3,6 @@ defmodule OctoconDiscord.AutocompleteManagers.Alter do
 
   use OctoconDiscord.AutocompleteManagers
 
-  import Cachex.Spec
-
   def cache_function(user) do
     alters =
       Octocon.Alters.get_alters_by_id({:system, user.id}, [:id, :name])

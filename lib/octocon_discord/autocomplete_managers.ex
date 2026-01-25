@@ -74,8 +74,7 @@ defmodule OctoconDiscord.AutocompleteManagers do
 
   def generate_autocomplete_responses(trie, prefix, id_type \\ :string)
       when is_tuple(trie) and is_binary(prefix) and byte_size(prefix) <= 20 do
-    results =
-      trie
+    trie
       |> Radix.more(format_name_for_search(prefix))
       |> Enum.take(25)
       |> Enum.map(fn {_key, {id, display_name}} ->

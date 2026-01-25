@@ -36,10 +36,10 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
       else
         case alter_identity do
           {:id, alter_id} ->
-            Utils.error_embed("You don't have an alter with ID **#{alter_id}**.")
+            Utils.error_component("You don't have an alter with ID **#{alter_id}**.")
 
           {:alias, aliaz} ->
-            Utils.error_embed("You don't have an alter with the alias **#{aliaz}**.")
+            Utils.error_component("You don't have an alter with the alias **#{aliaz}**.")
         end
       end
     end)
@@ -57,7 +57,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
     suffix = Utils.get_command_option(options, "suffix") || ""
 
     if String.length(prefix) == 0 && String.length(suffix) == 0 do
-      Utils.error_embed("You must provide a prefix or suffix for your proxy.")
+      Utils.error_component("You must provide a prefix or suffix for your proxy.")
     else
       proxy = prefix <> "text" <> suffix
 
@@ -76,7 +76,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
           true
         )
       else
-        Utils.error_embed("That alter doesn't have a proxy with that prefix and suffix.")
+        Utils.error_component("That alter doesn't have a proxy with that prefix and suffix.")
       end
     end
   end
@@ -139,7 +139,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
     suffix = Utils.get_command_option(options, "suffix") || ""
 
     if String.length(prefix) == 0 && String.length(suffix) == 0 do
-      Utils.error_embed("You must provide a prefix or suffix for your proxy.")
+      Utils.error_component("You must provide a prefix or suffix for your proxy.")
     else
       proxy_exists? =
         ProxyCache.get(discord_id)
@@ -150,7 +150,9 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
         end)
 
       if proxy_exists? do
-        Utils.error_embed("One of your alters already has a proxy with that prefix and suffix.")
+        Utils.error_component(
+          "One of your alters already has a proxy with that prefix and suffix."
+        )
       else
         callback.(prefix <> "text" <> suffix)
       end
