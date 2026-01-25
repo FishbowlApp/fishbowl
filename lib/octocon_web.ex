@@ -42,7 +42,6 @@ defmodule OctoconWeb do
         layouts: [html: OctoconWeb.Layouts]
 
       import Plug.Conn
-      import OctoconWeb.Gettext
 
       unquote(verified_routes())
     end
