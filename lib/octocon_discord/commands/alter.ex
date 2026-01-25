@@ -53,7 +53,7 @@ defmodule OctoconDiscord.Commands.Alter do
     case Alters.create_alter(system_identity, %{name: name}) do
       {:ok, id, _} ->
         Utils.success_embed(
-          "Successfully created alter **#{name}**! Their ID is **#{id}**. You can view their profile with `/alter view #{id}`.\n\n**Note:** This alter is currently private. You can change this with `/alter security #{id}`."
+          "Successfully created alter **#{name}**! Their ID is **#{id}**. You can view their profile with `/alter view id:#{id}`.\n\n**Note:** This alter is currently private. You can change this with `/alter security id:#{id}`."
         )
 
       {:error, _} ->
@@ -91,9 +91,11 @@ defmodule OctoconDiscord.Commands.Alter do
         {:ok, alter} ->
           show = Utils.get_show_option(options)
 
+          fronts = Octocon.Fronts.currently_fronting(system_identity)
+
           [
-            embeds: [Utils.alter_embed(alter)],
-            ephemeral?: !show
+            components: Utils.alter_component(alter, fronts, show),
+            flags: Utils.cv2_flags(!show)
           ]
 
         {:error, :no_alter_id} ->

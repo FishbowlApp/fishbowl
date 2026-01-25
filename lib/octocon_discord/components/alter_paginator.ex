@@ -12,7 +12,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
   alias OctoconDiscord.Utils
 
   @table :alter_paginators
-  @page_size 20
+  @page_size 10
 
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -21,7 +21,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
   def page_size, do: @page_size
 
   def handle_init(_system_id, [], 0) do
-    Utils.error_embed("You don't have any alters (yet!). Create one with `/alter create`!")
+    Utils.error_embed("You don't have any alters, yet. Create one with `/alter create`!")
   end
 
   def handle_init(system_id, alters, alters_length) when alters_length <= @page_size do
@@ -38,7 +38,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
       },
       false
     )
-    |> Keyword.put(:ephemeral?, true)
+    |> Keyword.put(:flags, Utils.cv2_flags())
   end
 
   def handle_init(system_id, alters, alters_length) do
@@ -66,7 +66,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
     Process.send_after(__MODULE__, {:drop, uid}, :timer.minutes(5))
 
     generate_response(data)
-    |> Keyword.put(:ephemeral?, true)
+    |> Keyword.put(:flags, Utils.cv2_flags())
   end
 
   defp generate_response(
@@ -86,50 +86,78 @@ defmodule OctoconDiscord.Components.AlterPaginator do
     page_alters = Enum.at(alters, current_page - 1)
 
     [
-      embeds: [
-        %Nostrum.Struct.Embed{
-          title: "Your alters (#{alters_length})",
-          description:
-            Enum.map_join(page_alters, "\n", fn alter ->
-              "- `#{alter.id}#{case alter.alias do
-                nil -> ""
-                alias -> "/#{alias}"
-              end}`　**#{alter.name}**#{case alter.pronouns do
-                nil -> ""
-                pronouns -> "(#{pronouns})"
-              end}　#{case alter.discord_proxies do
-                [] -> ""
-                nil -> ""
-                proxies -> "#{Enum.map_join(proxies, ", ", fn proxy -> "`#{proxy}`" end)}"
-              end}"
-            end),
-          footer: %Nostrum.Struct.Embed.Footer{
-            text:
-              "Page #{current_page} of #{total_pages} • Use /alter view <id> to view an alter's profile."
-          }
-        }
-      ],
-      components:
-        if include_components do
+      components: [
+        Utils.container(
           [
-            ActionRow.action_row([
-              Button.interaction_button(
-                "Previous",
-                "alter|prev|#{uid}",
-                emoji: %Nostrum.Struct.Emoji{name: "⬅️"}
-              )
-              |> Button.disable(!prev_enabled),
-              Button.interaction_button(
-                "Next",
-                "alter|next|#{uid}",
-                emoji: %Nostrum.Struct.Emoji{name: "➡️"}
-              )
-              |> Button.disable(!next_enabled)
-            ])
+            Utils.text("## Your alters (#{alters_length})\n\nClick an alter's button to view more details."),
+            Utils.separator(spacing: :large),
+            Enum.map(page_alters, fn alter ->
+              [
+                Utils.section(
+                  [
+                    Utils.text("""
+                    **#{alter.name || "Unnamed alter"}**#{case alter.pronouns do
+                      nil -> ""
+                      pronouns -> " (#{pronouns})"
+                    end}
+                    - ID: `#{alter.id}`#{case alter.alias do
+                      nil -> ""
+                      alias -> "  •  Alias: `#{alias}`"
+                    end}
+                    #{case alter.discord_proxies do
+                      [] -> ""
+                      nil -> ""
+                      proxies -> "- Proxies: #{Enum.map_join(proxies, "  •  ", fn proxy -> "`#{proxy}`" end)}"
+                    end}
+                    """)
+                  ],
+                  Utils.button(
+                    "alter|view|#{alter.id}",
+                    :secondary,
+                    emoji: %{name: "open", id: 1_464_866_849_052_426_252}
+                  )
+                )
+              ]
+            end)
+            # Utils.text(
+            #                 Enum.map_join(page_alters, "\n", fn alter ->
+            #   "- `#{alter.id}#{case alter.alias do
+            #     nil -> ""
+            #     alias -> "/#{alias}"
+            #   end}`　**#{alter.name || "Unnamed alter"}**#{case alter.pronouns do
+            #     nil -> ""
+            #     pronouns -> " (#{pronouns})"
+            #   end}　#{case alter.discord_proxies do
+            #     [] -> ""
+            #     nil -> ""
+            #     proxies -> "#{Enum.map_join(proxies, ", ", fn proxy -> "`#{proxy}`" end)}"
+            #   end}"
+            # end)
+            #   )
           ]
-        else
-          nil
-        end
+          |> List.flatten()
+        ),
+        if include_components do
+          Utils.action_row([
+          Utils.button(
+            "alter-pag|prev|#{uid}",
+            :secondary,
+            label: "Previous",
+            emoji: %{name: "back", id: 1_464_878_088_923_123_784},
+            disabled: !prev_enabled
+          ),
+          Utils.button(
+            "alter-pag|next|#{uid}",
+            :secondary,
+            label: "Next",
+            emoji: %{name: "forward", id: 1_464_878_087_912_030_282},
+            disabled: !next_enabled
+          )
+        ])
+          else
+            []
+          end
+      ] |> List.flatten()
     ]
   end
 

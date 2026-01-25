@@ -131,7 +131,7 @@ defmodule OctoconDiscord.Utils do
   def get_avatar_url(discord_id, avatar_hash),
     do: "https://cdn.discordapp.com/avatars/#{discord_id}/#{avatar_hash}.png"
 
-  def hex_to_int(nil), do: hex_to_int("#0FBEAA")
+  def hex_to_int(nil), do: hex_to_int("#3F3793")
 
   def hex_to_int(hex) do
     hex
@@ -342,6 +342,139 @@ defmodule OctoconDiscord.Utils do
     }
   end
 
+  def alter_component(alter, fronts, guarded \\ false) do
+    normalized_description =
+      (alter.description || "")
+      |> String.replace("\\n", "\n")
+      |> String.trim()
+
+    description =
+      case String.length(normalized_description) do
+        0 ->
+          "*This alter does not have a description.*"
+
+        length when length > 1500 ->
+          normalized_description
+          |> String.slice(0..1500)
+          |> Kernel.<>("\n...")
+
+        _ ->
+          normalized_description
+      end
+
+    show_front_components = fronts != false and not guarded
+
+    is_fronting =
+      show_front_components and alter.id in (fronts |> Enum.map(&(&1.front.alter_id)))
+
+    is_primary =
+      show_front_components and alter.id == (fronts |> Enum.find(fn f -> f.primary end) |> case do
+        nil -> nil
+        front -> front.front.alter_id
+      end)
+
+    fronting_text =
+      cond do
+        not is_fronting ->
+          ""
+
+        is_primary ->
+
+          "\n\n⏫  •  Currently fronting! (Main)"
+
+        true ->
+          "\n\n⬆️  •  Currently fronting!"
+      end
+
+    upper_text =
+      text(
+        "## #{alter.name || "Unnamed alter"}#{if alter.pronouns && alter.pronouns != "", do: " (#{alter.pronouns})", else: ""}#{fronting_text}\n\n#{description}"
+      )
+
+    [
+      container(
+        [
+          case alter.avatar_url do
+            url when url != nil and url != "" ->
+              section([upper_text], thumbnail(url))
+
+            _ ->
+              upper_text
+          end,
+          separator(spacing: :large),
+          text("""
+          **ID:** `#{alter.id}`#{case alter.alias do
+            nil -> ""
+            alias -> "  •  **Alias:** `#{alias}`"
+          end}
+          """),
+          case alter.proxy_name do
+            nil ->
+              []
+
+            "" ->
+              []
+
+            proxy_name ->
+              text("**Proxy name:** #{proxy_name}")
+          end,
+          text("""
+          **Proxies:**\n#{case alter.discord_proxies do
+            [] -> "None"
+            nil -> "None"
+            proxies -> Enum.map_join(proxies, "\n", fn proxy -> "- `#{proxy}`" end)
+          end}
+          """),
+          if guarded do
+            []
+          else
+            inserted_at = alter.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+            updated_at = alter.updated_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+            [
+              separator(spacing: :large),
+            text("**Security level:** #{security_level_to_string(alter.security_level)}"),
+            text("**Created:** <t:#{inserted_at}:F> (<t:#{inserted_at}:R>)")
+            # **Last updated:** <t:#{updated_at}:F> (<t:#{updated_at}:R>)
+            ]
+          end
+        ]
+        |> List.flatten(),
+        %{accent_color: hex_to_int(alter.color)}
+      ),
+      cond do
+        !show_front_components ->
+          []
+
+        is_fronting ->
+          action_row(
+          [
+            button("alter|removefront|#{alter.id}", :secondary,
+              label: "Remove from front",
+              emoji: %{name: "⬇️"}),
+            button("alter|toggleprimary|#{alter.id}", :secondary,
+              label: (if is_primary, do: "Unset as main front", else: "Set as main front"),
+              emoji: %{name: (if is_primary, do: "⏬", else: "⏫")}
+            )
+          ]
+          )
+
+        true ->
+          action_row(
+          [
+            button("alter|addfront|#{alter.id}", :secondary,
+              label: "Add to front",
+              emoji: %{name: "⬆️"}
+            ),
+            button("alter|setfront|#{alter.id}", :secondary,
+              label: "Set as front",
+              emoji: %{name: "📍"}
+            )
+          ]
+        )
+      end
+    ] |> List.flatten()
+  end
+
   def send_dm(%User{} = user, title, message) do
     spawn(fn ->
       Octocon.ClusterUtils.run_on_primary(fn ->
@@ -352,7 +485,7 @@ defmodule OctoconDiscord.Utils do
             embeds: [
               %Nostrum.Struct.Embed{
                 title: title,
-                color: hex_to_int("#0FBEAA"),
+                color: hex_to_int("#3F3793"),
                 description: message
               }
             ]
@@ -457,28 +590,28 @@ defmodule OctoconDiscord.Utils do
 
   # Components V2
 
-  def container(components, options \\ %{}) do
+  def container(components, options \\ []) do
     %{
       type: 17,
       components: components
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def section(components, accessory, options \\ %{}) do
+  def section(components, accessory, options \\ []) do
     %{
       type: 9,
       components: components,
       accessory: accessory
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def separator(options \\ %{}) do
-    divider = Map.get(options, :divider, true)
+  def separator(options \\ []) do
+    divider = Keyword.get(options, :divider, true)
 
     spacing =
-      Map.get(options, :spacing, :small)
+      Keyword.get(options, :spacing, :small)
       |> case do
         :small -> 1
         :large -> 2
@@ -491,68 +624,103 @@ defmodule OctoconDiscord.Utils do
     }
   end
 
-  def thumbnail(url, options \\ %{}) do
+  def thumbnail(url, options \\ []) do
     %{
       type: 11,
       media: %{url: url}
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def action_row(components, options \\ %{}) do
+  def action_row(components, options \\ []) do
     %{
       type: 1,
       components: components
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def string_select(id, options_list, options \\ %{}) do
+  def string_select(id, options_list, options \\ []) do
     %{
       type: 3,
       custom_id: id,
       options: options_list
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def user_select(id, options \\ %{}) do
+  def user_select(id, options \\ []) do
     %{
       type: 5,
       custom_id: id
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def role_select(id, options \\ %{}) do
+  def role_select(id, options \\ []) do
     %{
       type: 6,
       custom_id: id
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def mentionable_select(id, options \\ %{}) do
+  def mentionable_select(id, options \\ []) do
     %{
       type: 7,
       custom_id: id
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def channel_select(id, options \\ %{}) do
+  def channel_select(id, options \\ []) do
     %{
       type: 8,
       custom_id: id
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
 
-  def text(text, options \\ %{}) do
+  def text(text, options \\ []) do
     %{
       type: 10,
       content: text
     }
-    |> Map.merge(options)
+    |> Map.merge(options |> Enum.into(%{}))
   end
+
+  def button(id, style, options \\ []) do
+    style =
+      case style do
+        :primary -> 1
+        :secondary -> 2
+        :success -> 3
+        :danger -> 4
+        :link -> 5
+        :premium -> 6
+        num when is_integer(num) and num in 1..6 -> num
+        _ -> 2
+      end
+
+    %{
+      type: 2,
+      custom_id: id,
+      style: style
+    }
+    |> Map.merge(options |> Enum.into(%{}))
+  end
+
+  def cv2_flags(ephemeral \\ true) do
+    if ephemeral do
+      Bitwise.bor(Bitwise.bsl(1, 15), Bitwise.bsl(1, 6))
+    else
+      Bitwise.bsl(1, 15)
+    end
+  end
+
+  def security_level_to_string(nil), do: "Unknown"
+  def security_level_to_string(:private), do: "Private"
+  def security_level_to_string(:trusted_only), do: "Trusted friends only"
+  def security_level_to_string(:friends_only), do: "Friends only"
+  def security_level_to_string(:public), do: "Public"
 end
