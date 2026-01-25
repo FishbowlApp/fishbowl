@@ -7,7 +7,6 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
   alias Nostrum.Api
 
   alias Octocon.Alters
-  alias OctoconDiscord.Commands.Messages.Reproxy.NostrumShim
   alias OctoconDiscord.Utils
 
   @table :reproxy_handler
