@@ -19,7 +19,7 @@ defmodule OctoconDiscord.Commands.Register do
     discord_id = to_string(discord_id)
 
     if Accounts.user_exists?({:discord, discord_id}) do
-      Utils.error_embed("You're already registered.")
+      Utils.error_component("You're already registered.")
     else
       # avatar_url = Utils.get_avatar_url(discord_id, avatar_hash)
 
@@ -28,12 +28,12 @@ defmodule OctoconDiscord.Commands.Register do
              # ,%{avatar_url: avatar_url}
            ) do
         {:ok, user} ->
-          Utils.success_embed(
+          Utils.success_component(
             "You're registered! Your system ID is: **#{user.id}**\n\nCheck out the `/help` command to learn your way around our platform!\n\nSome tips on how to get started can be found in `/help` -> `FAQ` -> `How do I get started with the bot?`"
           )
 
         {:error, _} ->
-          Utils.error_embed(
+          Utils.error_component(
             "An unknown error occurred while registering your system. Please try again."
           )
       end

@@ -68,7 +68,7 @@ defmodule OctoconDiscord.Events.MessageCreate do
 
   defp proxy_message(
          %{
-           message: message,
+           message: %Nostrum.Struct.Message{} = message,
            webhook: webhook,
            proxy_data: proxy_data,
            thread_id: thread_id,

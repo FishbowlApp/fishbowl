@@ -2,7 +2,7 @@ defmodule OctoconWeb.DummyConnAdapter do
   @behaviour Plug.Conn.Adapter
   @moduledoc false
 
-  def conn(conn, method, uri, body_or_params) do
+  def conn(%Plug.Conn{} = conn, method, uri, body_or_params) do
     maybe_flush()
     uri = URI.parse(uri)
 

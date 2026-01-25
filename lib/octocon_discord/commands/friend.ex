@@ -102,7 +102,7 @@ defmodule OctoconDiscord.Commands.Friend do
   def list(%{system_identity: system_identity}, _options) do
     case Friendships.list_friendships(system_identity) do
       [] ->
-        Utils.error_embed("You have no friends (yet!). Add some with `/friend add`!")
+        Utils.error_component("You have no friends (yet!). Add some with `/friend add`!")
 
       friendships ->
         [
@@ -134,7 +134,7 @@ defmodule OctoconDiscord.Commands.Friend do
     outgoing_requests = Friendships.outgoing_friend_requests(system_identity)
 
     if incoming_requests == [] and outgoing_requests == [] do
-      Utils.error_embed(
+      Utils.error_component(
         "You don't have any incoming or outgoing friend requests. Add a friend with `/friend add`!"
       )
     else
@@ -220,13 +220,13 @@ defmodule OctoconDiscord.Commands.Friend do
   defp trust_friend(%{system_identity: system_identity}, target_identity, decorator) do
     case Friendships.trust_friend(system_identity, target_identity) do
       :ok ->
-        Utils.success_embed("#{decorator} is now a trusted friend!")
+        Utils.success_component("#{decorator} is now a trusted friend!")
 
       {:error, :not_friends} ->
-        Utils.error_embed("You are not friends with #{decorator}.")
+        Utils.error_component("You are not friends with #{decorator}.")
 
       {:error, _} ->
-        Utils.error_embed(
+        Utils.error_component(
           "An unknown error occurred while trusting the friend. Please try again."
         )
     end
@@ -235,13 +235,13 @@ defmodule OctoconDiscord.Commands.Friend do
   defp untrust_friend(%{system_identity: system_identity}, target_identity, decorator) do
     case Friendships.untrust_friend(system_identity, target_identity) do
       :ok ->
-        Utils.success_embed("#{decorator} is no longer a trusted friend!")
+        Utils.success_component("#{decorator} is no longer a trusted friend!")
 
       {:error, :not_friends} ->
-        Utils.error_embed("You are not friends with #{decorator}.")
+        Utils.error_component("You are not friends with #{decorator}.")
 
       {:error, _} ->
-        Utils.error_embed(
+        Utils.error_component(
           "An unknown error occurred while untrusting the friend. Please try again."
         )
     end
@@ -250,13 +250,13 @@ defmodule OctoconDiscord.Commands.Friend do
   defp remove_friend(%{system_identity: system_identity}, target_identity, decorator) do
     case Friendships.remove_friendship(system_identity, target_identity) do
       :ok ->
-        Utils.success_embed("You are no longer friends with #{decorator}!")
+        Utils.success_component("You are no longer friends with #{decorator}!")
 
       {:error, :not_friends} ->
-        Utils.error_embed("You are not friends with #{decorator}.")
+        Utils.error_component("You are not friends with #{decorator}.")
 
       {:error, _} ->
-        Utils.error_embed(
+        Utils.error_component(
           "An unknown error occurred while removing the friendship. Please try again."
         )
     end
@@ -265,24 +265,24 @@ defmodule OctoconDiscord.Commands.Friend do
   defp send_friend_request(%{system_identity: system_identity}, to_identity, decorator) do
     case Friendships.send_request(system_identity, to_identity) do
       {:ok, :sent} ->
-        Utils.success_embed("Sent a friend request to #{decorator}.")
+        Utils.success_component("Sent a friend request to #{decorator}.")
 
       {:ok, :accepted} ->
-        Utils.success_embed(
+        Utils.success_component(
           "You are now friends with #{decorator}!\n\nIf you'd like to add them as a trusted friend, use `/friend trust`."
         )
 
       {:error, :already_friends} ->
-        Utils.error_embed("You are already friends with #{decorator}.")
+        Utils.error_component("You are already friends with #{decorator}.")
 
       {:error, :already_sent_request} ->
-        Utils.error_embed("You have already sent a friend request to #{decorator}.")
+        Utils.error_component("You have already sent a friend request to #{decorator}.")
 
       {:error, %{errors: [to_id: {"does not exist", _}]}} ->
-        Utils.error_embed("That system #{decorator} does not exist.")
+        Utils.error_component("That system #{decorator} does not exist.")
 
       {:error, _} ->
-        Utils.error_embed(
+        Utils.error_component(
           "An unknown error occurred while sending the friend request. Please try again."
         )
     end
@@ -291,18 +291,18 @@ defmodule OctoconDiscord.Commands.Friend do
   defp accept_friend_request(%{system_identity: system_identity}, from_identity, decorator) do
     case Friendships.accept_request(from_identity, system_identity) do
       :ok ->
-        Utils.success_embed(
+        Utils.success_component(
           "You are now friends with #{decorator}!\n\nIf you'd like to add them as a trusted friend, use `/friend trust`."
         )
 
       {:error, :not_requested} ->
-        Utils.error_embed("You do not have an incoming friend request from #{decorator}.")
+        Utils.error_component("You do not have an incoming friend request from #{decorator}.")
 
       {:error, :no_user} ->
-        Utils.error_embed("The system #{decorator} does not exist.")
+        Utils.error_component("The system #{decorator} does not exist.")
 
       {:error, _} ->
-        Utils.error_embed(
+        Utils.error_component(
           "An unknown error occurred while accepting the friend request. Please try again."
         )
     end
@@ -311,16 +311,16 @@ defmodule OctoconDiscord.Commands.Friend do
   defp reject_friend_request(%{system_identity: system_identity}, from_identity, decorator) do
     case Friendships.reject_request(from_identity, system_identity) do
       :ok ->
-        Utils.success_embed("You rejected the friend request from #{decorator}.")
+        Utils.success_component("You rejected the friend request from #{decorator}.")
 
       {:error, :not_requested} ->
-        Utils.error_embed("You do not have an incoming friend request from #{decorator}.")
+        Utils.error_component("You do not have an incoming friend request from #{decorator}.")
 
       {:error, :no_user} ->
-        Utils.error_embed("The system #{decorator} does not exist.")
+        Utils.error_component("The system #{decorator} does not exist.")
 
       {:error, _} ->
-        Utils.error_embed(
+        Utils.error_component(
           "An unknown error occurred while rejecting the friend request. Please try again."
         )
     end
@@ -329,16 +329,16 @@ defmodule OctoconDiscord.Commands.Friend do
   defp cancel_friend_request(%{system_identity: system_identity}, to_identity, decorator) do
     case Friendships.cancel_request(system_identity, to_identity) do
       :ok ->
-        Utils.success_embed("You canceled the friend request to #{decorator}.")
+        Utils.success_component("You canceled the friend request to #{decorator}.")
 
       {:error, :not_requested} ->
-        Utils.error_embed("You do not have an outgoing friend request to #{decorator}.")
+        Utils.error_component("You do not have an outgoing friend request to #{decorator}.")
 
       {:error, :no_user} ->
-        Utils.error_embed("The system #{decorator} does not exist.")
+        Utils.error_component("The system #{decorator} does not exist.")
 
       {:error, _} ->
-        Utils.error_embed(
+        Utils.error_component(
           "An unknown error occurred while cancelling the friend request. Please try again."
         )
     end

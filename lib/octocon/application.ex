@@ -20,8 +20,6 @@ defmodule Octocon.Application do
 
   use Application
 
-  import Cachex.Spec
-
   require Logger
 
   @impl Application

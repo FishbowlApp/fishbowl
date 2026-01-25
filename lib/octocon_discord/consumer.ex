@@ -96,6 +96,7 @@ defmodule OctoconDiscord.Consumer do
           choices: []
         }
       })
+      reraise e, __STACKTRACE__
   end
 
   def handle_event({:INTERACTION_CREATE, interaction, _ws_state}) do
@@ -104,6 +105,14 @@ defmodule OctoconDiscord.Consumer do
     e ->
       create_error_response(interaction)
       reraise e, __STACKTRACE__
+  end
+
+  def handle_event({:MESSAGE_CREATE, data, _ws_state}) do
+    MessageCreate.handle(data)
+  end
+
+  def handle_event(_data) do
+    :ok
   end
 
   defp create_error_response(interaction) do
@@ -122,10 +131,6 @@ defmodule OctoconDiscord.Consumer do
     })
   end
 
-  def handle_event({:MESSAGE_CREATE, data, _ws_state}) do
-    MessageCreate.handle(data)
-  end
-
   # def handle_event({:MESSAGE_DELETE, data, _ws_state}) do
   #  MessageDelete.handle(data)
   # end
@@ -137,7 +142,4 @@ defmodule OctoconDiscord.Consumer do
   # def handle_event({:MESSAGE_REACTION_ADD, data, _ws_state}) do
   #  MessageReactionAdd.handle(data)
   # end
-
-  def handle_event(_data) do
-  end
 end

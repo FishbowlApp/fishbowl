@@ -44,7 +44,7 @@ defmodule OctoconDiscord.Commands.Front do
     currently_fronting = Fronts.currently_fronting(system_identity)
 
     if currently_fronting == [] do
-      Utils.error_embed(
+      Utils.error_component(
         "No alters are fronting! Use `/front add` to add alters to front, or `/front set` to set a single alter to front."
       )
     else
@@ -94,23 +94,23 @@ defmodule OctoconDiscord.Commands.Front do
               Accounts.set_primary_front(system_identity, alter_id)
             end
 
-            Utils.success_embed(
+            Utils.success_component(
               "This alter is now fronting. All other alters have been removed from front."
             )
 
           {:error, :already_fronting} ->
-            Utils.error_embed("This alter is already fronting.")
+            Utils.error_component("This alter is already fronting.")
 
           {:error, _} ->
-            Utils.error_embed("An unknown error occurred.")
+            Utils.error_component("An unknown error occurred.")
         end
       else
         case alter_identity do
           {:id, id} ->
-            Utils.error_embed("You don't have an alter with ID **#{id}**.")
+            Utils.error_component("You don't have an alter with ID **#{id}**.")
 
           {:alias, aliaz} ->
-            Utils.error_embed("You don't have an alter with alias **#{aliaz}**.")
+            Utils.error_component("You don't have an alter with alias **#{aliaz}**.")
         end
       end
     end)
@@ -130,21 +130,21 @@ defmodule OctoconDiscord.Commands.Front do
               Accounts.set_primary_front(system_identity, alter_id)
             end
 
-            Utils.success_embed("This alter is now fronting.")
+            Utils.success_component("This alter is now fronting.")
 
           {:error, :already_fronting} ->
-            Utils.error_embed("This alter is already fronting.")
+            Utils.error_component("This alter is already fronting.")
 
           {:error, _} ->
-            Utils.error_embed("An unknown error occurred.")
+            Utils.error_component("An unknown error occurred.")
         end
       else
         case alter_identity do
           {:id, id} ->
-            Utils.error_embed("You don't have an alter with ID **#{id}**.")
+            Utils.error_component("You don't have an alter with ID **#{id}**.")
 
           {:alias, aliaz} ->
-            Utils.error_embed("You don't have an alter with alias **#{aliaz}**.")
+            Utils.error_component("You don't have an alter with alias **#{aliaz}**.")
         end
       end
     end)
@@ -157,21 +157,21 @@ defmodule OctoconDiscord.Commands.Front do
       if alter_id != false do
         case Fronts.end_front(system_identity, alter_identity) do
           :ok ->
-            Utils.success_embed("Alter with ID **#{alter_id}** was removed from front.")
+            Utils.success_component("Alter with ID **#{alter_id}** was removed from front.")
 
           {:error, :not_fronting} ->
-            Utils.error_embed("Alter with ID **#{alter_id}** is not currently fronting.")
+            Utils.error_component("Alter with ID **#{alter_id}** is not currently fronting.")
 
           {:error, _} ->
-            Utils.error_embed("An unknown error occurred.")
+            Utils.error_component("An unknown error occurred.")
         end
       else
         case alter_identity do
           {:id, id} ->
-            Utils.error_embed("You don't have an alter with ID **#{id}**.")
+            Utils.error_component("You don't have an alter with ID **#{id}**.")
 
           {:alias, aliaz} ->
-            Utils.error_embed("You don't have an alter with alias **#{aliaz}**.")
+            Utils.error_component("You don't have an alter with alias **#{aliaz}**.")
         end
       end
     end)
@@ -185,7 +185,7 @@ defmodule OctoconDiscord.Commands.Front do
         if Fronts.fronting?(system_identity, alter_identity) do
           Accounts.set_primary_front(system_identity, alter_id)
 
-          Utils.success_embed("The alter with ID **#{alter_id}** is now set as main front.")
+          Utils.success_component("The alter with ID **#{alter_id}** is now set as main front.")
         else
           should_front = Utils.get_command_option(options, "add-to-front") || false
 
@@ -199,7 +199,7 @@ defmodule OctoconDiscord.Commands.Front do
               | options
             ])
           else
-            Utils.error_embed(
+            Utils.error_component(
               "That alter is not currently fronting.\n\n-# Hint: rerun this command with the `add-to-front` option to add the alter to front *and* set them as main front in one go!"
             )
           end
@@ -207,10 +207,10 @@ defmodule OctoconDiscord.Commands.Front do
       else
         case alter_identity do
           {:id, id} ->
-            Utils.error_embed("You don't have an alter with ID **#{id}**.")
+            Utils.error_component("You don't have an alter with ID **#{id}**.")
 
           {:alias, aliaz} ->
-            Utils.error_embed("You don't have an alter with alias **#{aliaz}**.")
+            Utils.error_component("You don't have an alter with alias **#{aliaz}**.")
         end
       end
     end)
@@ -218,7 +218,7 @@ defmodule OctoconDiscord.Commands.Front do
 
   def remove_main(%{system_identity: system_identity}, _options) do
     Accounts.set_primary_front(system_identity, nil)
-    Utils.success_embed("Removed main front.")
+    Utils.success_component("Removed main front.")
   end
 
   @impl Nosedrum.ApplicationCommand

@@ -15,8 +15,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
   alias Octocon.{
     Accounts,
     Alters,
-    Alters.Alter,
-    Repo
+    Alters.Alter
   }
 
   alias OctoconWeb.Uploaders.Avatar

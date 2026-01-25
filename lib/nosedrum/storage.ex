@@ -183,7 +183,7 @@ defmodule Nosedrum.Storage do
     }
 
     Nostrum.Api.create_interaction_response(interaction, res)
-    # |> IO.inspect()
+    |> IO.inspect()
   end
 
   @doc """
@@ -210,7 +210,7 @@ defmodule Nosedrum.Storage do
       |> Keyword.take([:content, :embeds, :components, :allowed_mentions])
       |> Map.new()
 
-    Nostrum.Api.edit_interaction_response(interaction, data)
+    Nostrum.Api.Interaction.edit_response(interaction, data)
   end
 
   defp convert_callback_type({type, _fn}) do

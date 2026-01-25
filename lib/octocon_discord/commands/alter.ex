@@ -52,12 +52,12 @@ defmodule OctoconDiscord.Commands.Alter do
 
     case Alters.create_alter(system_identity, %{name: name}) do
       {:ok, id, _} ->
-        Utils.success_embed(
+        Utils.success_component(
           "Successfully created alter **#{name}**! Their ID is **#{id}**. You can view their profile with `/alter view id:#{id}`.\n\n**Note:** This alter is currently private. You can change this with `/alter security id:#{id}`."
         )
 
       {:error, _} ->
-        Utils.error_embed(
+        Utils.error_component(
           "Whoops! An unknown error occurred while creating the alter. Please try again."
         )
     end
@@ -67,18 +67,20 @@ defmodule OctoconDiscord.Commands.Alter do
     with_id_or_alias(options, fn alter_identity ->
       case Alters.delete_alter(system_identity, alter_identity) do
         :ok ->
-          Utils.success_embed(
+          Utils.success_component(
             "Successfully deleted alter with ID/alias **#{elem(alter_identity, 1)}**!"
           )
 
         {:error, :no_alter_id} ->
-          Utils.error_embed("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
+          Utils.error_component("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
 
         {:error, :no_alter_alias} ->
-          Utils.error_embed("You don't have an alter with alias **#{elem(alter_identity, 1)}**.")
+          Utils.error_component(
+            "You don't have an alter with alias **#{elem(alter_identity, 1)}**."
+          )
 
         {:error, _} ->
-          Utils.error_embed(
+          Utils.error_component(
             "An unknown error occurred while deleting the alter. Please try again."
           )
       end
@@ -99,10 +101,12 @@ defmodule OctoconDiscord.Commands.Alter do
           ]
 
         {:error, :no_alter_id} ->
-          Utils.error_embed("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
+          Utils.error_component("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
 
         {:error, :no_alter_alias} ->
-          Utils.error_embed("You don't have an alter with alias **#{elem(alter_identity, 1)}**.")
+          Utils.error_component(
+            "You don't have an alter with alias **#{elem(alter_identity, 1)}**."
+          )
       end
     end)
   end
@@ -110,14 +114,14 @@ defmodule OctoconDiscord.Commands.Alter do
   def random(%{system_identity: system_identity}, options) do
     case Alters.get_random_alter(system_identity) do
       nil ->
-        Utils.error_embed("You don't have any alters to choose from.")
+        Utils.error_component("You don't have any alters to choose from.")
 
       {:ok, alter} ->
         show = Utils.get_show_option(options)
 
         [
-          embeds: [Utils.alter_embed(alter)],
-          ephemeral?: !show
+          components: Utils.alter_component(alter, false, show),
+          flags: Utils.cv2_flags(!show)
         ]
     end
   end
@@ -159,34 +163,41 @@ defmodule OctoconDiscord.Commands.Alter do
       ) do
     case options do
       map when map_size(map) == 0 ->
-        Utils.error_embed("You must provide at least one field to update.")
+        Utils.error_component("You must provide at least one field to update.")
 
       _ ->
         case Alters.update_alter(system_identity, alter_identity, options) do
           :ok ->
             [
-              embeds:
+              components:
                 if embed_alter do
                   [
-                    Utils.success_embed_raw(success_text),
-                    Utils.alter_embed(Alters.get_alter_by_id!(system_identity, alter_identity))
+                    Utils.success_component_raw(success_text),
+                    Utils.alter_component(
+                      Alters.get_alter_by_id!(system_identity, alter_identity),
+                      false,
+                      false
+                    )
                   ]
                 else
-                  [Utils.success_embed_raw(success_text)]
-                end,
-              ephemeral?: true
+                  [Utils.success_component_raw(success_text)]
+                end
+                |> List.flatten(),
+              flags: Utils.cv2_flags()
             ]
 
           {:error, :no_alter_id} ->
-            Utils.error_embed("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
+            Utils.error_component(
+              "You don't have an alter with ID **#{elem(alter_identity, 1)}**."
+            )
 
           {:error, :no_alter_alias} ->
-            Utils.error_embed(
+            Utils.error_component(
               "You don't have an alter with alias **#{elem(alter_identity, 1)}**."
             )
 
           {:error, _} ->
-            Utils.error_embed(
+            Utils.error_component(
               "An unknown error occurred while updating the alter. Please try again."
             )
         end
@@ -241,7 +252,7 @@ defmodule OctoconDiscord.Commands.Alter do
           )
         end
       catch
-        e -> Utils.error_embed(e)
+        e -> Utils.error_component(e)
       end
     end)
   end
@@ -285,7 +296,7 @@ defmodule OctoconDiscord.Commands.Alter do
   end
 
   def extra_images(_context, _options) do
-    Utils.error_embed("This command is not yet implemented.")
+    Utils.error_component("This command is not yet implemented.")
   end
 
   @impl Nosedrum.ApplicationCommand

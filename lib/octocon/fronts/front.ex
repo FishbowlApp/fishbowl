@@ -57,7 +57,6 @@ end
 defmodule Octocon.Fronts.CurrentFront do
   @moduledoc false
   use Ecto.Schema
-  import Ecto.Changeset
 
   @primary_key false
 
@@ -87,7 +86,6 @@ end
 defmodule Octocon.Fronts.FrontByAlter do
   @moduledoc false
   use Ecto.Schema
-  import Ecto.Changeset
 
   @primary_key false
 
@@ -118,7 +116,6 @@ end
 defmodule Octocon.Fronts.FrontByTime do
   @moduledoc false
   use Ecto.Schema
-  import Ecto.Changeset
 
   @primary_key false
 

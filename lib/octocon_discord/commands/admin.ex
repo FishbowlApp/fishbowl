@@ -70,10 +70,10 @@ defmodule OctoconDiscord.Commands.Admin do
 
       case ChannelBlacklistManager.add(to_string(guild_id), to_string(channel)) do
         :ok ->
-          Utils.success_embed("Added channel <##{channel}> to this server's proxy blacklist.")
+          Utils.success_component("Added channel <##{channel}> to this server's proxy blacklist.")
 
         {:error, :already_blacklisted} ->
-          Utils.error_embed("This channel is already blacklisted.")
+          Utils.error_component("This channel is already blacklisted.")
       end
     end)
   end
@@ -84,10 +84,12 @@ defmodule OctoconDiscord.Commands.Admin do
 
       case ChannelBlacklistManager.remove(to_string(channel)) do
         :ok ->
-          Utils.success_embed("Removed channel <##{channel}> from this server's proxy blacklist.")
+          Utils.success_component(
+            "Removed channel <##{channel}> from this server's proxy blacklist."
+          )
 
         {:error, :not_blacklisted} ->
-          Utils.error_embed("This channel is not currently blacklisted.")
+          Utils.error_component("This channel is not currently blacklisted.")
       end
     end)
   end
@@ -96,7 +98,7 @@ defmodule OctoconDiscord.Commands.Admin do
     ensure_permissions(context, fn ->
       case ChannelBlacklistManager.get_all_for_guild(to_string(guild_id)) do
         [] ->
-          Utils.error_embed("This server has no blacklisted channels.")
+          Utils.error_component("This server has no blacklisted channels.")
 
         channels ->
           [
@@ -132,7 +134,7 @@ defmodule OctoconDiscord.Commands.Admin do
              log_channel: to_string(channel)
            }) do
         :ok ->
-          Utils.success_embed("Set <##{channel}> as this server's log channel.")
+          Utils.success_component("Set <##{channel}> as this server's log channel.")
 
         {:error, :not_found} ->
           case ServerSettingsManager.create_settings(to_string(guild_id)) do
@@ -140,11 +142,11 @@ defmodule OctoconDiscord.Commands.Admin do
               log_channel_set(context, options)
 
             _ ->
-              Utils.error_embed("An error occurred while setting the log channel.")
+              Utils.error_component("An error occurred while setting the log channel.")
           end
 
         _ ->
-          Utils.error_embed("An error occurred while setting the log channel.")
+          Utils.error_component("An error occurred while setting the log channel.")
       end
     end
 
@@ -159,13 +161,13 @@ defmodule OctoconDiscord.Commands.Admin do
     ensure_permissions(context, fn ->
       case ServerSettingsManager.edit_settings(to_string(guild_id), %{log_channel: nil}) do
         :ok ->
-          Utils.success_embed("Removed the log channel for this server.")
+          Utils.success_component("Removed the log channel for this server.")
 
         {:error, :not_found} ->
-          Utils.error_embed("This server has no log channel set.")
+          Utils.error_component("This server has no log channel set.")
 
         _ ->
-          Utils.error_embed("An error occurred while removing the log channel.")
+          Utils.error_component("An error occurred while removing the log channel.")
       end
     end)
   end
@@ -179,7 +181,7 @@ defmodule OctoconDiscord.Commands.Admin do
               force_system_tags(context, options)
 
             _ ->
-              Utils.error_embed("An error occurred while fetching this server's settings.")
+              Utils.error_component("An error occurred while fetching this server's settings.")
           end
 
         settings ->
@@ -189,12 +191,12 @@ defmodule OctoconDiscord.Commands.Admin do
                  force_system_tags: new_value
                }) do
             :ok ->
-              Utils.success_embed(
+              Utils.success_component(
                 "Toggled forcing system tags to **#{if(new_value, do: "on", else: "off")}**."
               )
 
             _ ->
-              Utils.error_embed("An error occurred while toggling system tags.")
+              Utils.error_component("An error occurred while toggling system tags.")
           end
       end
     end)
@@ -209,7 +211,7 @@ defmodule OctoconDiscord.Commands.Admin do
               view_settings(context, options, true)
 
             _ ->
-              Utils.error_embed("An error occurred while fetching this server's settings.")
+              Utils.error_component("An error occurred while fetching this server's settings.")
           end
 
         settings ->
@@ -257,7 +259,7 @@ defmodule OctoconDiscord.Commands.Admin do
     if Enum.member?(permissions, :manage_guild) or Enum.member?(permissions, :administrator) do
       callback.()
     else
-      Utils.error_embed("You don't have permission to do that.")
+      Utils.error_component("You don't have permission to do that.")
     end
   end
 
