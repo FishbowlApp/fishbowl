@@ -134,6 +134,7 @@ services:
       - app_build:/build
       - app_deps:/deps
       - .:/app
+    user: root
     depends_on:
       scylla-ocn:
         condition: service_healthy

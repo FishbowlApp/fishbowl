@@ -1,25 +1,18 @@
 defmodule OctoconDiscord.Components do
   @moduledoc false
 
-  alias __MODULE__.{
-    AlterPaginator,
-    DeleteAccountHandler,
-    WipeAltersHandler,
-    HelpHandler,
-    ReproxyHandler
-  }
-
   @dispatchers %{
-    "alter" => &AlterPaginator.handle_interaction/3,
-    "wipe-alters" => &WipeAltersHandler.handle_interaction/3,
-    "delete-account" => &DeleteAccountHandler.handle_interaction/3,
-    "help" => &HelpHandler.handle_interaction/3,
-    "reproxy" => &ReproxyHandler.handle_interaction/3
+    "alter" => __MODULE__.AlterHandler,
+    "alter-pag" => __MODULE__.AlterPaginator,
+    "wipe-alters" => __MODULE__.WipeAltersHandler,
+    "delete-account" => __MODULE__.DeleteAccountHandler,
+    "help" => __MODULE__.HelpHandler,
+    "reproxy" => __MODULE__.ReproxyHandler
   }
 
   def dispatch(interaction) do
     [type, action, uid] = String.split(interaction.data.custom_id, "|")
 
-    Map.get(@dispatchers, type).(action, String.to_integer(uid), interaction)
+    Map.get(@dispatchers, type).handle_interaction(action, String.to_integer(uid), interaction)
   end
 end
