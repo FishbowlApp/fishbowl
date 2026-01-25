@@ -365,13 +365,17 @@ defmodule OctoconDiscord.Utils do
     show_front_components = fronts != false and not guarded
 
     is_fronting =
-      show_front_components and alter.id in (fronts |> Enum.map(&(&1.front.alter_id)))
+      show_front_components and alter.id in (fronts |> Enum.map(& &1.front.alter_id))
 
     is_primary =
-      show_front_components and alter.id == (fronts |> Enum.find(fn f -> f.primary end) |> case do
-        nil -> nil
-        front -> front.front.alter_id
-      end)
+      show_front_components and
+        alter.id ==
+          fronts
+          |> Enum.find(fn f -> f.primary end)
+          |> case do
+            nil -> nil
+            front -> front.front.alter_id
+          end
 
     fronting_text =
       cond do
@@ -379,7 +383,6 @@ defmodule OctoconDiscord.Utils do
           ""
 
         is_primary ->
-
           "\n\n⏫  •  Currently fronting! (Main)"
 
         true ->
@@ -428,13 +431,16 @@ defmodule OctoconDiscord.Utils do
           if guarded do
             []
           else
-            inserted_at = alter.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+            inserted_at =
+              alter.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+
             updated_at = alter.updated_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+
             [
               separator(spacing: :large),
-            text("**Security level:** #{security_level_to_string(alter.security_level)}"),
-            text("**Created:** <t:#{inserted_at}:F> (<t:#{inserted_at}:R>)")
-            # **Last updated:** <t:#{updated_at}:F> (<t:#{updated_at}:R>)
+              text("**Security level:** #{security_level_to_string(alter.security_level)}"),
+              text("**Created:** <t:#{inserted_at}:F> (<t:#{inserted_at}:R>)")
+              # **Last updated:** <t:#{updated_at}:F> (<t:#{updated_at}:R>)
             ]
           end
         ]
@@ -446,21 +452,19 @@ defmodule OctoconDiscord.Utils do
           []
 
         is_fronting ->
-          action_row(
-          [
+          action_row([
             button("alter|removefront|#{alter.id}", :secondary,
               label: "Remove from front",
-              emoji: %{name: "⬇️"}),
+              emoji: %{name: "⬇️"}
+            ),
             button("alter|toggleprimary|#{alter.id}", :secondary,
-              label: (if is_primary, do: "Unset as main front", else: "Set as main front"),
-              emoji: %{name: (if is_primary, do: "⏬", else: "⏫")}
+              label: if(is_primary, do: "Unset as main front", else: "Set as main front"),
+              emoji: %{name: if(is_primary, do: "⏬", else: "⏫")}
             )
-          ]
-          )
+          ])
 
         true ->
-          action_row(
-          [
+          action_row([
             button("alter|addfront|#{alter.id}", :secondary,
               label: "Add to front",
               emoji: %{name: "⬆️"}
@@ -469,10 +473,10 @@ defmodule OctoconDiscord.Utils do
               label: "Set as front",
               emoji: %{name: "📍"}
             )
-          ]
-        )
+          ])
       end
-    ] |> List.flatten()
+    ]
+    |> List.flatten()
   end
 
   def send_dm(%User{} = user, title, message) do
