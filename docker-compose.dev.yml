@@ -4,7 +4,7 @@ services:
     ports:
       - "9042:9042"
     restart: always
-    command: --seeds=scylla-nam --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    command: --seeds=scylla-nam --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-nam
     volumes:
       - ./dev/scylla/cassandra-rackdc.nam.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/nam:/var/lib/scylla
@@ -15,7 +15,7 @@ services:
   scylla-eur:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-eur
     volumes:
       - ./dev/scylla/cassandra-rackdc.eur.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/eur:/var/lib/scylla
@@ -24,25 +24,11 @@ services:
       - scylla-nam
     networks:
       octo_network:
-
-  scylla-gdpr:
-    image: scylladb/scylla:2025.1
-    restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
-    volumes:
-      - ./dev/scylla/cassandra-rackdc.gdpr.properties:/etc/scylla/cassandra-rackdc.properties
-      - ./dev/scylla/data/gdpr:/var/lib/scylla
-      - ./dev/scylla/scylla.yaml:/etc/scylla/scylla.yaml
-    depends_on:
-      - scylla-nam
-      - scylla-eur
-    networks:
-      octo_network:
   
   scylla-sam:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-sam
     volumes:
       - ./dev/scylla/cassandra-rackdc.sam.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/sam:/var/lib/scylla
@@ -50,14 +36,13 @@ services:
     depends_on:
       - scylla-nam
       - scylla-eur
-      - scylla-gdpr
     networks:
       octo_network:
 
   scylla-sas:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-sas
     volumes:
       - ./dev/scylla/cassandra-rackdc.sas.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/sas:/var/lib/scylla
@@ -65,7 +50,6 @@ services:
     depends_on:
       - scylla-nam
       - scylla-eur
-      - scylla-gdpr
       - scylla-sam
     networks:
       octo_network:
@@ -73,7 +57,7 @@ services:
   scylla-eas:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-eas
     volumes:
       - ./dev/scylla/cassandra-rackdc.eas.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/eas:/var/lib/scylla
@@ -81,7 +65,6 @@ services:
     depends_on:
       - scylla-nam
       - scylla-eur
-      - scylla-gdpr
       - scylla-sam
       - scylla-sas
     networks:
@@ -90,7 +73,7 @@ services:
   scylla-ocn:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-ocn
     volumes:
       - ./dev/scylla/cassandra-rackdc.ocn.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/ocn:/var/lib/scylla
@@ -98,7 +81,6 @@ services:
     depends_on:
       - scylla-nam
       - scylla-eur
-      - scylla-gdpr
       - scylla-sam
       - scylla-sas
       - scylla-eas
