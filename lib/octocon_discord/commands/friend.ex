@@ -55,25 +55,23 @@ defmodule OctoconDiscord.Commands.Friend do
       friendships ->
         [
           components: [
-            Utils.container(
-              [
-                Utils.text("## Your friends (#{length(friendships)})"),
-                Utils.separator(spacing: :large),
-                Utils.text(
-                  Enum.map_join(friendships, "\n", fn %{friend: friend, friendship: %{level: level}} ->
-                    "- **#{friend.username || friend.id}** (#{case friend.discord_id do
-                      nil -> ""
-                      id -> "<@#{id}>"
-                    end}#{case level do
-                      :trusted_friend -> "; :star:"
-                      :friend -> ""
-                    end})"
-                  end)
-                ),
-                Utils.separator(spacing: :large),
-                Utils.text("*⭐ = Trusted friend*")
-              ]
-            )
+            Utils.container([
+              Utils.text("## Your friends (#{length(friendships)})"),
+              Utils.separator(spacing: :large),
+              Utils.text(
+                Enum.map_join(friendships, "\n", fn %{friend: friend, friendship: %{level: level}} ->
+                  "- **#{friend.username || friend.id}** (#{case friend.discord_id do
+                    nil -> ""
+                    id -> "<@#{id}>"
+                  end}#{case level do
+                    :trusted_friend -> "; :star:"
+                    :friend -> ""
+                  end})"
+                end)
+              ),
+              Utils.separator(spacing: :large),
+              Utils.text("*⭐ = Trusted friend*")
+            ])
           ],
           flags: Utils.cv2_flags()
         ]
