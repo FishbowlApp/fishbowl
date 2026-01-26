@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.IdsAliases do
     [
       %Embed{
         title: "#{Emojis.faq()} How do IDs and aliases work?",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         In Octocon, every alter is identified by a numerical ID. Notably, this ID is unique on a by-system basis, but not globally. This means that two different users `Atlas` and `Prometheus` can *both* have an alter with the ID `1`.
 

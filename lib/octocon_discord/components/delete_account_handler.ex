@@ -2,11 +2,6 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
   @moduledoc false
   use GenServer
 
-  alias Nostrum.Struct.Component.{
-    ActionRow,
-    Button
-  }
-
   alias Nostrum.Api
 
   alias Octocon.Accounts
@@ -43,24 +38,26 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
        })
        when confirmations_left > 0 do
     [
-      embeds: [
-        %Nostrum.Struct.Embed{
-          title: "Delete account",
-          color: Utils.hex_to_int("#FF0000"),
-          description:
-            "**WARNING**: This command will **permanently** delete your system, as well as all associated data and settings.\n\nTo confirm, click the button below a total of **3** times."
-        }
-      ],
       components: [
-        ActionRow.action_row([
-          Button.interaction_button(
-            "Confirm (#{3 - confirmations_left}/3)",
+        Utils.container(
+          [
+            Utils.text("### Delete account"),
+            Utils.text(
+              "**WARNING**: This command will **permanently** delete your system, as well as all associated data and settings.\n\nTo confirm, click the button below a total of **3** times."
+            )
+          ],
+          %{accent_color: 0xFF0000}
+        ),
+        Utils.action_row([
+          Utils.button(
             "delete-account|confirm|#{uid}",
-            style: 4,
-            emoji: %Nostrum.Struct.Emoji{name: "⚠️"}
+            :danger,
+            label: "Confirm (#{3 - confirmations_left}/3)",
+            emoji: %{name: "⚠️"}
           )
         ])
-      ]
+      ],
+      flags: Utils.cv2_flags(false)
     ]
   end
 
@@ -72,15 +69,18 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
     Accounts.delete_user({:system, system_id})
 
     [
-      embeds: [
-        %Nostrum.Struct.Embed{
-          title: ":wave: Success!",
-          color: Utils.hex_to_int("#00FF00"),
-          description:
-            "**Your system has been deleted**. We hope you enjoyed using Octocon!\n\nIf you'd like to create a new account, you can run the `/register` command.\n\nIf you have any feedback, questions, or concerns, feel free to join our community server: https://octocon.app/discord"
-        }
+      components: [
+        Utils.container(
+          [
+            Utils.text("### :wave: Success!"),
+            Utils.text(
+              "**Your system has been deleted**. We hope you enjoyed using Octocon!\n\nIf you'd like to create a new account, you can run the `/register` command.\n\nIf you have any feedback, questions, or concerns, feel free to join our community server: https://octocon.app/discord"
+            )
+          ],
+          %{accent_color: 0x00FF00}
+        )
       ],
-      components: []
+      flags: Utils.cv2_flags(false)
     ]
   end
 

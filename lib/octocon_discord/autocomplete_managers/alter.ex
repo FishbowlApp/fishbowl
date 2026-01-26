@@ -23,8 +23,7 @@ defmodule OctoconDiscord.AutocompleteManagers.Alter do
         {:ignore, nil}
 
       _ ->
-        trie = Radix.new(alters)
-        {:commit, trie}
+        {:commit, Radix.new(alters)}
     end
   end
 

@@ -6,14 +6,20 @@ defmodule OctoconDiscord.AutocompleteManagers do
   require Logger
 
   @manager_associations %{
-    "alter" => OctoconDiscord.AutocompleteManagers.Alter
+    "alter" => OctoconDiscord.AutocompleteManagers.Alter,
+    "friend" => OctoconDiscord.AutocompleteManagers.Friend,
+    "request" => OctoconDiscord.AutocompleteManagers.FriendRequest,
+    "front" => OctoconDiscord.AutocompleteManagers.Front
   }
 
   def start_link(_), do: Supervisor.start_link(__MODULE__, [], name: __MODULE__)
 
   def init([]) do
     children = [
-      OctoconDiscord.AutocompleteManagers.Alter
+      OctoconDiscord.AutocompleteManagers.Alter,
+      OctoconDiscord.AutocompleteManagers.Friend,
+      OctoconDiscord.AutocompleteManagers.FriendRequest,
+      OctoconDiscord.AutocompleteManagers.Front
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -39,17 +45,21 @@ defmodule OctoconDiscord.AutocompleteManagers do
       @timeout :timer.seconds(5)
 
       def get_autocomplete_responses(discord_id, prefix)
-          when is_binary(discord_id) and is_binary(prefix) and byte_size(prefix) <= 20 do
+          when (is_binary(discord_id) or is_tuple(discord_id)) and is_binary(prefix) and
+                 byte_size(prefix) <= 20 do
         Task.async(fn -> do_fetch(discord_id, prefix) end)
         |> Task.await(@timeout)
       end
 
-      defp do_fetch(discord_id, prefix) do
+      defp do_fetch(key, prefix) do
+        cache_function =
+          if is_tuple(key), do: &__MODULE__.cache_function/2, else: &__MODULE__.cache_function/1
+
         trie =
           Cachex.fetch!(
             __MODULE__,
-            discord_id,
-            OctoconDiscord.AutocompleteManagers.wrap_cache_function(&__MODULE__.cache_function/1)
+            key,
+            OctoconDiscord.AutocompleteManagers.wrap_cache_function(cache_function)
           )
 
         if trie == nil do
@@ -57,6 +67,10 @@ defmodule OctoconDiscord.AutocompleteManagers do
         else
           generate_autocomplete_responses(trie, prefix)
         end
+      end
+
+      def invalidate({:key, key}) do
+        Cachex.del(__MODULE__, key)
       end
 
       def invalidate({:discord, discord_id}) when is_binary(discord_id) do
@@ -75,31 +89,45 @@ defmodule OctoconDiscord.AutocompleteManagers do
   def generate_autocomplete_responses(trie, prefix, id_type \\ :string)
       when is_tuple(trie) and is_binary(prefix) and byte_size(prefix) <= 20 do
     trie
-      |> Radix.more(format_name_for_search(prefix))
-      |> Enum.take(25)
-      |> Enum.map(fn {_key, {id, display_name}} ->
-        value =
-          case id_type do
-            :string -> to_string(id)
-            :integer -> id
-          end
+    |> Radix.more(format_name_for_search(prefix))
+    |> Enum.take(25)
+    |> Enum.map(fn {_key, {id, display_name}} ->
+      value =
+        case id_type do
+          :string -> to_string(id)
+          :integer -> id
+        end
 
-        %{
-          name: display_name,
-          value: value
-        }
-      end)
-      |> Enum.sort_by(& &1.name)
+      %{
+        name: display_name,
+        value: value
+      }
+    end)
+    |> Enum.sort_by(&(&1.name |> String.downcase()))
   end
 
   def wrap_cache_function(cache_function) when is_function(cache_function, 1) do
-    fn discord_id ->
-      case Octocon.Accounts.get_user({:discord, discord_id}) do
+    fn key ->
+      case Octocon.Accounts.get_user({:discord, key}) do
         nil ->
           {:ignore, nil}
 
         user ->
           cache_function.(user)
+      end
+    end
+  end
+
+  def wrap_cache_function(cache_function) when is_function(cache_function, 2) do
+    fn key ->
+      {discord_id, supplementary_key} = key
+
+      case Octocon.Accounts.get_user({:discord, discord_id}) do
+        nil ->
+          {:ignore, nil}
+
+        user ->
+          cache_function.(user, supplementary_key)
       end
     end
   end
@@ -113,6 +141,16 @@ defmodule OctoconDiscord.AutocompleteManagers do
   def dispatch(%{user: %{id: discord_id}, data: %{name: command, options: options}} = interaction) do
     focused_option =
       Enum.find(flatten_leaf_options(options), fn opt -> Map.get(opt, :focused, false) end)
+
+    command =
+      if command == "friend" do
+        case options do
+          [%{name: "request"} | _] -> "request"
+          _ -> command
+        end
+      else
+        command
+      end
 
     @manager_associations[command].handle_interaction(
       to_string(discord_id),

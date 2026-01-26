@@ -278,7 +278,7 @@ defmodule OctoconDiscord.Utils do
     fronting_text =
       cond do
         not is_fronting ->
-          ""
+          nil
 
         is_primary ->
           "\n\n⏫  •  Currently fronting! (Main)"
@@ -288,16 +288,21 @@ defmodule OctoconDiscord.Utils do
       end
 
     upper_text =
-      text(
-        "## #{alter.name || "Unnamed alter"}#{if alter.pronouns && alter.pronouns != "", do: " (#{alter.pronouns})", else: ""}#{fronting_text}\n\n#{description}"
-      )
+      [
+        text(
+          "## #{alter.name || "Unnamed alter"}#{if alter.pronouns && alter.pronouns != "", do: " (#{alter.pronouns})", else: ""}"
+        ),
+        if(fronting_text != nil, do: text(fronting_text), else: []),
+        text("#{description}")
+      ]
+      |> List.flatten()
 
     [
       container(
         [
           case alter.avatar_url do
             url when url != nil and url != "" ->
-              section([upper_text], thumbnail(url))
+              section(upper_text, thumbnail(url))
 
             _ ->
               upper_text
@@ -384,13 +389,16 @@ defmodule OctoconDiscord.Utils do
           {:ok, channel} = Api.User.create_dm(Integer.parse(user.discord_id) |> elem(0))
 
           Api.Message.create(channel.id, %{
-            embeds: [
-              %Nostrum.Struct.Embed{
-                title: title,
-                color: hex_to_int("#3F3793"),
-                description: message
-              }
-            ]
+            components: [
+              container(
+                [
+                  text("### #{title}"),
+                  text(message)
+                ],
+                %{accent_color: hex_to_int("#3F3793")}
+              )
+            ],
+            flags: cv2_flags(false)
           })
         end
       end)
@@ -418,13 +426,14 @@ defmodule OctoconDiscord.Utils do
   end
 
   def system_id_from_opts(opts, callback) do
+    num_opts = Enum.count(Map.keys(opts))
     num_nil = Map.values(opts) |> Enum.count(&is_nil/1)
 
     cond do
-      num_nil == 3 ->
+      num_nil == num_opts ->
         error_component("You must specify a system ID, Discord ping, or username.")
 
-      num_nil != 2 ->
+      num_nil != num_opts - 1 ->
         error_component("You must *only* specify a system ID, Discord ping, *or* username.")
 
       opts.system_id ->
@@ -608,6 +617,15 @@ defmodule OctoconDiscord.Utils do
       type: 2,
       custom_id: id,
       style: style
+    }
+    |> Map.merge(options |> Enum.into(%{}))
+  end
+
+  def link_button(url, options \\ []) do
+    %{
+      type: 2,
+      style: 5,
+      url: url
     }
     |> Map.merge(options |> Enum.into(%{}))
   end

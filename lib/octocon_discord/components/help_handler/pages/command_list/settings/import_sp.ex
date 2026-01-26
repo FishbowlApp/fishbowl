@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Settings.Impor
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/settings import-sp`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/settings import-sp` command imports existing alters from Simply Plural, including their names, descriptions, pronouns, and avatars.
         ### Usage

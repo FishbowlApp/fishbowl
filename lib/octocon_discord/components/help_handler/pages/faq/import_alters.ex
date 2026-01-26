@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.ImportAlters do
     [
       %Embed{
         title: "#{Emojis.faq()} Can I import my alters from PluralKit or Simply Plural?",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         Yep! You can import your alters from PluralKit or Simply Plural with the `/settings import-pk` and `/settings import-sp` commands, respectively.
         ### PluralKit

@@ -102,16 +102,21 @@ defmodule OctoconDiscord.Commands.Admin do
 
         channels ->
           [
-            embeds: [
-              %Nostrum.Struct.Embed{
-                title: "Blacklisted Channels",
-                description:
-                  Enum.map_join(channels, "\n", fn channel ->
-                    "- <##{channel.channel_id}>"
-                  end)
-              }
+            components: [
+              Utils.container(
+                [
+                  Utils.text("## Blacklisted channels"),
+                  Utils.separator(spacing: :large),
+                  Utils.text(
+                    Enum.map_join(channels, "\n", fn channel ->
+                      "- <##{channel.channel_id}>"
+                    end)
+                  )
+                ],
+                %{accent_color: Utils.hex_to_int("#3F3793")}
+              )
             ],
-            ephemeral?: true
+            flags: Utils.cv2_flags()
           ]
       end
     end)
@@ -219,28 +224,22 @@ defmodule OctoconDiscord.Commands.Admin do
           force_system_tags = settings.force_system_tags
 
           [
-            embeds: [
-              %Nostrum.Struct.Embed{
-                title: "Server settings",
-                fields: [
-                  %Nostrum.Struct.Embed.Field{
-                    name: "Force system tags?",
-                    value: if(force_system_tags, do: "Yes", else: "No"),
-                    inline: true
-                  },
-                  %Nostrum.Struct.Embed.Field{
-                    name: "Log channel",
-                    value:
-                      case log_channel do
-                        nil -> "None"
-                        channel -> "<##{channel}>"
-                      end,
-                    inline: true
-                  }
-                ]
-              }
+            components: [
+              Utils.container(
+                [
+                  Utils.text("## Server settings"),
+                  Utils.separator(spacing: :large),
+                  Utils.text(
+                    "**Force system tags:** #{if(force_system_tags, do: "Yes", else: "No")}"
+                  ),
+                  Utils.text(
+                    "**Log channel:** #{if(log_channel, do: "<##{log_channel}>", else: "None")}"
+                  )
+                ],
+                %{accent_color: Utils.hex_to_int("#3F3793")}
+              )
             ],
-            ephemeral?: true
+            flags: Utils.cv2_flags()
           ]
       end
     end

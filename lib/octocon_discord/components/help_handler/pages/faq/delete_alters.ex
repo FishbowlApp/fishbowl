@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.DeleteAlters do
     [
       %Embed{
         title: "#{Emojis.faq()} Can I delete all of my alters at once?",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         Yes! You can delete all of your alters at once by running the `/danger wipe-alters` command. Be careful, though; this action is **irreversible**!
 

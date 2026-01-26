@@ -24,6 +24,7 @@ defmodule Octocon.Application do
 
   @impl Application
   def start(_type, _args) do
+    Logger.add_handlers(:octocon)
     group = Octocon.RPC.NodeTracker.current_group()
     Logger.warning("Starting node of type: #{group}")
 

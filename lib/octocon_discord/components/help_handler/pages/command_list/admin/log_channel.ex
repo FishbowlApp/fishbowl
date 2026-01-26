@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Admin.LogChann
     [
       %Embed{
         title: "#{Emojis.folder()} `/admin log-channel`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/admin log-channel` command group manages this server's log channel. Whenever a message is proxied, a log message detailing the message and its sender's Discord account is sent to this channel.
         ## #{Emojis.slashcommand()} `/admin log-channel set`
