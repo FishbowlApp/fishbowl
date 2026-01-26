@@ -84,12 +84,12 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList do
     [
       %Embed{
         title: "#{Emojis.slashcommand()} Command list",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         Octocon uses `/slash commands` to interact with the bot. Choose a command or category below to view more information!
         ### Note
         > All commands are **ephemeral**, meaning they only show up for you and are not visible to others.
-        > 
+        >
         > You can use Octocon commands in public without worrying about other people seeing your data!
 
         #{Emojis.folder()} *= Category*

@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Register do
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/register`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/register` command creates a new Octocon account using your Discord account. You'll have to run this command before you can use most of Octocon's features!
         ### Usage

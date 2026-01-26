@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Alter.Proxy do
     [
       %Embed{
         title: "#{Emojis.folder()} `/alter proxy`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/alter proxy` command group manages an alter's chat proxies.
 

@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Admin.ViewSett
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/admin view-settings`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/admin view-settings` command views this server's current admin settings.
         ### Usage

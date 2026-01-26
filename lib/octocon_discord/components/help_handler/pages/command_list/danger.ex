@@ -18,7 +18,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Danger do
     [
       %Embed{
         title: "#{Emojis.folder()} `/danger`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/danger` command group contains **dangerous, irreversible** commands that require additional confirmation. Choose a subcommand below to learn more about it!
         """

@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Front.View do
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/front view`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/front view` command views a list of alters that are currently fronting.
         ### Usage

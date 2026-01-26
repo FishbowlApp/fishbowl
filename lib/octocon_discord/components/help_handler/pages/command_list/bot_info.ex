@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.BotInfo do
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/bot-info`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/bot-info` command shows technical information and metrics about the Octocon bot.
 

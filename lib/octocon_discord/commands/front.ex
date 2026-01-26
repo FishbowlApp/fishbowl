@@ -48,34 +48,38 @@ defmodule OctoconDiscord.Commands.Front do
         "No alters are fronting! Use `/front add` to add alters to front, or `/front set` to set a single alter to front."
       )
     else
-      now_epoch = Timex.Duration.now(:second)
-
       [
-        embeds: [
-          %Nostrum.Struct.Embed{
-            title: "Currently fronting alters (#{length(currently_fronting)})",
-            description:
-              Enum.map_join(currently_fronting, "\n", fn %{
-                                                           front: front,
-                                                           alter: alter,
-                                                           primary: primary
-                                                         } ->
-                start_epoch = front.time_start |> Timex.to_unix()
+        components: [
+          Utils.container(
+            [
+              Utils.text("## Currently fronting alters (#{length(currently_fronting)})"),
+              Utils.separator(spacing: :large),
+              Enum.map(currently_fronting, fn %{front: front, alter: alter, primary: primary} ->
+                inserted_at =
+                  front.time_start |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
 
-                "- `#{alter.id}  ` **#{alter.name}** #{case front.comment do
-                  [] -> ""
-                  "" -> ""
-                  comment -> "(#{comment})"
-                end}#{if primary,
-                  do: " :star:",
-                  else: ""}\n  - *#{(now_epoch - start_epoch) |> Timex.Duration.from_seconds() |> Timex.format_duration(:humanized)}*\n"
+                Utils.text("""
+                #{if primary, do: ":star: ", else: ""}**#{alter.name || "Unnamed alter"}**#{case alter.pronouns do
+                  nil -> ""
+                  pronouns -> " (#{pronouns})"
+                end}
+                - ID: `#{alter.id}`#{case alter.alias do
+                  nil -> ""
+                  alias -> "  •  Alias: `#{alias}`"
+                end}
+                - Fronting since: <t:#{inserted_at}:R>
+                #{if front.comment && front.comment != "",
+                  do: "- Comment: #{front.comment}",
+                  else: ""}
+                """)
               end),
-            footer: %Nostrum.Struct.Embed.Footer{
-              text: "⭐ = Main front"
-            }
-          }
+              Utils.separator(spacing: :large),
+              Utils.text("*⭐ = Main front*")
+            ]
+            |> List.flatten()
+          )
         ],
-        ephemeral?: true
+        flags: Utils.cv2_flags()
       ]
     end
   end
@@ -242,7 +246,8 @@ defmodule OctoconDiscord.Commands.Front do
             description: "The ID (or alias) of the alter to add to front.",
             type: :string,
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           },
           %{
             name: "comment",
@@ -269,7 +274,8 @@ defmodule OctoconDiscord.Commands.Front do
             description: "The ID (or alias) of the alter to end fronting.",
             type: :string,
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           }
         ]
       },
@@ -283,7 +289,8 @@ defmodule OctoconDiscord.Commands.Front do
             description: "The ID (or alias) of the alter to set to front.",
             type: :string,
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           },
           %{
             name: "comment",
@@ -310,7 +317,8 @@ defmodule OctoconDiscord.Commands.Front do
             description: "The ID (or alias) of the alter to set as main front.",
             type: :string,
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           },
           %{
             name: "add-to-front",

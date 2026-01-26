@@ -76,7 +76,7 @@ defmodule OctoconDiscord.Commands.BotInfo do
         embeds: [
           %Nostrum.Struct.Embed{
             title: "Octocon Bot Info",
-            color: Utils.hex_to_int("#0FBEAA"),
+            color: Utils.hex_to_int("#3F3793"),
             fields: [
               %Nostrum.Struct.Embed.Field{
                 name: "Local node information",
@@ -166,7 +166,7 @@ defmodule OctoconDiscord.Commands.BotInfo do
       embeds: [
         %Nostrum.Struct.Embed{
           title: "Fetching bot info...",
-          color: Utils.hex_to_int("#0FBEAA")
+          color: Utils.hex_to_int("#3F3793")
         }
       ]
     ]

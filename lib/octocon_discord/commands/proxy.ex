@@ -23,7 +23,7 @@ defmodule OctoconDiscord.Proxy do
 
   alias Nostrum.Api
 
-  @proxy_delay_ms 500
+  @proxy_delay_ms 850
   @proxy_delete_delay_ms @proxy_delay_ms + 300
 
   # https://discord.com/developers/docs/resources/channel#channel-object-channel-types
@@ -422,35 +422,33 @@ defmodule OctoconDiscord.Proxy do
           content
       end
 
+    creation_time = Nostrum.Snowflake.creation_time(message_id) |> DateTime.to_unix()
+
     result =
       Api.Message.create(
         String.to_integer(log_channel),
         %{
-          content: "",
-          url: permalink,
-          embeds: [
-            %Nostrum.Struct.Embed{
-              title: "Message proxied",
-              timestamp: Nostrum.Snowflake.creation_time(message_id),
-              fields: [
-                %Nostrum.Struct.Embed.Field{
-                  name: "Author",
-                  value: "<@#{author_id}>",
-                  inline: true
-                },
-                %Nostrum.Struct.Embed.Field{
-                  name: "Permalink",
-                  value: "[Jump to message](#{permalink})",
-                  inline: true
-                }
+          components: [
+            Utils.container(
+              [
+                Utils.section(
+                  [
+                    Utils.text("### Message proxied"),
+                    Utils.text(truncated_content)
+                  ],
+                  Utils.thumbnail(Utils.get_avatar_url(author_id, avatar_hash))
+                ),
+                Utils.separator(spacing: :large),
+                Utils.text("**Author:** <@#{author_id}>"),
+                Utils.text("**Sent at:** <t:#{creation_time}:F> (<t:#{creation_time}:R>)")
               ],
-              thumbnail: %Nostrum.Struct.Embed.Thumbnail{
-                url: Utils.get_avatar_url(author_id, avatar_hash)
-              },
-              color: Utils.hex_to_int("#0FBEAA"),
-              description: truncated_content
-            }
-          ]
+              %{accent_color: Utils.hex_to_int("#3F3793")}
+            ),
+            Utils.action_row([
+              Utils.link_button(permalink, label: "Jump to message")
+            ])
+          ],
+          flags: Utils.cv2_flags(false) |> Bitwise.bor(Bitwise.bsl(1, 12))
         }
       )
 
@@ -464,6 +462,7 @@ defmodule OctoconDiscord.Proxy do
   end
 
   # Recreate replies as embeds
+  # TODO: Replace with components
   defp build_reply_embed(message, reply, color) do
     %{
       author: reply_author,

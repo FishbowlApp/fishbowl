@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Friend.Cancel 
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/friend cancel`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/friend cancel` command cancels an outgoing friend request to another user.
         ### Usage

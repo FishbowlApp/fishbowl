@@ -8,7 +8,8 @@ defmodule OctoconDiscord.Consumer do
 
   alias OctoconDiscord.{
     Commands,
-    Components
+    Components,
+    Utils
   }
 
   alias OctoconDiscord.Events.MessageCreate
@@ -96,6 +97,7 @@ defmodule OctoconDiscord.Consumer do
           choices: []
         }
       })
+
       reraise e, __STACKTRACE__
   end
 
@@ -119,14 +121,10 @@ defmodule OctoconDiscord.Consumer do
     Nostrum.Api.Interaction.create_response(interaction, %{
       type: 4,
       data: %{
-        flags: 64,
-        embeds: [
-          %{
-            title: ":x: Whoops!",
-            description: "An error occurred while processing your command.",
-            color: 0xFF0000
-          }
-        ]
+        components: [
+          Utils.error_component_raw("An error occurred while processing your command.")
+        ],
+        flags: Utils.cv2_flags()
       }
     })
   end

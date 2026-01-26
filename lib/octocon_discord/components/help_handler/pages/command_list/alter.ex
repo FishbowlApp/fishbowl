@@ -58,7 +58,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Alter do
     [
       %Embed{
         title: "#{Emojis.folder()} `/alter`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/alter` command group manages your alters. Choose a subcommand below to learn more about it!
 

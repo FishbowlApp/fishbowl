@@ -78,10 +78,14 @@ defmodule OctoconDiscord.Commands.System do
 
           {:ok, alter} ->
             [
-              components: [
-                Utils.text("**NOTE:** This alter's information is only visible to you. You probably shouldn't share this with anyone else."),
-                Utils.alter_component(alter, false, true)
-              ] |> List.flatten(),
+              components:
+                [
+                  Utils.text(
+                    "**NOTE:** This alter's information is only visible to you. You probably shouldn't share this with anyone else."
+                  ),
+                  Utils.alter_component(alter, false, true)
+                ]
+                |> List.flatten(),
               flags: Utils.cv2_flags()
             ]
         end
@@ -107,35 +111,37 @@ defmodule OctoconDiscord.Commands.System do
           "No alters are currently fronting in that system, or you do not have permission to view them."
         )
       else
-        now_epoch = Timex.Duration.now(:second)
-
         [
-          embeds: [
-            %Nostrum.Struct.Embed{
-              title:
-                "Currently fronting alters for system #{decorator} (#{length(currently_fronting)})",
-              description:
-                Enum.map_join(
-                  currently_fronting,
-                  "\n",
-                  fn %{front: front, alter: alter, primary: primary} ->
-                    start_epoch = front.time_start |> Timex.to_unix()
-
-                    "- `#{alter.id}  ` **#{alter.name}** #{case front.comment do
-                      [] -> ""
-                      "" -> ""
-                      comment -> "(#{comment})"
-                    end}#{if primary,
-                      do: " :star:",
-                      else: ""}\n  - *#{(now_epoch - start_epoch) |> Timex.Duration.from_seconds() |> Timex.format_duration(:humanized)}*\n"
-                  end
+          components: [
+            Utils.container(
+              [
+                Utils.text(
+                  "## Currently fronting in system #{decorator} (#{length(currently_fronting)})\n*Note: You may not have permission to view all fronting alters.*"
                 ),
-              footer: %Nostrum.Struct.Embed.Footer{
-                text: "⭐ = Main front"
-              }
-            }
+                Utils.separator(spacing: :large),
+                Enum.map(currently_fronting, fn %{front: front, alter: alter, primary: primary} ->
+                  inserted_at =
+                    front.time_start |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+
+                  Utils.text("""
+                  #{if primary, do: ":star: ", else: ""}**#{alter.name || "Unnamed alter"}**#{case alter.pronouns do
+                    nil -> ""
+                    pronouns -> " (#{pronouns})"
+                  end}
+                  - ID: `#{alter.id}`
+                  - Fronting since: <t:#{inserted_at}:R>
+                  #{if front.comment && front.comment != "",
+                    do: "- Comment: #{front.comment}",
+                    else: ""}
+                  """)
+                end),
+                Utils.separator(spacing: :large),
+                Utils.text("*⭐ = Main front*")
+              ]
+              |> List.flatten()
+            )
           ],
-          ephemeral?: true
+          flags: Utils.cv2_flags()
         ]
       end
     end)

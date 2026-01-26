@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Settings.Avata
     [
       %Embed{
         title: "#{Emojis.folder()} `/settings avatar`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/settings avatar` command group modifies your system's avatar (profile picture).
         ## #{Emojis.slashcommand()} `/settings avatar set`

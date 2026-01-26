@@ -47,16 +47,23 @@ defmodule OctoconDiscord.Commands.Messages.PingAccount do
           permalink = "https://discord.com/channels/#{guild_id}/#{channel_id}/#{message_id}"
 
           [
-            content: "<@#{message.author_id}>",
-            embeds: [
-              %Nostrum.Struct.Embed{
-                color: Utils.hex_to_int("#0FBEAA"),
-                title: ":bell: You've been pinged!",
-                description:
-                  "<@#{user_id}> has pinged you from a [proxied message](#{permalink})."
-              }
+            components: [
+              Utils.text("<@#{message.author_id}>"),
+              Utils.container(
+                [
+                  Utils.text("### :bell: You've been pinged!"),
+                  Utils.text(
+                    if to_string(user_id) == to_string(message.author_id) do
+                      "You have pinged yourself from a [proxied message](#{permalink})."
+                    else
+                      "<@#{user_id}> has pinged you from a [proxied message](#{permalink})."
+                    end
+                  )
+                ],
+                %{accent_color: Utils.hex_to_int("#3F3793")}
+              )
             ],
-            ephemeral?: false
+            flags: Utils.cv2_flags(false)
           ]
       end
     else
