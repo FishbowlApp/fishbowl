@@ -402,6 +402,8 @@ defmodule Octocon.Fronts do
           Octocon.ClusterUtils.run_on_primary(fn ->
             Octocon.Global.FrontNotifier.add(system_id, alter_id)
           end)
+
+          OctoconDiscord.AutocompleteManagers.Front.invalidate(system_identity)
         end)
 
         insertion
