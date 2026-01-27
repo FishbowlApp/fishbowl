@@ -394,6 +394,8 @@ defmodule Octocon.Alters do
               })
             end)
 
+            OctoconDiscord.AutocompleteManagers.Alter.invalidate(system_identity)
+
             {:ok, alter_id, get_alter_by_id!({:system, user.id}, {:id, alter_id})}
 
           {:error, _changeset} ->
@@ -448,6 +450,8 @@ defmodule Octocon.Alters do
             OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "alter_deleted", %{
               alter_id: alter_id
             })
+
+            OctoconDiscord.AutocompleteManagers.Alter.invalidate(system_identity)
           end)
 
           spawn(fn ->
@@ -520,6 +524,10 @@ defmodule Octocon.Alters do
                   alter
                   |> OctoconWeb.System.AlterJSON.data_me()
               })
+
+              if Map.has_key?(attrs, :name) or Map.has_key?(attrs, :alias) do
+                OctoconDiscord.AutocompleteManagers.Alter.invalidate(system_identity)
+              end
             end)
 
             :ok

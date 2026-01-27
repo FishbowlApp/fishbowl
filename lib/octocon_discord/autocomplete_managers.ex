@@ -52,14 +52,11 @@ defmodule OctoconDiscord.AutocompleteManagers do
       end
 
       defp do_fetch(key, prefix) do
-        cache_function =
-          if is_tuple(key), do: &__MODULE__.cache_function/2, else: &__MODULE__.cache_function/1
-
         trie =
           Cachex.fetch!(
             __MODULE__,
             key,
-            OctoconDiscord.AutocompleteManagers.wrap_cache_function(cache_function)
+            OctoconDiscord.AutocompleteManagers.wrap_cache_function(__MODULE__, is_tuple(key))
           )
 
         if trie == nil do
@@ -69,18 +66,23 @@ defmodule OctoconDiscord.AutocompleteManagers do
         end
       end
 
-      def invalidate({:key, key}) do
-        Cachex.del(__MODULE__, key)
-      end
+      def invalidate(system_identity, supplementary \\ nil)
 
-      def invalidate({:discord, discord_id}) when is_binary(discord_id) do
+      def invalidate({:discord, discord_id}, nil) when is_binary(discord_id) do
         Cachex.del(__MODULE__, discord_id)
       end
 
-      def invalidate(system_identity) do
+      def invalidate({:discord, discord_id}, supplementary) when is_binary(discord_id) do
+        Cachex.del(__MODULE__, {discord_id, supplementary})
+      end
+
+      def invalidate(system_identity, supplementary) do
         case Octocon.Accounts.get_user(system_identity) do
-          %{discord_id: discord_id} when discord_id != nil -> invalidate({:discord, discord_id})
-          _ -> {:ok, true}
+          %{discord_id: discord_id} when discord_id != nil ->
+            invalidate({:discord, discord_id}, supplementary)
+
+          _ ->
+            {:ok, true}
         end
       end
     end
@@ -103,22 +105,22 @@ defmodule OctoconDiscord.AutocompleteManagers do
         value: value
       }
     end)
-    |> Enum.sort_by(&(&1.name |> String.downcase()))
+    |> Enum.sort_by(&String.downcase(&1.name))
   end
 
-  def wrap_cache_function(cache_function) when is_function(cache_function, 1) do
+  def wrap_cache_function(cache_module, false) do
     fn key ->
       case Octocon.Accounts.get_user({:discord, key}) do
         nil ->
           {:ignore, nil}
 
         user ->
-          cache_function.(user)
+          cache_module.cache_function(user)
       end
     end
   end
 
-  def wrap_cache_function(cache_function) when is_function(cache_function, 2) do
+  def wrap_cache_function(cache_module, true) do
     fn key ->
       {discord_id, supplementary_key} = key
 
@@ -127,7 +129,7 @@ defmodule OctoconDiscord.AutocompleteManagers do
           {:ignore, nil}
 
         user ->
-          cache_function.(user, supplementary_key)
+          cache_module.cache_function(user, supplementary_key)
       end
     end
   end
