@@ -381,12 +381,12 @@ defmodule OctoconDiscord.Utils do
           ])
       end,
       if show_extra_components do
-        action_row([
-
-        ])
+        action_row([])
 
         []
-        else [] end
+      else
+        []
+      end
     ]
     |> List.flatten()
   end
