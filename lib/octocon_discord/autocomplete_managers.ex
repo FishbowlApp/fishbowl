@@ -172,7 +172,7 @@ defmodule OctoconDiscord.AutocompleteManagers do
   end
 
   def invalidate_all(system_identity) do
-    discord_id = Accounts.id_from_system_identity(system_identity, :discord)
+    discord_id = Octocon.Accounts.id_from_system_identity(system_identity, :discord)
 
     if discord_id != nil do
       Map.values(@manager_associations)

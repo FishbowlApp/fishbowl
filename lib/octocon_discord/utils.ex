@@ -260,13 +260,13 @@ defmodule OctoconDiscord.Utils do
           normalized_description
       end
 
-    show_front_components = fronts != false and not guarded
+    show_extra_components = fronts != false and not guarded
 
     is_fronting =
-      show_front_components and alter.id in (fronts |> Enum.map(& &1.front.alter_id))
+      show_extra_components and alter.id in (fronts |> Enum.map(& &1.front.alter_id))
 
     is_primary =
-      show_front_components and
+      show_extra_components and
         alter.id ==
           fronts
           |> Enum.find(fn f -> f.primary end)
@@ -351,16 +351,18 @@ defmodule OctoconDiscord.Utils do
         %{accent_color: hex_to_int(alter.color)}
       ),
       cond do
-        !show_front_components ->
+        !show_extra_components ->
           []
 
         is_fronting ->
+          primary_command = if is_primary, do: "removeprimary", else: "setprimary"
+
           action_row([
             button("alter|removefront|#{alter.id}", :secondary,
               label: "Remove from front",
               emoji: %{name: "⬇️"}
             ),
-            button("alter|toggleprimary|#{alter.id}", :secondary,
+            button("alter|#{primary_command}|#{alter.id}", :secondary,
               label: if(is_primary, do: "Unset as main front", else: "Set as main front"),
               emoji: %{name: if(is_primary, do: "⏬", else: "⏫")}
             )
@@ -377,7 +379,14 @@ defmodule OctoconDiscord.Utils do
               emoji: %{name: "📍"}
             )
           ])
-      end
+      end,
+      if show_extra_components do
+        action_row([
+
+        ])
+
+        []
+        else [] end
     ]
     |> List.flatten()
   end
