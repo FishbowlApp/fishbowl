@@ -340,6 +340,8 @@ defmodule Octocon.Fronts do
               OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "fronting_ended", %{
                 alter_id: alter_id
               })
+
+              OctoconDiscord.AutocompleteManagers.Front.invalidate(system_identity)
             end)
 
             spawn(fn ->
@@ -573,6 +575,8 @@ defmodule Octocon.Fronts do
           OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "fronting_set", %{
             front: get_by_id({:system, system_id}, id) |> FrontingJSON.data_me()
           })
+
+          OctoconDiscord.AutocompleteManagers.Front.invalidate(system_identity)
         end)
 
         spawn(fn ->
@@ -610,6 +614,8 @@ defmodule Octocon.Fronts do
       where: f.user_id == ^system_id and f.id in ^front_ids and f.time_start in ^front_time_starts
     )
     |> Repo.delete_all_regional({:user, system_identity})
+
+    :ok
   end
 
   def change_front(%Front{} = front, attrs) do

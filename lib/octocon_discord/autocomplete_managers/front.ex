@@ -29,21 +29,19 @@ defmodule OctoconDiscord.AutocompleteManagers.Front do
 
   def handle_interaction(discord_id, focused_option, %{data: %{options: [%{name: command} | _]}}) do
     autocomplete_provider =
-      case command do
-        "add" ->
-          fn prefix ->
-            currently_fronting =
-              get_autocomplete_responses(discord_id, "") |> Enum.map(& &1.value)
+      if command in ["add", "set"] do
+        fn prefix ->
+          currently_fronting =
+            get_autocomplete_responses(discord_id, "") |> Enum.map(& &1.value)
 
-            OctoconDiscord.AutocompleteManagers.Alter.get_autocomplete_responses(
-              discord_id,
-              prefix
-            )
-            |> Enum.filter(fn %{value: alter_id} -> alter_id not in currently_fronting end)
-          end
-
-        _ ->
-          fn prefix -> get_autocomplete_responses(discord_id, prefix) end
+          OctoconDiscord.AutocompleteManagers.Alter.get_autocomplete_responses(
+            discord_id,
+            prefix
+          )
+          |> Enum.filter(fn %{value: alter_id} -> alter_id not in currently_fronting end)
+        end
+      else
+        fn prefix -> get_autocomplete_responses(discord_id, prefix) end
       end
 
     case focused_option do

@@ -743,11 +743,12 @@ defmodule Octocon.Accounts do
         {:error, :not_deleted}
 
       {:ok, _} ->
-        OctoconDiscord.ProxyCache.invalidate(user.discord_id)
-
         spawn(fn ->
           delete_user_registry({:system, user.id})
           delete_user_data(user.id)
+
+          OctoconDiscord.ProxyCache.invalidate(user.discord_id)
+          OctoconDiscord.AutocompleteManagers.invalidate_all(system_identity)
         end)
 
         spawn(fn ->
@@ -901,6 +902,9 @@ defmodule Octocon.Accounts do
 
     spawn(fn ->
       OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alters_wiped", %{})
+
+      OctoconDiscord.AutocompleteManagers.Alter.invalidate(system_identity)
+      OctoconDiscord.AutocompleteManagers.Front.invalidate(system_identity)
     end)
 
     :ok

@@ -69,11 +69,11 @@ defmodule OctoconDiscord.AutocompleteManagers do
       def invalidate(system_identity, supplementary \\ nil)
 
       def invalidate({:discord, discord_id}, nil) when is_binary(discord_id) do
-        Cachex.del(__MODULE__, discord_id)
+        delete_cache_key(discord_id)
       end
 
       def invalidate({:discord, discord_id}, supplementary) when is_binary(discord_id) do
-        Cachex.del(__MODULE__, {discord_id, supplementary})
+        delete_cache_key({discord_id, supplementary})
       end
 
       def invalidate(system_identity, supplementary) do
@@ -84,6 +84,12 @@ defmodule OctoconDiscord.AutocompleteManagers do
           _ ->
             {:ok, true}
         end
+      end
+
+      defp delete_cache_key(key) do
+        Octocon.ClusterUtils.run_on_all_primary_nodes(fn ->
+          Cachex.del(__MODULE__, key)
+        end)
       end
     end
   end
@@ -163,6 +169,17 @@ defmodule OctoconDiscord.AutocompleteManagers do
     e ->
       Logger.error("Error handling autocomplete interaction: #{inspect(e)}")
       []
+  end
+
+  def invalidate_all(system_identity) do
+    discord_id = Accounts.id_from_system_identity(system_identity, :discord)
+
+    if discord_id != nil do
+      Map.values(@manager_associations)
+      |> Enum.each(fn manager -> manager.invalidate(system_identity) end)
+    end
+
+    :ok
   end
 
   defp flatten_leaf_options(options) do
