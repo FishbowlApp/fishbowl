@@ -20,6 +20,7 @@ defmodule OctoconDiscord.Consumer do
     "system" => Commands.System,
     "settings" => Commands.Settings,
     "alter" => Commands.Alter,
+    "tag" => Commands.Tag,
     "autoproxy" => Commands.Autoproxy,
     "global-autoproxy" => Commands.GlobalAutoproxy,
     "danger" => Commands.Danger,

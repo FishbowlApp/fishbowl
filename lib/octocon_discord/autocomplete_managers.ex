@@ -7,6 +7,7 @@ defmodule OctoconDiscord.AutocompleteManagers do
 
   @manager_associations %{
     "alter" => OctoconDiscord.AutocompleteManagers.Alter,
+    "tag" => OctoconDiscord.AutocompleteManagers.Tag,
     "friend" => OctoconDiscord.AutocompleteManagers.Friend,
     "request" => OctoconDiscord.AutocompleteManagers.FriendRequest,
     "front" => OctoconDiscord.AutocompleteManagers.Front
@@ -15,12 +16,7 @@ defmodule OctoconDiscord.AutocompleteManagers do
   def start_link(_), do: Supervisor.start_link(__MODULE__, [], name: __MODULE__)
 
   def init([]) do
-    children = [
-      OctoconDiscord.AutocompleteManagers.Alter,
-      OctoconDiscord.AutocompleteManagers.Friend,
-      OctoconDiscord.AutocompleteManagers.FriendRequest,
-      OctoconDiscord.AutocompleteManagers.Front
-    ]
+    children = Map.values(@manager_associations)
 
     Supervisor.init(children, strategy: :one_for_one)
   end

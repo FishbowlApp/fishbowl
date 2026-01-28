@@ -191,6 +191,8 @@ defmodule Octocon.Tags do
                       tag: TagRenderer.data_me(%{tag | alters: []})
                     }
                   )
+
+                  OctoconDiscord.AutocompleteManagers.Tag.invalidate(system_identity)
                 end)
 
                 {:ok, tag}
@@ -355,6 +357,10 @@ defmodule Octocon.Tags do
                 "tag_updated",
                 %{tag: TagRenderer.data_me(tag)}
               )
+
+              if Map.has_key?(attrs, :name) do
+                OctoconDiscord.AutocompleteManagers.Tag.invalidate(system_identity)
+              end
             end)
 
             {:ok, tag}
@@ -388,6 +394,8 @@ defmodule Octocon.Tags do
             "tag_deleted",
             %{tag_id: tag_id}
           )
+
+          OctoconDiscord.AutocompleteManagers.Tag.invalidate(system_identity)
         end)
 
         :ok
