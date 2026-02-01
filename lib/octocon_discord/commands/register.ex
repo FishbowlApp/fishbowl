@@ -1,10 +1,11 @@
 defmodule OctoconDiscord.Commands.Register do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.Accounts
-  alias OctoconDiscord.Utils
 
   @impl Nosedrum.ApplicationCommand
   def description, do: "Creates a system under your Discord account."
@@ -19,21 +20,19 @@ defmodule OctoconDiscord.Commands.Register do
     discord_id = to_string(discord_id)
 
     if Accounts.user_exists?({:discord, discord_id}) do
-      Utils.error_component("You're already registered.")
+      error_component("You're already registered.")
     else
-      # avatar_url = Utils.get_avatar_url(discord_id, avatar_hash)
-
       case Accounts.create_user_from_discord(
              discord_id
              # ,%{avatar_url: avatar_url}
            ) do
         {:ok, user} ->
-          Utils.success_component(
+          success_component(
             "You're registered! Your system ID is: **#{user.id}**\n\nCheck out the `/help` command to learn your way around our platform!\n\nSome tips on how to get started can be found in `/help` -> `FAQ` -> `How do I get started with the bot?`"
           )
 
         {:error, _} ->
-          Utils.error_component(
+          error_component(
             "An unknown error occurred while registering your system. Please try again."
           )
       end

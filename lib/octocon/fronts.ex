@@ -341,7 +341,7 @@ defmodule Octocon.Fronts do
                 alter_id: alter_id
               })
 
-              OctoconDiscord.AutocompleteManagers.Front.invalidate(system_identity)
+              OctoconDiscord.Autocomplete.Front.invalidate(system_identity)
             end)
 
             spawn(fn ->
@@ -405,7 +405,7 @@ defmodule Octocon.Fronts do
             Octocon.Global.FrontNotifier.add(system_id, alter_id)
           end)
 
-          OctoconDiscord.AutocompleteManagers.Front.invalidate(system_identity)
+          OctoconDiscord.Autocomplete.Front.invalidate(system_identity)
         end)
 
         insertion
@@ -576,7 +576,7 @@ defmodule Octocon.Fronts do
             front: get_by_id({:system, system_id}, id) |> FrontingJSON.data_me()
           })
 
-          OctoconDiscord.AutocompleteManagers.Front.invalidate(system_identity)
+          OctoconDiscord.Autocomplete.Front.invalidate(system_identity)
         end)
 
         spawn(fn ->

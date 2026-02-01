@@ -4,7 +4,7 @@ services:
     ports:
       - "9042:9042"
     restart: always
-    command: --seeds=scylla-nam --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-nam
+    command: --seeds=172.18.1.1,172.18.1.2 --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-nam
     volumes:
       - ./dev/scylla/cassandra-rackdc.nam.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/nam:/var/lib/scylla
@@ -16,7 +16,7 @@ services:
   scylla-eur:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-eur
+    command: --seeds=172.18.1.1,172.18.1.2 --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-eur
     volumes:
       - ./dev/scylla/cassandra-rackdc.eur.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/eur:/var/lib/scylla
@@ -30,7 +30,7 @@ services:
   scylla-sam:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-sam
+    command: --seeds=172.18.1.1,172.18.1.2 --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-sam
     volumes:
       - ./dev/scylla/cassandra-rackdc.sam.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/sam:/var/lib/scylla
@@ -45,7 +45,7 @@ services:
   scylla-sas:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-sas
+    command: --seeds=172.18.1.1,172.18.1.2 --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-sas
     volumes:
       - ./dev/scylla/cassandra-rackdc.sas.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/sas:/var/lib/scylla
@@ -61,7 +61,7 @@ services:
   scylla-eas:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-eas
+    command: --seeds=172.18.1.1,172.18.1.2 --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-eas
     volumes:
       - ./dev/scylla/cassandra-rackdc.eas.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/eas:/var/lib/scylla
@@ -78,7 +78,7 @@ services:
   scylla-ocn:
     image: scylladb/scylla:2025.1
     restart: always
-    command: --seeds=scylla-nam,scylla-eur --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-ocn
+    command: --seeds=172.18.1.1,172.18.1.2 --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0 --broadcast-address scylla-ocn
     volumes:
       - ./dev/scylla/cassandra-rackdc.ocn.properties:/etc/scylla/cassandra-rackdc.properties
       - ./dev/scylla/data/ocn:/var/lib/scylla

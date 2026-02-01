@@ -4,7 +4,10 @@ defmodule OctoconDiscord.Components.AlterPaginator do
 
   alias Nostrum.Api
 
-  alias OctoconDiscord.Utils
+  import OctoconDiscord.Utils.{
+    Components,
+    CV2
+  }
 
   @table :alter_paginators
   @page_size 10
@@ -16,7 +19,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
   def page_size, do: @page_size
 
   def handle_init(_system_id, [], 0) do
-    Utils.error_component("You don't have any alters, yet. Create one with `/alter create`!")
+    error_component("You don't have any alters, yet. Create one with `/alter create`!")
   end
 
   def handle_init(system_id, alters, alters_length) when alters_length <= @page_size do
@@ -33,7 +36,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
       },
       false
     )
-    |> Keyword.put(:flags, Utils.cv2_flags())
+    |> Keyword.put(:flags, cv2_flags())
   end
 
   def handle_init(system_id, alters, alters_length) do
@@ -57,11 +60,11 @@ defmodule OctoconDiscord.Components.AlterPaginator do
 
     :ets.insert(@table, {uid, data})
 
-    # TODO: Possibly clean up correlations after a while?
+    # [TODO]: Possibly clean up correlations after a while?
     Process.send_after(__MODULE__, {:drop, uid}, :timer.minutes(5))
 
     generate_response(data)
-    |> Keyword.put(:flags, Utils.cv2_flags())
+    |> Keyword.put(:flags, cv2_flags())
   end
 
   defp generate_response(
@@ -83,17 +86,17 @@ defmodule OctoconDiscord.Components.AlterPaginator do
     [
       components:
         [
-          Utils.container(
+          container(
             [
-              Utils.text(
+              text(
                 "## Your alters (#{alters_length})\n\nClick an alter's button to view more details."
               ),
-              Utils.separator(spacing: :large),
+              separator(spacing: :large),
               Enum.map(page_alters, fn alter ->
                 [
-                  Utils.section(
+                  section(
                     [
-                      Utils.text("""
+                      text("""
                       **#{alter.name || "Unnamed alter"}**#{case alter.pronouns do
                         nil -> ""
                         pronouns -> " (#{pronouns})"
@@ -109,7 +112,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
                       end}
                       """)
                     ],
-                    Utils.button(
+                    button(
                       "alter|view|#{alter.id}",
                       :secondary,
                       emoji: %{name: "open", id: 1_464_866_849_052_426_252}
@@ -117,7 +120,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
                   )
                 ]
               end)
-              # Utils.text(
+              # text(
               #                 Enum.map_join(page_alters, "\n", fn alter ->
               #   "- `#{alter.id}#{case alter.alias do
               #     nil -> ""
@@ -136,15 +139,15 @@ defmodule OctoconDiscord.Components.AlterPaginator do
             |> List.flatten()
           ),
           if include_components do
-            Utils.action_row([
-              Utils.button(
+            action_row([
+              button(
                 "alter-pag|prev|#{uid}",
                 :secondary,
                 label: "Previous",
                 emoji: %{name: "back", id: 1_464_878_088_923_123_784},
                 disabled: !prev_enabled
               ),
-              Utils.button(
+              button(
                 "alter-pag|next|#{uid}",
                 :secondary,
                 label: "Next",
@@ -182,9 +185,9 @@ defmodule OctoconDiscord.Components.AlterPaginator do
       Api.create_interaction_response(interaction, %{
         type: 7,
         data:
-          Utils.error_component("This list has expired. Please run `/alter list` again.")
+          error_component("This list has expired. Please run `/alter list` again.")
           |> Enum.into(%{})
-          |> Map.drop([:ephemeral?])
+          |> Map.drop([:flags])
       })
   end
 
@@ -210,9 +213,9 @@ defmodule OctoconDiscord.Components.AlterPaginator do
       Api.create_interaction_response(interaction, %{
         type: 7,
         data:
-          Utils.error_component("This list has expired. Please run `/alter list` again.")
+          error_component("This list has expired. Please run `/alter list` again.")
           |> Enum.into(%{})
-          |> Map.drop([:ephemeral?])
+          |> Map.drop([:flags])
       })
   end
 

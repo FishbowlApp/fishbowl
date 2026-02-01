@@ -2,6 +2,11 @@ defmodule OctoconDiscord.Components.WipeAltersHandler do
   @moduledoc false
   use GenServer
 
+  import OctoconDiscord.Utils.{
+    Components,
+    CV2
+  }
+
   alias Nostrum.Api
 
   alias Octocon.Accounts
@@ -39,17 +44,17 @@ defmodule OctoconDiscord.Components.WipeAltersHandler do
        when confirmations_left > 0 do
     [
       components: [
-        Utils.container(
+        container(
           [
-            Utils.text("### Wipe alters"),
-            Utils.text(
+            text("### Wipe alters"),
+            text(
               "**WARNING**: This command will **permanently** wipe all alters from your system, but keep your account and settings.\n\nTo confirm, click the button below a total of **3** times."
             )
           ],
           %{accent_color: 0xFF0000}
         ),
-        Utils.action_row([
-          Utils.button(
+        action_row([
+          button(
             "wipe-alters|confirm|#{uid}",
             :danger,
             label: "Confirm (#{3 - confirmations_left}/3)",
@@ -57,7 +62,7 @@ defmodule OctoconDiscord.Components.WipeAltersHandler do
           )
         ])
       ],
-      flags: Utils.cv2_flags(false)
+      flags: cv2_flags(false)
     ]
   end
 
@@ -70,10 +75,10 @@ defmodule OctoconDiscord.Components.WipeAltersHandler do
 
     [
       components: [
-        Utils.container(
+        container(
           [
-            Utils.text("### :broom: Success!"),
-            Utils.text(
+            text("### :broom: Success!"),
+            text(
               "Your alters have been wiped, and your alter IDs have been reset (your next alter will have the ID `1`)."
             )
           ],
@@ -82,7 +87,7 @@ defmodule OctoconDiscord.Components.WipeAltersHandler do
           }
         )
       ],
-      flags: Utils.cv2_flags(false)
+      flags: cv2_flags(false)
     ]
   end
 

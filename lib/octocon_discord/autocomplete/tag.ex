@@ -1,13 +1,13 @@
-defmodule OctoconDiscord.AutocompleteManagers.Tag do
+defmodule OctoconDiscord.Autocomplete.Tag do
   @moduledoc false
 
-  use OctoconDiscord.AutocompleteManagers
+  use OctoconDiscord.Autocomplete
 
   def cache_function(user) do
     tags =
       Octocon.Tags.get_tags({:system, user.id})
       |> Enum.map(fn %{id: id, name: name} ->
-        # TODO: Handle duplicates
+        # [TODO]: Handle duplicates
 
         display_name =
           name

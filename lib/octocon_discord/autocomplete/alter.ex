@@ -1,7 +1,7 @@
-defmodule OctoconDiscord.AutocompleteManagers.Alter do
+defmodule OctoconDiscord.Autocomplete.Alter do
   @moduledoc false
 
-  use OctoconDiscord.AutocompleteManagers
+  use OctoconDiscord.Autocomplete
 
   def cache_function(user) do
     alters =

@@ -1,8 +1,8 @@
-defmodule OctoconDiscord.ChannelBlacklistManager do
+defmodule OctoconDiscord.Cache.ChannelBlacklists do
   @doc """
   Manages the channel blacklist.
 
-  TODO: Rework this to use the database instead of holding everything in ETS if memory pressure becomes an issue.
+  [TODO]: Rework this to use the database instead of holding everything in ETS if memory pressure becomes an issue.
   """
   alias Octocon.ChannelBlacklists
   alias Octocon.ChannelBlacklists.ChannelBlacklist
@@ -87,7 +87,7 @@ defmodule OctoconDiscord.ChannelBlacklistManager do
 
   @impl GenServer
   def handle_continue(:load_blacklists, state) do
-    # TODO: Replace this with actual waiting
+    # [TODO]: Replace this with actual waiting
     Process.sleep(:timer.seconds(5))
 
     channels = ChannelBlacklists.list_channel_blacklists_bare()

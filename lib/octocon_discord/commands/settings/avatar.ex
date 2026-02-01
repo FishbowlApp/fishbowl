@@ -1,10 +1,11 @@
 defmodule OctoconDiscord.Commands.Settings.Avatar do
   @moduledoc false
+
+  use OctoconDiscord.Commands
+
   import Octocon.Utils.User, only: [upload_avatar: 2]
 
   alias Octocon.Accounts
-
-  alias OctoconDiscord.Utils
 
   @subcommands %{
     "set" => &__MODULE__.set_attachment/2,
@@ -27,45 +28,43 @@ defmodule OctoconDiscord.Commands.Settings.Avatar do
         %{resolved: resolved, system: system},
         options
       ) do
-    avatar_id = Utils.get_command_option(options, "avatar")
+    avatar_id = get_command_option(options, "avatar")
     attachment = resolved.attachments[avatar_id]
 
     cond do
       attachment.height == nil or attachment.width == nil ->
-        Utils.error_component(
+        error_component(
           "That file doesn't appear to be a valid image. Please provide an image under 20 MB."
         )
 
       attachment.size > 20_000_000 ->
-        Utils.error_component(
+        error_component(
           "The image you provided is too large. Please provide an image that is less than 20 MB."
         )
 
       true ->
         case upload_avatar(system, attachment.url) do
           {:ok, _} ->
-            Utils.success_component("Your avatar has been updated.")
+            success_component("Your avatar has been updated.")
 
           {:error, _} ->
-            Utils.error_component(
-              "An unknown error occurred updating your avatar. Please try again."
-            )
+            error_component("An unknown error occurred updating your avatar. Please try again.")
         end
     end
   end
 
   def set_url(_context, _options) do
-    Utils.error_component("This command is not yet implemented.")
+    error_component("This command is not yet implemented.")
   end
 
   def remove(%{system: system}, _options) do
     case Accounts.update_user(system, %{avatar_url: nil}) do
       {:ok, _} ->
-        Octocon.Utils.nuke_existing_avatars!(system.id, "self")
-        Utils.success_component("Your avatar has been removed.")
+        Octocon.nuke_existing_avatars!(system.id, "self")
+        success_component("Your avatar has been removed.")
 
       {:error, _} ->
-        Utils.error_component("An unknown error occurred removing your avatar. Please try again.")
+        error_component("An unknown error occurred removing your avatar. Please try again.")
     end
   end
 end

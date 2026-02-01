@@ -1,22 +1,22 @@
-defmodule OctoconDiscord.AutocompleteManagers do
+defmodule OctoconDiscord.Autocomplete do
   @moduledoc false
 
   use Supervisor
 
   require Logger
 
-  @manager_associations %{
-    "alter" => OctoconDiscord.AutocompleteManagers.Alter,
-    "tag" => OctoconDiscord.AutocompleteManagers.Tag,
-    "friend" => OctoconDiscord.AutocompleteManagers.Friend,
-    "request" => OctoconDiscord.AutocompleteManagers.FriendRequest,
-    "front" => OctoconDiscord.AutocompleteManagers.Front
+  @cache_associations %{
+    "alter" => OctoconDiscord.Autocomplete.Alter,
+    "tag" => OctoconDiscord.Autocomplete.Tag,
+    "friend" => OctoconDiscord.Autocomplete.Friend,
+    "request" => OctoconDiscord.Autocomplete.FriendRequest,
+    "front" => OctoconDiscord.Autocomplete.Front
   }
 
   def start_link(_), do: Supervisor.start_link(__MODULE__, [], name: __MODULE__)
 
   def init([]) do
-    children = Map.values(@manager_associations)
+    children = Map.values(@cache_associations)
 
     Supervisor.init(children, strategy: :one_for_one)
   end
@@ -35,7 +35,7 @@ defmodule OctoconDiscord.AutocompleteManagers do
         ],
         expiration: expiration(default: :timer.minutes(5))
 
-      import OctoconDiscord.AutocompleteManagers,
+      import OctoconDiscord.Autocomplete,
         only: [format_name_for_search: 1, generate_autocomplete_responses: 2]
 
       @timeout :timer.seconds(5)
@@ -52,7 +52,7 @@ defmodule OctoconDiscord.AutocompleteManagers do
           Cachex.fetch!(
             __MODULE__,
             key,
-            OctoconDiscord.AutocompleteManagers.wrap_cache_function(__MODULE__, is_tuple(key))
+            OctoconDiscord.Autocomplete.wrap_cache_function(__MODULE__, is_tuple(key))
           )
 
         if trie == nil do
@@ -156,7 +156,7 @@ defmodule OctoconDiscord.AutocompleteManagers do
         command
       end
 
-    @manager_associations[command].handle_interaction(
+    @cache_associations[command].handle_interaction(
       to_string(discord_id),
       focused_option,
       interaction
@@ -171,8 +171,8 @@ defmodule OctoconDiscord.AutocompleteManagers do
     discord_id = Octocon.Accounts.id_from_system_identity(system_identity, :discord)
 
     if discord_id != nil do
-      Map.values(@manager_associations)
-      |> Enum.each(fn manager -> manager.invalidate(system_identity) end)
+      Map.values(@cache_associations)
+      |> Enum.each(fn cache -> cache.invalidate(system_identity) end)
     end
 
     :ok

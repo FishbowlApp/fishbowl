@@ -48,6 +48,11 @@ defmodule OctoconDiscord.Events.MessageCreate do
     :ok
   end
 
+  def handle(%{content: "\\\\" <> _}) do
+    # [TODO]: When using two backslashes, ignore the message AND clear the autoproxy
+    :ok
+  end
+
   # Ignore messages that start with "\"
   def handle(%{content: "\\" <> _}) do
     :ok

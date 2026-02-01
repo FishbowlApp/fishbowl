@@ -21,7 +21,7 @@ defmodule OctoconWeb.SystemJSON do
         :salt,
         :discord_settings
       ])
-      # TODO: Remove when app is updated to not expect these
+      # [TODO]: Remove when app is updated to not expect these
       |> Map.merge(%{
         autoproxy_mode: "off",
         show_system_tag: false

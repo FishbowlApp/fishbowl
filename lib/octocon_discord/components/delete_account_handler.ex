@@ -2,10 +2,13 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
   @moduledoc false
   use GenServer
 
-  alias Nostrum.Api
+  import OctoconDiscord.Utils.{
+    Components,
+    CV2
+  }
 
+  alias Nostrum.Api
   alias Octocon.Accounts
-  alias OctoconDiscord.Utils
 
   @table :delete_account
 
@@ -28,7 +31,7 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
 
     Process.send_after(__MODULE__, {:drop, uid}, :timer.minutes(5))
 
-    Utils.send_dm(user, generate_response(data))
+    OctoconDiscord.Utils.send_dm(user, generate_response(data))
   end
 
   defp generate_response(%{
@@ -39,17 +42,17 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
        when confirmations_left > 0 do
     [
       components: [
-        Utils.container(
+        container(
           [
-            Utils.text("### Delete account"),
-            Utils.text(
+            text("### Delete account"),
+            text(
               "**WARNING**: This command will **permanently** delete your system, as well as all associated data and settings.\n\nTo confirm, click the button below a total of **3** times."
             )
           ],
           %{accent_color: 0xFF0000}
         ),
-        Utils.action_row([
-          Utils.button(
+        action_row([
+          button(
             "delete-account|confirm|#{uid}",
             :danger,
             label: "Confirm (#{3 - confirmations_left}/3)",
@@ -57,7 +60,7 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
           )
         ])
       ],
-      flags: Utils.cv2_flags(false)
+      flags: cv2_flags(false)
     ]
   end
 
@@ -70,17 +73,17 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
 
     [
       components: [
-        Utils.container(
+        container(
           [
-            Utils.text("### :wave: Success!"),
-            Utils.text(
+            text("### :wave: Success!"),
+            text(
               "**Your system has been deleted**. We hope you enjoyed using Octocon!\n\nIf you'd like to create a new account, you can run the `/register` command.\n\nIf you have any feedback, questions, or concerns, feel free to join our community server: https://octocon.app/discord"
             )
           ],
           %{accent_color: 0x00FF00}
         )
       ],
-      flags: Utils.cv2_flags(false)
+      flags: cv2_flags(false)
     ]
   end
 

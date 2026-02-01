@@ -1,4 +1,4 @@
-defmodule OctoconDiscord.Emojis do
+defmodule OctoconDiscord.Utils.Emojis do
   @moduledoc false
 
   alias Nostrum.Struct.Emoji

@@ -1,13 +1,13 @@
 defmodule OctoconDiscord.Commands.Friend do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   require Logger
 
   alias Octocon.Friendships
-
-  alias OctoconDiscord.Utils
 
   @subcommands %{
     "request" => &__MODULE__.Request.command/2,
@@ -25,7 +25,7 @@ defmodule OctoconDiscord.Commands.Friend do
     %{data: %{resolved: resolved}, user: %{id: discord_id}} = interaction
     discord_id = to_string(discord_id)
 
-    Utils.ensure_registered(discord_id, fn ->
+    ensure_registered(discord_id, fn ->
       %{data: %{options: [%{name: name, options: options}]}} = interaction
 
       @subcommands[name].(
@@ -37,12 +37,12 @@ defmodule OctoconDiscord.Commands.Friend do
 
   def remove(context, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    Utils.system_id_from_opts(opts, fn identity, decorator ->
+    system_id_from_opts(opts, fn identity, decorator ->
       remove_friend(context, identity, decorator)
     end)
   end
@@ -50,15 +50,15 @@ defmodule OctoconDiscord.Commands.Friend do
   def list(%{system_identity: system_identity}, _options) do
     case Friendships.list_friendships(system_identity) do
       [] ->
-        Utils.error_component("You have no friends (yet!). Add some with `/friend add`!")
+        error_component("You have no friends (yet!). Add some with `/friend add`!")
 
       friendships ->
         [
           components: [
-            Utils.container([
-              Utils.text("## Your friends (#{length(friendships)})"),
-              Utils.separator(spacing: :large),
-              Utils.text(
+            container([
+              text("## Your friends (#{length(friendships)})"),
+              separator(spacing: :large),
+              text(
                 Enum.map_join(friendships, "\n", fn %{friend: friend, friendship: %{level: level}} ->
                   "- **#{friend.username || friend.id}** (#{case friend.discord_id do
                     nil -> ""
@@ -69,35 +69,35 @@ defmodule OctoconDiscord.Commands.Friend do
                   end})"
                 end)
               ),
-              Utils.separator(spacing: :large),
-              Utils.text("*⭐ = Trusted friend*")
+              separator(spacing: :large),
+              text("*⭐ = Trusted friend*")
             ])
           ],
-          flags: Utils.cv2_flags()
+          flags: cv2_flags()
         ]
     end
   end
 
   def trust(context, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    Utils.system_id_from_opts(opts, fn identity, decorator ->
+    system_id_from_opts(opts, fn identity, decorator ->
       trust_friend(context, identity, decorator)
     end)
   end
 
   def untrust(context, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    Utils.system_id_from_opts(opts, fn identity, decorator ->
+    system_id_from_opts(opts, fn identity, decorator ->
       untrust_friend(context, identity, decorator)
     end)
   end
@@ -105,28 +105,26 @@ defmodule OctoconDiscord.Commands.Friend do
   defp trust_friend(%{system_identity: system_identity}, target_identity, decorator) do
     case Friendships.trust_friend(system_identity, target_identity) do
       :ok ->
-        Utils.success_component("#{decorator} is now a trusted friend!")
+        success_component("#{decorator} is now a trusted friend!")
 
       {:error, :not_friends} ->
-        Utils.error_component("You are not friends with #{decorator}.")
+        error_component("You are not friends with #{decorator}.")
 
       {:error, _} ->
-        Utils.error_component(
-          "An unknown error occurred while trusting the friend. Please try again."
-        )
+        error_component("An unknown error occurred while trusting the friend. Please try again.")
     end
   end
 
   defp untrust_friend(%{system_identity: system_identity}, target_identity, decorator) do
     case Friendships.untrust_friend(system_identity, target_identity) do
       :ok ->
-        Utils.success_component("#{decorator} is no longer a trusted friend!")
+        success_component("#{decorator} is no longer a trusted friend!")
 
       {:error, :not_friends} ->
-        Utils.error_component("You are not friends with #{decorator}.")
+        error_component("You are not friends with #{decorator}.")
 
       {:error, _} ->
-        Utils.error_component(
+        error_component(
           "An unknown error occurred while untrusting the friend. Please try again."
         )
     end
@@ -135,13 +133,13 @@ defmodule OctoconDiscord.Commands.Friend do
   defp remove_friend(%{system_identity: system_identity}, target_identity, decorator) do
     case Friendships.remove_friendship(system_identity, target_identity) do
       :ok ->
-        Utils.success_component("You are no longer friends with #{decorator}!")
+        success_component("You are no longer friends with #{decorator}!")
 
       {:error, :not_friends} ->
-        Utils.error_component("You are not friends with #{decorator}.")
+        error_component("You are not friends with #{decorator}.")
 
       {:error, _} ->
-        Utils.error_component(
+        error_component(
           "An unknown error occurred while removing the friendship. Please try again."
         )
     end

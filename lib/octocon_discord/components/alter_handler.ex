@@ -1,7 +1,8 @@
 defmodule OctoconDiscord.Components.AlterHandler do
+  import OctoconDiscord.Utils.Components
+
   alias Nostrum.Api
   alias Octocon.Fronts
-  alias OctoconDiscord.Utils
 
   def handle_interaction("view", alter_id, interaction) do
     system_identity = {:discord, to_string(interaction.user.id)}
@@ -11,7 +12,7 @@ defmodule OctoconDiscord.Components.AlterHandler do
 
     fronts = Fronts.currently_fronting(system_identity)
 
-    send_response(Utils.alter_component(alter, fronts, false), interaction)
+    send_response(alter_component(alter, fronts, false), interaction)
   end
 
   def handle_interaction("addfront", alter_id, interaction) do
@@ -22,11 +23,11 @@ defmodule OctoconDiscord.Components.AlterHandler do
         handle_interaction("view", alter_id, interaction)
 
       {:error, :already_fronting} ->
-        Utils.error_component_raw("This alter is already fronting.")
+        error_component_raw("This alter is already fronting.")
         |> send_response(interaction)
 
       {:error, _} ->
-        Utils.error_component_raw("An unknown error occurred.")
+        error_component_raw("An unknown error occurred.")
         |> send_response(interaction)
     end
   end
@@ -39,11 +40,11 @@ defmodule OctoconDiscord.Components.AlterHandler do
         handle_interaction("view", alter_id, interaction)
 
       {:error, :not_fronting} ->
-        Utils.error_component_raw("This alter is not currently fronting.")
+        error_component_raw("This alter is not currently fronting.")
         |> send_response(interaction)
 
       {:error, _} ->
-        Utils.error_component_raw("An unknown error occurred.")
+        error_component_raw("An unknown error occurred.")
         |> send_response(interaction)
     end
   end
@@ -56,11 +57,11 @@ defmodule OctoconDiscord.Components.AlterHandler do
         handle_interaction("view", alter_id, interaction)
 
       {:error, :already_fronting} ->
-        Utils.error_component_raw("This alter is already fronting.")
+        error_component_raw("This alter is already fronting.")
         |> send_response(interaction)
 
       {:error, _} ->
-        Utils.error_component_raw("An unknown error occurred.")
+        error_component_raw("An unknown error occurred.")
         |> send_response(interaction)
     end
   end
@@ -73,7 +74,7 @@ defmodule OctoconDiscord.Components.AlterHandler do
 
       handle_interaction("view", alter_id, interaction)
     else
-      Utils.error_component_raw("This alter is not currently fronting.")
+      error_component_raw("This alter is not currently fronting.")
       |> send_response(interaction)
     end
   end
@@ -86,7 +87,7 @@ defmodule OctoconDiscord.Components.AlterHandler do
 
       handle_interaction("view", alter_id, interaction)
     else
-      Utils.error_component_raw("This alter is not currently fronting.")
+      Components.error_component_raw("This alter is not currently fronting.")
       |> send_response(interaction)
     end
   end
@@ -96,7 +97,7 @@ defmodule OctoconDiscord.Components.AlterHandler do
       type: 7,
       data: %{
         components: if(is_list(components), do: components, else: [components]),
-        flags: Utils.cv2_flags()
+        flags: OctoconDiscord.Utils.CV2.cv2_flags()
       }
     })
   end

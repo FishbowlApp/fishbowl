@@ -1,4 +1,4 @@
-defmodule OctoconDiscord.WebhookManager do
+defmodule OctoconDiscord.Cache.Webhooks do
   @moduledoc false
 
   import Cachex.Spec

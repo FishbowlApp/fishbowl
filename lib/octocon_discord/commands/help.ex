@@ -1,6 +1,8 @@
 defmodule OctoconDiscord.Commands.Help do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias OctoconDiscord.Components.HelpHandler

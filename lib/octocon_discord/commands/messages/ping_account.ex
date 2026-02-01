@@ -1,9 +1,9 @@
 defmodule OctoconDiscord.Commands.Messages.PingAccount do
   @moduledoc false
 
-  @behaviour Nosedrum.ApplicationCommand
+  use OctoconDiscord.Commands
 
-  alias OctoconDiscord.Utils
+  @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.Messages
 
@@ -39,7 +39,7 @@ defmodule OctoconDiscord.Commands.Messages.PingAccount do
     if is_bot do
       case Messages.lookup_message(message_id) do
         nil ->
-          Utils.error_component(
+          error_component(
             "This message either:\n\n- Was not proxied by Octocon.\n- Is more than 6 months old."
           )
 
@@ -48,11 +48,11 @@ defmodule OctoconDiscord.Commands.Messages.PingAccount do
 
           [
             components: [
-              Utils.text("<@#{message.author_id}>"),
-              Utils.container(
+              text("<@#{message.author_id}>"),
+              container(
                 [
-                  Utils.text("### :bell: You've been pinged!"),
-                  Utils.text(
+                  text("### :bell: You've been pinged!"),
+                  text(
                     if to_string(user_id) == to_string(message.author_id) do
                       "You have pinged yourself from a [proxied message](#{permalink})."
                     else
@@ -60,14 +60,14 @@ defmodule OctoconDiscord.Commands.Messages.PingAccount do
                     end
                   )
                 ],
-                %{accent_color: Utils.hex_to_int("#3F3793")}
+                %{accent_color: hex_to_int("#3F3793")}
               )
             ],
-            flags: Utils.cv2_flags(false)
+            flags: cv2_flags(false)
           ]
       end
     else
-      Utils.error_component("You can only do this with messages proxied by Octocon.")
+      error_component("You can only do this with messages proxied by Octocon.")
     end
   end
 

@@ -1,9 +1,9 @@
 defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
   @moduledoc false
 
-  @behaviour Nosedrum.ApplicationCommand
+  use OctoconDiscord.Commands
 
-  alias OctoconDiscord.Utils
+  @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.{
     Accounts,
@@ -41,7 +41,7 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
     if is_bot do
       case Messages.lookup_message(message_id) do
         nil ->
-          Utils.error_component(
+          error_component(
             "This message either:\n\n- Was not proxied by Octocon.\n- Is more than 6 months old."
           )
 
@@ -49,14 +49,14 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
           display_message_data(to_string(user_id), message)
       end
     else
-      Utils.error_component("You can only do this with messages proxied by Octocon.")
+      error_component("You can only do this with messages proxied by Octocon.")
     end
   end
 
   defp display_message_data(user_id, %Messages.Message{} = message) do
     case Accounts.get_user({:discord, message.author_id}) do
       nil ->
-        Utils.error_component(
+        error_component(
           "This user's Octocon account was deleted.\n\nHowever, this message was sent by the following Discord user: <@#{message.author_id}>\n\nWho had the following system ID: `#{message.system_id}`"
         )
 
@@ -69,17 +69,17 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
                generate_system_component(target_user, caller_user)
              ] ++ maybe_alter_component(target_user.id, message.alter_id, caller_user))
             |> List.flatten(),
-          flags: Utils.cv2_flags()
+          flags: cv2_flags()
         ]
     end
   end
 
   defp generate_system_component(target_user, nil) do
-    Utils.system_component_raw(target_user, false)
+    system_component_raw(target_user, false)
   end
 
   defp generate_system_component(target_user, caller_user) do
-    Utils.system_component_raw(target_user, target_user.id == caller_user.id)
+    system_component_raw(target_user, target_user.id == caller_user.id)
   end
 
   def maybe_alter_component(system_id, alter_id, caller_user) when caller_user.id == system_id do
@@ -88,7 +88,7 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
         []
 
       {:ok, alter} ->
-        Utils.alter_component(alter, false, false)
+        alter_component(alter, false, false)
     end
   end
 
@@ -101,7 +101,7 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
 
     case Alters.get_alter_guarded({:system, system_id}, {:id, alter_id}, caller_identity) do
       :error -> []
-      {:ok, alter} -> Utils.alter_component(alter, false, true)
+      {:ok, alter} -> alter_component(alter, false, true)
     end
   end
 

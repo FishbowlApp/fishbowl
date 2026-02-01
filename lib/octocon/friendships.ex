@@ -439,7 +439,7 @@ defmodule Octocon.Friendships do
             friend_id: removed
           })
 
-          OctoconDiscord.AutocompleteManagers.Friend.invalidate({:system, to})
+          OctoconDiscord.Autocomplete.Friend.invalidate({:system, to})
         end)
       end)
 
@@ -489,18 +489,18 @@ defmodule Octocon.Friendships do
             end)
 
             spawn(fn ->
-              OctoconDiscord.AutocompleteManagers.FriendRequest.invalidate(
+              OctoconDiscord.Autocomplete.FriendRequest.invalidate(
                 {:system, from_id},
                 :outgoing
               )
 
-              OctoconDiscord.AutocompleteManagers.FriendRequest.invalidate(
+              OctoconDiscord.Autocomplete.FriendRequest.invalidate(
                 {:system, to_id},
                 :incoming
               )
 
-              OctoconDiscord.AutocompleteManagers.Friend.invalidate({:system, from_id})
-              OctoconDiscord.AutocompleteManagers.Friend.invalidate({:system, to_id})
+              OctoconDiscord.Autocomplete.Friend.invalidate({:system, from_id})
+              OctoconDiscord.Autocomplete.Friend.invalidate({:system, to_id})
             end)
 
             :ok
@@ -544,12 +544,12 @@ defmodule Octocon.Friendships do
         end)
 
         spawn(fn ->
-          OctoconDiscord.AutocompleteManagers.FriendRequest.invalidate(
+          OctoconDiscord.Autocomplete.FriendRequest.invalidate(
             {:system, to_id},
             :incoming
           )
 
-          OctoconDiscord.AutocompleteManagers.FriendRequest.invalidate(
+          OctoconDiscord.Autocomplete.FriendRequest.invalidate(
             {:system, from_id},
             :outgoing
           )
@@ -640,12 +640,12 @@ defmodule Octocon.Friendships do
             end)
 
             spawn(fn ->
-              OctoconDiscord.AutocompleteManagers.FriendRequest.invalidate(
+              OctoconDiscord.Autocomplete.FriendRequest.invalidate(
                 {:system, to_id},
                 :incoming
               )
 
-              OctoconDiscord.AutocompleteManagers.FriendRequest.invalidate(
+              OctoconDiscord.Autocomplete.FriendRequest.invalidate(
                 {:system, from_id},
                 :outgoing
               )
