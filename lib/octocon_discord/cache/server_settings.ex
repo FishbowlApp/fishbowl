@@ -1,4 +1,4 @@
-defmodule OctoconDiscord.ServerSettingsManager do
+defmodule OctoconDiscord.Cache.ServerSettings do
   alias Octocon.ServerSettings, as: Persistence
 
   import Cachex.Spec

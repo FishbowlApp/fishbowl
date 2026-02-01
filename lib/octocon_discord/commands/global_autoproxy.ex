@@ -1,14 +1,13 @@
 defmodule OctoconDiscord.Commands.GlobalAutoproxy do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.Accounts
 
-  alias OctoconDiscord.{
-    ProxyCache,
-    Utils
-  }
+  alias OctoconDiscord.Cache
 
   @autoproxy_descriptions %{
     off: "Global autoproxying is now disabled.",
@@ -26,11 +25,11 @@ defmodule OctoconDiscord.Commands.GlobalAutoproxy do
     %{user: %{id: discord_id}} = interaction
     discord_id = to_string(discord_id)
 
-    Utils.ensure_registered(discord_id, fn ->
+    ensure_registered(discord_id, fn ->
       %{data: %{options: options}} = interaction
       system_identity = {:discord, discord_id}
 
-      mode = Utils.get_command_option(options, "mode")
+      mode = get_command_option(options, "mode")
       # This atom cast should be safe because Discord should only send us valid options
       mode_atom = String.to_existing_atom(mode)
 
@@ -48,14 +47,14 @@ defmodule OctoconDiscord.Commands.GlobalAutoproxy do
 
       case Accounts.update_discord_settings(system_identity, new_settings) do
         {:ok, _} ->
-          ProxyCache.invalidate(discord_id)
+          Cache.Proxy.invalidate(discord_id)
 
-          Utils.success_component(
+          success_component(
             "**Global** autoproxy mode set to `#{mode |> String.capitalize()}`.\n\n#{@autoproxy_descriptions[mode_atom]}\n\n⚠️ Please note that this setting applies to ***all*** servers with the Octocon bot. If you consider this to be a privacy issue, please use `/autoproxy` instead to change your autoproxy mode for this specific server."
           )
 
         {:error, _} ->
-          Utils.error_component("An unknown error occurred while updating your autoproxy mode.")
+          error_component("An unknown error occurred while updating your autoproxy mode.")
       end
     end)
   end

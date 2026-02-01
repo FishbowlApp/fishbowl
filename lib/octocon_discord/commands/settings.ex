@@ -1,6 +1,8 @@
 defmodule OctoconDiscord.Commands.Settings do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.Accounts
@@ -10,10 +12,7 @@ defmodule OctoconDiscord.Commands.Settings do
     SimplyPluralImportWorker
   }
 
-  alias OctoconDiscord.{
-    ProxyCache,
-    Utils
-  }
+  alias OctoconDiscord.Cache
 
   @subcommands %{
     "username" => &__MODULE__.username/2,
@@ -40,7 +39,7 @@ defmodule OctoconDiscord.Commands.Settings do
     %{data: %{resolved: resolved}, guild_id: guild_id, user: %{id: discord_id}} = interaction
     discord_id = to_string(discord_id)
 
-    Utils.ensure_registered(discord_id, fn ->
+    ensure_registered(discord_id, fn ->
       %{data: %{options: [%{name: name, options: options}]}} = interaction
 
       @subcommands[name].(
@@ -56,15 +55,15 @@ defmodule OctoconDiscord.Commands.Settings do
   end
 
   def username(%{system_identity: system_identity}, options) do
-    username = Utils.get_command_option(options, "username")
+    username = get_command_option(options, "username")
     user = Accounts.get_user!(system_identity)
 
     if username == user.username do
-      Utils.error_component("Your username is already set to `#{username}`.")
+      error_component("Your username is already set to `#{username}`.")
     else
       case Accounts.update_user(user, %{username: username}) do
         {:ok, _} ->
-          Utils.success_component("Your username has been changed to `#{username}`.")
+          success_component("Your username has been changed to `#{username}`.")
 
         {:error,
          %Ecto.Changeset{
@@ -72,7 +71,7 @@ defmodule OctoconDiscord.Commands.Settings do
              username: {"has already been taken", _}
            ]
          }} ->
-          Utils.error_component("The username `#{username}` is already taken.")
+          error_component("The username `#{username}` is already taken.")
 
         {:error,
          %Ecto.Changeset{
@@ -80,7 +79,7 @@ defmodule OctoconDiscord.Commands.Settings do
              username: {"has invalid format", _}
            ]
          }} ->
-          Utils.error_component(
+          error_component(
             "The username `#{username}` is invalid. It must satisfy the following criteria:\n\n- Between 5-16 characters\n- Only contains letters, numbers, dashes, and underscores\n- Does not start or end with a symbol\n- Does not consist of seven lowercase letters in a row (like a system ID)"
           )
       end
@@ -92,55 +91,53 @@ defmodule OctoconDiscord.Commands.Settings do
 
     case Accounts.update_user(user, %{username: nil}) do
       {:ok, _} ->
-        Utils.success_component("Your username has been removed.")
+        success_component("Your username has been removed.")
 
       {:error, _} ->
-        Utils.error_component("An unknown error occurred while removing your username.")
+        error_component("An unknown error occurred while removing your username.")
     end
   end
 
   def system_tag(%{system_identity: system_identity}, options) do
-    tag = Utils.get_command_option(options, "tag")
+    tag = get_command_option(options, "tag")
 
     case Accounts.update_discord_settings(system_identity, %{system_tag: tag}) do
       {:ok, _} ->
-        Utils.success_component("Your system tag has been changed to `#{tag}`.")
+        success_component("Your system tag has been changed to `#{tag}`.")
 
       {:error, %Ecto.Changeset{}} ->
-        Utils.error_component(
+        error_component(
           "The system tag `#{tag}` is invalid. It must satisfy the following criteria:\n\n- Between 1-8 characters"
         )
 
       {:error, _} ->
-        Utils.error_component("An unknown error occurred while changing your system tag.")
+        error_component("An unknown error occurred while changing your system tag.")
     end
   end
 
   def remove_system_tag(%{system_identity: system_identity}, _options) do
     case Accounts.update_discord_settings(system_identity, %{system_tag: nil}) do
       {:ok, _} ->
-        Utils.success_component("Your system tag has been removed.")
+        success_component("Your system tag has been removed.")
 
       {:error, _} ->
-        Utils.error_component("An unknown error occurred while removing your system tag.")
+        error_component("An unknown error occurred while removing your system tag.")
     end
   end
 
   def show_system_tag(%{system_identity: system_identity, discord_id: discord_id}, _options) do
-    {:ok, %{settings: %{show_system_tag: show_system_tag}}} = ProxyCache.get(discord_id, false)
+    {:ok, %{settings: %{show_system_tag: show_system_tag}}} = Cache.Proxy.get(discord_id, false)
 
     new_value = not show_system_tag
 
     case Accounts.update_discord_settings(system_identity, %{show_system_tag: new_value}) do
       {:ok, _} ->
-        Utils.success_component(
+        success_component(
           "Your system tag will now #{if new_value, do: "be", else: "no longer be"} shown when proxying. Servers can override this!"
         )
 
       {:error, _} ->
-        Utils.error_component(
-          "An unknown error occurred while changing your system tag visibility."
-        )
+        error_component("An unknown error occurred while changing your system tag visibility.")
     end
   end
 
@@ -149,67 +146,59 @@ defmodule OctoconDiscord.Commands.Settings do
         _options
       ) do
     {:ok, %{settings: %{case_insensitive_proxies: case_insensitive_proxies}}} =
-      ProxyCache.get(discord_id, false)
+      Cache.Proxy.get(discord_id, false)
 
     new_value = not case_insensitive_proxies
 
     case Accounts.update_discord_settings(system_identity, %{case_insensitive_proxies: new_value}) do
       {:ok, _} ->
-        Utils.success_component(
+        success_component(
           "Proxying will now #{if new_value, do: "be", else: "no longer be"} case-insensitive."
         )
 
       {:error, _} ->
-        Utils.error_component(
-          "An unknown error occurred while changing your proxy case sensitivity."
-        )
+        error_component("An unknown error occurred while changing your proxy case sensitivity.")
     end
   end
 
   def proxy_show_pronouns(%{system_identity: system_identity, discord_id: discord_id}, _options) do
-    {:ok, %{settings: %{show_pronouns: show_pronouns}}} = ProxyCache.get(discord_id, false)
+    {:ok, %{settings: %{show_pronouns: show_pronouns}}} = Cache.Proxy.get(discord_id, false)
 
     new_value = not show_pronouns
 
     case Accounts.update_discord_settings(system_identity, %{show_pronouns: new_value}) do
       {:ok, _} ->
-        Utils.success_component(
-          "Proxying will now #{if new_value, do: "show", else: "hide"} pronouns."
-        )
+        success_component("Proxying will now #{if new_value, do: "show", else: "hide"} pronouns.")
 
       {:error, _} ->
-        Utils.error_component(
-          "An unknown error occurred while changing your proxy pronoun visibility."
-        )
+        error_component("An unknown error occurred while changing your proxy pronoun visibility.")
     end
   end
 
   def ids_as_proxies(%{system_identity: system_identity, discord_id: discord_id}, _options) do
-    {:ok, %{settings: %{ids_as_proxies: ids_as_proxies}}} = ProxyCache.get(discord_id, false)
+    {:ok, %{settings: %{ids_as_proxies: ids_as_proxies}}} = Cache.Proxy.get(discord_id, false)
 
     new_value = not ids_as_proxies
 
     case Accounts.update_discord_settings(system_identity, %{ids_as_proxies: new_value}) do
       {:ok, _} ->
-        Utils.success_component(
+        success_component(
           "Alter IDs and aliases will now #{if new_value, do: "be", else: "no longer be"} automatically used as proxies.#{if new_value, do: "\n\nFor example, the message `1-Hello, world!` will be proxied as the alter with ID `1`, and the message `Atlas-Hello, world!` will be proxied as the alter with alias `Atlas`", else: ""}"
         )
 
       {:error, _} ->
-        Utils.error_component(
-          "An unknown error occurred while changing your IDs as proxies setting."
-        )
+        error_component("An unknown error occurred while changing your IDs as proxies setting.")
     end
   end
 
   def toggle_proxy_delay(%{system_identity: system_identity, discord_id: discord_id}, _options) do
-    {:ok, %{settings: %{use_proxy_delay: use_proxy_delay}}} = ProxyCache.get(discord_id, false)
+    {:ok, %{settings: %{use_proxy_delay: use_proxy_delay}}} = Cache.Proxy.get(discord_id, false)
 
     new_value = not use_proxy_delay
 
     case Accounts.update_discord_settings(system_identity, %{use_proxy_delay: new_value}) do
       {:ok, _} ->
-        Utils.success_component(
+        success_component(
           if(new_value,
             do:
               "Octocon will now introduce a slight delay before proxying your message. This will prevent a Discord bug that causes duplicate \"ghost\" messages to appear when proxying.",
@@ -218,9 +207,7 @@ defmodule OctoconDiscord.Commands.Settings do
         )
 
       {:error, _} ->
-        Utils.error_component(
-          "An unknown error occurred while changing your proxy delay setting."
-        )
+        error_component("An unknown error occurred while changing your proxy delay setting.")
     end
   end
 
@@ -228,13 +215,13 @@ defmodule OctoconDiscord.Commands.Settings do
         %{system_identity: system_identity, discord_id: discord_id},
         _options
       ) do
-    {:ok, %{settings: %{silent_proxying: silent_proxying}}} = ProxyCache.get(discord_id, false)
+    {:ok, %{settings: %{silent_proxying: silent_proxying}}} = Cache.Proxy.get(discord_id, false)
 
     new_value = not silent_proxying
 
     case Accounts.update_discord_settings(system_identity, %{silent_proxying: new_value}) do
       {:ok, _} ->
-        Utils.success_component(
+        success_component(
           if(new_value,
             do:
               "Octocon will now tell Discord to prevent proxied messages from sending push notifications.",
@@ -243,9 +230,7 @@ defmodule OctoconDiscord.Commands.Settings do
         )
 
       {:error, _} ->
-        Utils.error_component(
-          "An unknown error occurred while changing your proxy delay setting."
-        )
+        error_component("An unknown error occurred while changing your proxy delay setting.")
     end
   end
 
@@ -253,7 +238,7 @@ defmodule OctoconDiscord.Commands.Settings do
         %{system_identity: system_identity, discord_id: discord_id, guild_id: guild_id},
         _options
       ) do
-    {:ok, %{settings: %{server_settings: server_settings}}} = ProxyCache.get(discord_id, false)
+    {:ok, %{settings: %{server_settings: server_settings}}} = Cache.Proxy.get(discord_id, false)
 
     new_value =
       not (Map.get(server_settings, guild_id, %{proxying_disabled: false})
@@ -263,34 +248,34 @@ defmodule OctoconDiscord.Commands.Settings do
            proxying_disabled: new_value
          }) do
       {:ok, _} ->
-        Utils.success_component(
+        success_component(
           "Proxying has been #{if new_value, do: "disabled", else: "enabled"} in this server."
         )
 
       _ ->
-        Utils.error_component("An error occurred while disabling proxying.")
+        error_component("An error occurred while disabling proxying.")
     end
   end
 
   def import_pk(%{system_identity: system_identity}, options) do
-    pk_token = Utils.get_command_option(options, "token")
+    pk_token = get_command_option(options, "token")
 
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     PluralKitImportWorker.perform(%{"system_id" => system_id, "pk_token" => pk_token})
 
-    Utils.success_component(
+    success_component(
       "Octocon is attempting to import your alters from PluralKit. This may take a while; check your alters with `/alter list`."
     )
   end
 
   def import_sp(%{system_identity: system_identity}, options) do
-    sp_token = Utils.get_command_option(options, "token")
+    sp_token = get_command_option(options, "token")
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     SimplyPluralImportWorker.perform(%{"system_id" => system_id, "sp_token" => sp_token})
 
-    Utils.success_component(
+    success_component(
       "Octocon is attempting to import your alters from Simply Plural. This may take a while; check your alters with `/alter list`."
     )
   end

@@ -4,7 +4,7 @@ config :octocon, :nostrum_scope, :global
 
 config :mnesia, dir: ~c"/mnesia"
 
-# TODO: Do not print debug messages in production
+# [TODO]: Do not print debug messages in production
 config :logger, level: :info
 
 config :sentry,

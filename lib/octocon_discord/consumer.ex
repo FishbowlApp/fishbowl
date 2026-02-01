@@ -6,10 +6,14 @@ defmodule OctoconDiscord.Consumer do
 
   alias Nostrum.ConsumerGroup
 
+  import OctoconDiscord.Utils.{
+    Components,
+    CV2
+  }
+
   alias OctoconDiscord.{
     Commands,
-    Components,
-    Utils
+    Components
   }
 
   alias OctoconDiscord.Events.MessageCreate
@@ -86,7 +90,7 @@ defmodule OctoconDiscord.Consumer do
       %{
         type: 8,
         data: %{
-          choices: OctoconDiscord.AutocompleteManagers.dispatch(interaction)
+          choices: OctoconDiscord.Autocomplete.dispatch(interaction)
         }
       }
     )
@@ -123,9 +127,9 @@ defmodule OctoconDiscord.Consumer do
       type: 4,
       data: %{
         components: [
-          Utils.error_component_raw("An error occurred while processing your command.")
+          error_component_raw("An error occurred while processing your command.")
         ],
-        flags: Utils.cv2_flags()
+        flags: cv2_flags()
       }
     })
   end

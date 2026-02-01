@@ -2,8 +2,8 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages do
   defmacro __using__(_opts) do
     quote do
       alias OctoconDiscord.{
-        Emojis,
-        Utils
+        Utils,
+        Utils.Emojis
       }
 
       alias Nostrum.Struct.{

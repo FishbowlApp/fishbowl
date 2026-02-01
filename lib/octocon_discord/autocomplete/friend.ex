@@ -1,7 +1,7 @@
-defmodule OctoconDiscord.AutocompleteManagers.Friend do
+defmodule OctoconDiscord.Autocomplete.Friend do
   @moduledoc false
 
-  use OctoconDiscord.AutocompleteManagers
+  use OctoconDiscord.Autocomplete
 
   def cache_function(user) do
     friends =

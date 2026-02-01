@@ -1,7 +1,7 @@
-defmodule OctoconDiscord.AutocompleteManagers.Front do
+defmodule OctoconDiscord.Autocomplete.Front do
   @moduledoc false
 
-  use OctoconDiscord.AutocompleteManagers
+  use OctoconDiscord.Autocomplete
 
   def cache_function(user) do
     fronting =
@@ -34,7 +34,7 @@ defmodule OctoconDiscord.AutocompleteManagers.Front do
           currently_fronting =
             get_autocomplete_responses(discord_id, "") |> Enum.map(& &1.value)
 
-          OctoconDiscord.AutocompleteManagers.Alter.get_autocomplete_responses(
+          OctoconDiscord.Autocomplete.Alter.get_autocomplete_responses(
             discord_id,
             prefix
           )

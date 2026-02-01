@@ -1,7 +1,7 @@
-defmodule OctoconDiscord.AutocompleteManagers.FriendRequest do
+defmodule OctoconDiscord.Autocomplete.FriendRequest do
   @moduledoc false
 
-  use OctoconDiscord.AutocompleteManagers
+  use OctoconDiscord.Autocomplete
 
   def cache_function(user, :incoming) do
     requests =

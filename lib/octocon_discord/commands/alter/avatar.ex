@@ -1,15 +1,14 @@
 defmodule OctoconDiscord.Commands.Alter.Avatar do
   @moduledoc false
+
+  use OctoconDiscord.Commands
+
   import Octocon.Utils.Alter, only: [upload_avatar: 3]
 
   alias Octocon.{
     Accounts,
     Alters
   }
-
-  alias OctoconDiscord.Utils
-
-  import OctoconDiscord.Utils, only: [with_id_or_alias: 2]
 
   @subcommands %{
     "set" => &__MODULE__.set_attachment/2,
@@ -32,10 +31,10 @@ defmodule OctoconDiscord.Commands.Alter.Avatar do
       else
         case alter_identity do
           {:id, alter_id} ->
-            Utils.error_component("You don't have an alter with ID **#{alter_id}**.")
+            error_component("You don't have an alter with ID **#{alter_id}**.")
 
           {:alias, aliaz} ->
-            Utils.error_component("You don't have an alter with alias **#{aliaz}**.")
+            error_component("You don't have an alter with alias **#{aliaz}**.")
         end
       end
     end)
@@ -45,27 +44,27 @@ defmodule OctoconDiscord.Commands.Alter.Avatar do
         %{resolved: resolved, system_identity: system_identity, alter_identity: alter_identity},
         options
       ) do
-    avatar_id = Utils.get_command_option(options, "avatar")
+    avatar_id = get_command_option(options, "avatar")
     attachment = resolved.attachments[avatar_id]
 
     cond do
       attachment.height == nil or attachment.width == nil ->
-        Utils.error_component(
+        error_component(
           "That file doesn't appear to be a valid image. Please provide an image under 20 MB."
         )
 
       attachment.size > 20_000_000 ->
-        Utils.error_component(
+        error_component(
           "The image you provided is too large. Please provide an image that is less than 20 MB."
         )
 
       true ->
         case upload_avatar(system_identity, alter_identity, attachment.url) do
           :ok ->
-            Utils.success_component("Successfully set alter's avatar!")
+            success_component("Successfully set alter's avatar!")
 
           _ ->
-            Utils.error_component(
+            error_component(
               "An unknown error occurred while processing the image. Please try again."
             )
         end
@@ -73,7 +72,7 @@ defmodule OctoconDiscord.Commands.Alter.Avatar do
   end
 
   # def set_url(_context, _options) do
-  #   Utils.error_component("This command is not yet implemented.")
+  #   error_component("This command is not yet implemented.")
   # end
 
   def remove(
@@ -92,7 +91,7 @@ defmodule OctoconDiscord.Commands.Alter.Avatar do
     spawn(fn ->
       system_id = Accounts.id_from_system_identity(system_identity, :system)
       alter_id = Alters.resolve_alter(system_identity, alter_identity)
-      Octocon.Utils.nuke_existing_avatars!(system_id, alter_id)
+      Octocon.nuke_existing_avatars!(system_id, alter_id)
     end)
 
     result

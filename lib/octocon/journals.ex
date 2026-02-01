@@ -246,7 +246,7 @@ defmodule Octocon.Journals do
     end
   end
 
-  # TODO: Delete alter references
+  # [TODO]: Delete alter references
   def delete_global_journal_entry(system_identity, entry_id) do
     where = unwrap_system_identity_where(system_identity, id: entry_id)
 

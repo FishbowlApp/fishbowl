@@ -1,6 +1,8 @@
 defmodule OctoconDiscord.Commands.Tag do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias OctoconDiscord.Components.TagPaginator
@@ -10,8 +12,6 @@ defmodule OctoconDiscord.Commands.Tag do
     Alters,
     Tags
   }
-
-  alias OctoconDiscord.Utils
 
   @subcommands %{
     "create" => &__MODULE__.create/2,
@@ -31,7 +31,7 @@ defmodule OctoconDiscord.Commands.Tag do
     %{data: %{resolved: resolved}, user: %{id: discord_id}} = interaction
     discord_id = to_string(discord_id)
 
-    Utils.ensure_registered(discord_id, fn ->
+    ensure_registered(discord_id, fn ->
       %{data: %{options: [%{name: name, options: options}]}} = interaction
 
       @subcommands[name].(
@@ -42,48 +42,44 @@ defmodule OctoconDiscord.Commands.Tag do
   end
 
   def create(%{system_identity: system_identity}, options) do
-    name = Utils.get_command_option(options, "name")
+    name = get_command_option(options, "name")
 
     case Tags.create_tag(system_identity, name) do
       {:ok, _} ->
-        Utils.success_component(
+        success_component(
           "Successfully created tag **#{name}**! You can view it with `/tag view`.\n\n**Note:** This tag is currently private. You can change this with `/tag security`."
         )
 
       {:error, e} ->
-        Utils.error_component(
-          "An unknown error occurred while creating the tag. Please try again."
-        )
+        error_component("An unknown error occurred while creating the tag. Please try again.")
     end
   end
 
   def delete(%{system_identity: system_identity}, options) do
-    tag_id = Utils.get_command_option(options, "tag")
+    tag_id = get_command_option(options, "tag")
 
     case Tags.delete_tag(system_identity, tag_id) do
       :ok ->
-        Utils.success_component("Successfully deleted tag!")
+        success_component("Successfully deleted tag!")
 
       {:error, _} ->
-        Utils.error_component(
-          "An unknown error occurred while deleting the tag. Please try again."
-        )
+        error_component("An unknown error occurred while deleting the tag. Please try again.")
     end
   end
 
   def view(%{system_identity: system_identity}, options) do
-    tag_id = Utils.get_command_option(options, "tag")
+    tag_id = get_command_option(options, "tag")
 
     case Tags.get_tag(system_identity, tag_id) do
       nil ->
-        Utils.error_component("That tag does not exist.")
+        error_component("That tag does not exist.")
 
       tag ->
         # [
         #   components: Utils.tag_component(tag),
         #   flags: Utils.cv2_flags()
         # ]
-        Utils.success_component("TODO: #{inspect(tag)}")
+        success_component("[TODO]: #{inspect(tag)}")
     end
   end
 
@@ -297,7 +293,7 @@ defmodule OctoconDiscord.Commands.Tag do
               autocomplete: true
             }
           ]
-          |> Utils.add_show_option()
+          |> add_show_option()
       },
       # %{
       #   name: "random",

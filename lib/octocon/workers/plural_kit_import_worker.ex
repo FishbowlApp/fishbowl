@@ -108,7 +108,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
       "#{alter_count} alters have been successfully imported from PluralKit. They have been assigned IDs #{start_count} - #{start_count + alter_count - 1}. It may take a while longer for their avatars to be processed.\n\n**Note:** This process should only be completed once; doing it again will result in duplicate alters."
     )
 
-    OctoconDiscord.ProxyCache.invalidate({:system, system_id})
+    OctoconDiscord.Cache.Proxy.invalidate({:system, system_id})
 
     spawn(fn ->
       Task.async_stream(

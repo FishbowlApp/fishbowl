@@ -394,7 +394,7 @@ defmodule Octocon.Alters do
               })
             end)
 
-            OctoconDiscord.AutocompleteManagers.Alter.invalidate(system_identity)
+            OctoconDiscord.Autocomplete.Alter.invalidate(system_identity)
 
             {:ok, alter_id, get_alter_by_id!({:system, user.id}, {:id, alter_id})}
 
@@ -451,7 +451,7 @@ defmodule Octocon.Alters do
               alter_id: alter_id
             })
 
-            OctoconDiscord.AutocompleteManagers.Alter.invalidate(system_identity)
+            OctoconDiscord.Autocomplete.Alter.invalidate(system_identity)
           end)
 
           spawn(fn ->
@@ -526,7 +526,7 @@ defmodule Octocon.Alters do
               })
 
               if Map.has_key?(attrs, :name) or Map.has_key?(attrs, :alias) do
-                OctoconDiscord.AutocompleteManagers.Alter.invalidate(system_identity)
+                OctoconDiscord.Autocomplete.Alter.invalidate(system_identity)
               end
             end)
 

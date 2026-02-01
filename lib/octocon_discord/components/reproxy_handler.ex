@@ -3,11 +3,11 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
   use GenServer
 
   import OctoconDiscord.Proxy
+  import OctoconDiscord.Utils.Components
 
   alias Nostrum.Api
 
   alias Octocon.Alters
-  alias OctoconDiscord.Utils
 
   @table :reproxy_handler
 
@@ -62,7 +62,6 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
     result =
       try_reproxy_message(data, responses)
       |> Enum.into(%{})
-      |> Map.drop([:ephemeral?])
       |> Map.put(:flags, 64)
 
     :ets.delete(@table, uid)
@@ -91,7 +90,7 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
         text
       end
 
-    Utils.with_id_or_alias(
+    OctoconDiscord.Utils.with_id_or_alias(
       idalias,
       fn
         nil ->
@@ -107,7 +106,7 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
           alter_id = Alters.resolve_alter({:system, system_id}, alter_identity)
 
           if alter_id == false do
-            Utils.error_component(
+            error_component(
               "You don't have an alter with the ID or alias `#{alter_identity |> elem(1)}`."
             )
           else
@@ -164,8 +163,8 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
              )
            end
          ) do
-      :no_proxy -> Utils.error_component("Failed to reproxy the message.")
-      :ok -> Utils.success_component("Message reproxied!")
+      :no_proxy -> error_component("Failed to reproxy the message.")
+      :ok -> success_component("Message reproxied!")
     end
   end
 
@@ -199,8 +198,8 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
              false
            )
          end) do
-      :no_proxy -> Utils.error_component("Failed to reproxy the message.")
-      :ok -> Utils.success_component("Message reproxied!")
+      :no_proxy -> error_component("Failed to reproxy the message.")
+      :ok -> success_component("Message reproxied!")
     end
   end
 

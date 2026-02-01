@@ -121,7 +121,7 @@ config :nostrum,
     :direct_message_reactions,
     :message_content
   ],
-  # TODO: Manual sharding
+  # [TODO]: Manual sharding
   # num_shards: :manual,
   ffmpeg: false,
   gateway_compression: :zstd

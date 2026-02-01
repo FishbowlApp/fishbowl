@@ -13,21 +13,14 @@ defmodule OctoconDiscord.Supervisor do
   @impl Supervisor
   def init([]) do
     children = [
-      # Cachex-backed cache managers
-      OctoconDiscord.ServerSettingsManager,
-      OctoconDiscord.WebhookManager,
-      OctoconDiscord.AutocompleteManagers,
+      # Cachex-backed and custom ETS-based cache managers
+      OctoconDiscord.Cache,
 
-      # Custom ETS-backed persistent caches
-      OctoconDiscord.ProxyCache,
-      OctoconDiscord.ChannelBlacklistManager,
+      # Autocomplete handlers
+      OctoconDiscord.Autocomplete,
 
       # Component handlers
-      OctoconDiscord.Components.HelpHandler,
-      OctoconDiscord.Components.AlterPaginator,
-      OctoconDiscord.Components.WipeAltersHandler,
-      OctoconDiscord.Components.DeleteAccountHandler,
-      OctoconDiscord.Components.ReproxyHandler,
+      OctoconDiscord.Components,
       Nostrum.Application,
       Supervisor.child_spec({Task, fn -> start_status_updater() end}, id: :start_status_updater),
 

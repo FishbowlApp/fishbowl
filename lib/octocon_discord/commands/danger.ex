@@ -1,14 +1,14 @@
 defmodule OctoconDiscord.Commands.Danger do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias OctoconDiscord.Components.{
     DeleteAccountHandler,
     WipeAltersHandler
   }
-
-  alias OctoconDiscord.Utils
 
   @subcommands %{
     "wipe-alters" => &__MODULE__.wipe_alters/2,
@@ -24,7 +24,7 @@ defmodule OctoconDiscord.Commands.Danger do
     %{data: %{resolved: resolved}, user: %{id: discord_id}} = interaction
     discord_id = to_string(discord_id)
 
-    Utils.ensure_registered(discord_id, fn ->
+    ensure_registered(discord_id, fn ->
       %{data: %{options: [%{name: name, options: options}]}} = interaction
 
       @subcommands[name].(
@@ -37,13 +37,13 @@ defmodule OctoconDiscord.Commands.Danger do
   def delete_account(%{system_identity: system_identity}, _options) do
     DeleteAccountHandler.handle_init(system_identity)
 
-    Utils.success_component("Check your DMs!")
+    success_component("Check your DMs!")
   end
 
   def wipe_alters(%{system_identity: system_identity}, _options) do
     WipeAltersHandler.handle_init(system_identity)
 
-    Utils.success_component("Check your DMs!")
+    success_component("Check your DMs!")
   end
 
   @impl Nosedrum.ApplicationCommand

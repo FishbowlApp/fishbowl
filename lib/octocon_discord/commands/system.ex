@@ -1,6 +1,8 @@
 defmodule OctoconDiscord.Commands.System do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.{
@@ -8,8 +10,6 @@ defmodule OctoconDiscord.Commands.System do
     Alters,
     Fronts
   }
-
-  alias OctoconDiscord.Utils
 
   @subcommands %{
     "me" => &__MODULE__.me/2,
@@ -37,42 +37,42 @@ defmodule OctoconDiscord.Commands.System do
     # `/system view` can be used by unregistered users
     case name do
       "view" -> callback.()
-      _ -> Utils.ensure_registered(discord_id, callback)
+      _ -> ensure_registered(discord_id, callback)
     end
   end
 
   def me(%{discord_id: discord_id}, _options) do
     system = Accounts.get_user!({:discord, discord_id})
-    Utils.system_component(system, true)
+    system_component(system, true)
   end
 
   def view(_context, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    Utils.system_id_from_opts(opts, fn identity, _ ->
+    system_id_from_opts(opts, fn identity, _ ->
       system = Accounts.get_user!(identity)
-      Utils.system_component(system, false)
+      system_component(system, false)
     end)
   end
 
   def alter(%{discord_id: discord_id}, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    alter_id = Utils.get_command_option(options, "alter-id")
+    alter_id = get_command_option(options, "alter-id")
 
-    Utils.system_id_from_opts(opts, fn identity, _ ->
-      if Utils.alter_id_valid?(alter_id) do
+    system_id_from_opts(opts, fn identity, _ ->
+      if alter_id_valid?(alter_id) do
         case Alters.get_alter_guarded(identity, {:id, alter_id}, {:discord, discord_id}) do
           :error ->
-            Utils.error_component(
+            error_component(
               "Could not access this alter. You may not have permission to view them."
             )
 
@@ -80,50 +80,50 @@ defmodule OctoconDiscord.Commands.System do
             [
               components:
                 [
-                  Utils.text(
+                  text(
                     "**NOTE:** This alter's information is only visible to you. You probably shouldn't share this with anyone else."
                   ),
-                  Utils.alter_component(alter, false, true)
+                  alter_component(alter, false, true)
                 ]
                 |> List.flatten(),
-              flags: Utils.cv2_flags()
+              flags: cv2_flags()
             ]
         end
       else
-        Utils.error_component("**#{alter_id}** is not a valid alter ID.")
+        error_component("**#{alter_id}** is not a valid alter ID.")
       end
     end)
   end
 
   def fronting(%{discord_id: discord_id}, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    Utils.system_id_from_opts(opts, fn identity, decorator ->
+    system_id_from_opts(opts, fn identity, decorator ->
       currently_fronting =
         Fronts.currently_fronting_guarded(identity, {:discord, discord_id})
 
       if currently_fronting == [] do
-        Utils.error_component(
+        error_component(
           "No alters are currently fronting in that system, or you do not have permission to view them."
         )
       else
         [
           components: [
-            Utils.container(
+            container(
               [
-                Utils.text(
+                text(
                   "## Currently fronting in system #{decorator} (#{length(currently_fronting)})\n*Note: You may not have permission to view all fronting alters.*"
                 ),
-                Utils.separator(spacing: :large),
+                separator(spacing: :large),
                 Enum.map(currently_fronting, fn %{front: front, alter: alter, primary: primary} ->
                   inserted_at =
                     front.time_start |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
 
-                  Utils.text("""
+                  text("""
                   #{if primary, do: ":star: ", else: ""}**#{alter.name || "Unnamed alter"}**#{case alter.pronouns do
                     nil -> ""
                     pronouns -> " (#{pronouns})"
@@ -135,13 +135,13 @@ defmodule OctoconDiscord.Commands.System do
                     else: ""}
                   """)
                 end),
-                Utils.separator(spacing: :large),
-                Utils.text("*⭐ = Main front*")
+                separator(spacing: :large),
+                text("*⭐ = Main front*")
               ]
               |> List.flatten()
             )
           ],
-          flags: Utils.cv2_flags()
+          flags: cv2_flags()
         ]
       end
     end)

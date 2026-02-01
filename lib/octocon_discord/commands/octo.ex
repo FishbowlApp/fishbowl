@@ -10,9 +10,9 @@ end
 defmodule OctoconDiscord.Commands.Octo do
   @moduledoc false
 
-  @behaviour Nosedrum.ApplicationCommand
+  use OctoconDiscord.Commands
 
-  alias OctoconDiscord.Utils
+  @behaviour Nosedrum.ApplicationCommand
 
   @impl Nosedrum.ApplicationCommand
   def description, do: "Displays an all-in-one interface to interact with Octocon."
@@ -23,7 +23,7 @@ defmodule OctoconDiscord.Commands.Octo do
     # guild_id = to_string(guild_id)
     # discord_id = to_string(discord_id)
 
-    # Utils.ensure_registered(discord_id, fn ->
+    # ensure_registered(discord_id, fn ->
     #   system_identity = {:discord, discord_id}
 
     #   context = %__MODULE__.Context{
@@ -33,10 +33,10 @@ defmodule OctoconDiscord.Commands.Octo do
     #     system_identity: system_identity
     #   }
 
-    #   Utils.success_component("Test")
+    #   success_component("Test")
     # end)
 
-    Utils.success_component("This command is under construction.")
+    error_component("This command is under construction.")
   end
 
   @impl Nosedrum.ApplicationCommand

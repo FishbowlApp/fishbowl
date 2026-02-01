@@ -45,7 +45,7 @@ defmodule OctoconDiscord.ShardManager do
 
   @impl GenServer
   def terminate(_reason, {id, _, _, _} = state) do
-    # TODO: Shard handoff à la https://github.com/ElixirSeattle/tanx/tree/master/apps/tanx/lib/tanx/game/manager.ex (https://www.youtube.com/watch?v=nLApFANtkHs)
+    # [TODO]: Shard handoff à la https://github.com/ElixirSeattle/tanx/tree/master/apps/tanx/lib/tanx/game/manager.ex (https://www.youtube.com/watch?v=nLApFANtkHs)
     Logger.info("Terminating ShardManager with ID #{id}")
     disconnect_shards(state)
 
