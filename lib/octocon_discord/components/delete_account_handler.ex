@@ -2,10 +2,7 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
   @moduledoc false
   use GenServer
 
-  import OctoconDiscord.Utils.{
-    Components,
-    CV2
-  }
+  import OctoconDiscord.Utils.CV2
 
   alias Nostrum.Api
   alias Octocon.Accounts

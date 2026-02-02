@@ -1,6 +1,5 @@
 defmodule OctoconDiscord.Utils.Components do
   alias Octocon.Accounts
-  alias Octocon.Accounts.User
 
   alias OctoconDiscord.Utils
 
@@ -251,6 +250,106 @@ defmodule OctoconDiscord.Utils.Components do
       else
         []
       end
+    ]
+    |> List.flatten()
+  end
+
+  def tag_component(tag, alters, guarded \\ false) do
+    normalized_description =
+      (tag.description || "")
+      |> String.replace("\\n", "\n")
+      |> String.trim()
+
+    description =
+      case String.length(normalized_description) do
+        0 ->
+          "*This tag does not have a description.*"
+
+        length when length > 1500 ->
+          normalized_description
+          |> String.slice(0..1500)
+          |> Kernel.<>("\n...")
+
+        _ ->
+          normalized_description
+      end
+
+    upper_text =
+      [
+        text("## #{tag.name || "Unnamed tag"}"),
+        text("#{description}")
+      ]
+
+    inserted_at =
+      tag.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+
+    [
+      container(
+        [
+          upper_text,
+          separator(spacing: :large),
+          text("""
+          **Short ID:** `#{String.slice(tag.id, 0..7)}`
+          """),
+          case tag.parent_tag_id do
+            nil ->
+              []
+
+            parent_tag_id ->
+              case Octocon.Tags.get_tag({:system, tag.user_id}, parent_tag_id) do
+                nil ->
+                  []
+
+                parent_tag ->
+                  tag_text = text("**Parent tag:** #{parent_tag.name}")
+
+                  if guarded do
+                    [tag_text]
+                  else
+                    section(
+                      [text("**Parent tag:** #{parent_tag.name}")],
+                      button(
+                        "tag|view|#{parent_tag.id}",
+                        :secondary,
+                        emoji: %{name: "open", id: 1_464_866_849_052_426_252}
+                      )
+                    )
+                  end
+              end
+          end,
+          if alters == [] do
+            text("**Alters**: None")
+          else
+            filtered_alters =
+              if guarded do
+                Enum.filter(alters, fn alter -> alter.security_level == :public end)
+              else
+                alters
+              end
+
+            if filtered_alters == [] do
+              text("**Alters:** None")
+            else
+              text("""
+              **Alters:**\n#{filtered_alters |> Enum.sort_by(& &1.name) |> Enum.map_join("\n",
+              fn alter -> "- #{alter.name}#{if alter.pronouns && alter.pronouns != "", do: " (#{alter.pronouns})", else: ""}" end)}
+              """)
+            end
+          end,
+          if guarded do
+            []
+          else
+            [
+              separator(spacing: :large),
+              text("**Security level:** #{Utils.security_level_to_string(tag.security_level)}"),
+              text("**Created:** <t:#{inserted_at}:F> (<t:#{inserted_at}:R>)")
+              # **Last updated:** <t:#{updated_at}:F> (<t:#{updated_at}:R>)
+            ]
+          end
+        ]
+        |> List.flatten(),
+        %{accent_color: Utils.hex_to_int(tag.color)}
+      )
     ]
     |> List.flatten()
   end

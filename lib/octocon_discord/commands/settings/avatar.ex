@@ -60,7 +60,7 @@ defmodule OctoconDiscord.Commands.Settings.Avatar do
   def remove(%{system: system}, _options) do
     case Accounts.update_user(system, %{avatar_url: nil}) do
       {:ok, _} ->
-        Octocon.nuke_existing_avatars!(system.id, "self")
+        Octocon.Utils.nuke_existing_avatars!(system.id, "self")
         success_component("Your avatar has been removed.")
 
       {:error, _} ->
