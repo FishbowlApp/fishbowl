@@ -7,23 +7,18 @@ defmodule OctoconDiscord.Proxy do
 
   require Logger
 
-  alias Octocon.Alters
+  import OctoconDiscord.Utils.CV2
 
   alias Octocon.{
     Alters,
     Messages
   }
 
-  alias OctoconDiscord.{
-    ChannelBlacklistManager,
-    ProxyCache,
-    ServerSettingsManager,
-    Utils
-  }
+  alias OctoconDiscord.{Cache, Utils}
 
   alias Nostrum.Api
 
-  @proxy_delay_ms 500
+  @proxy_delay_ms 850
   @proxy_delete_delay_ms @proxy_delay_ms + 300
 
   # https://discord.com/developers/docs/resources/channel#channel-object-channel-types
@@ -58,8 +53,8 @@ defmodule OctoconDiscord.Proxy do
   end
 
   def with_proxy_prerequisites(user_id, message, fun) do
-    # ProxyCache is also responsible for keeping track of users who don't have an account
-    case ProxyCache.get(to_string(user_id)) do
+    # Cache.Proxy is also responsible for keeping track of users who don't have an account
+    case Cache.Proxy.get(to_string(user_id)) do
       {:error, :no_user} ->
         # User doesn't have an Octocon account, ignore
         :no_proxy
@@ -68,11 +63,11 @@ defmodule OctoconDiscord.Proxy do
         {channel_id, parent_id, thread_id} = check_thread(message)
 
         # Fast path: if the channel is blacklisted, don't bother checking anything else
-        unless ChannelBlacklistManager.blacklisted?(
+        unless Cache.ChannelBlacklists.blacklisted?(
                  to_string(channel_id),
                  to_string(parent_id)
                ) do
-          webhook = OctoconDiscord.WebhookManager.get_webhook(channel_id)
+          webhook = Cache.Webhooks.get_webhook(channel_id)
 
           if webhook == nil do
             :no_proxy
@@ -96,7 +91,7 @@ defmodule OctoconDiscord.Proxy do
             if server_proxy_settings.proxying_disabled do
               :no_proxy
             else
-              server_settings = ServerSettingsManager.get_settings(message.guild_id)
+              server_settings = Cache.ServerSettings.get_settings(message.guild_id)
 
               fun.(%{
                 message: message,
@@ -422,35 +417,33 @@ defmodule OctoconDiscord.Proxy do
           content
       end
 
+    creation_time = Nostrum.Snowflake.creation_time(message_id) |> DateTime.to_unix()
+
     result =
       Api.Message.create(
         String.to_integer(log_channel),
         %{
-          content: "",
-          url: permalink,
-          embeds: [
-            %Nostrum.Struct.Embed{
-              title: "Message proxied",
-              timestamp: Nostrum.Snowflake.creation_time(message_id),
-              fields: [
-                %Nostrum.Struct.Embed.Field{
-                  name: "Author",
-                  value: "<@#{author_id}>",
-                  inline: true
-                },
-                %Nostrum.Struct.Embed.Field{
-                  name: "Permalink",
-                  value: "[Jump to message](#{permalink})",
-                  inline: true
-                }
+          components: [
+            container(
+              [
+                section(
+                  [
+                    text("### Message proxied"),
+                    text(truncated_content)
+                  ],
+                  thumbnail(Utils.get_avatar_url(author_id, avatar_hash))
+                ),
+                separator(spacing: :large),
+                text("**Author:** <@#{author_id}>"),
+                text("**Sent at:** <t:#{creation_time}:F> (<t:#{creation_time}:R>)")
               ],
-              thumbnail: %Nostrum.Struct.Embed.Thumbnail{
-                url: Utils.get_avatar_url(author_id, avatar_hash)
-              },
-              color: Utils.hex_to_int("#0FBEAA"),
-              description: truncated_content
-            }
-          ]
+              %{accent_color: Utils.hex_to_int("#3F3793")}
+            ),
+            action_row([
+              link_button(permalink, label: "Jump to message")
+            ])
+          ],
+          flags: cv2_flags(false) |> Bitwise.bor(Bitwise.bsl(1, 12))
         }
       )
 
@@ -464,6 +457,7 @@ defmodule OctoconDiscord.Proxy do
   end
 
   # Recreate replies as embeds
+  # [TODO]: Replace with components
   defp build_reply_embed(message, reply, color) do
     %{
       author: reply_author,

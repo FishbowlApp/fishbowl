@@ -259,6 +259,11 @@ defmodule OctoconWeb.System.TagController do
         |> put_status(:not_found)
         |> json(%{error: "Tag or parent tag not found.", code: "tag_or_parent_not_found"})
 
+      {:error, :tag_cycle} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: "You cannot create a cycle with parent tags.", code: "tag_cycle"})
+
       {:error, :changeset} ->
         conn
         |> put_status(:bad_request)

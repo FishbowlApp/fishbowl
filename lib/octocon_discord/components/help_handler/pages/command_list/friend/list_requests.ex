@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Friend.ListReq
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/friend list-requests`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/friend list-requests` command views a list of all your incoming and outgoing friend requests.
         ### Usage

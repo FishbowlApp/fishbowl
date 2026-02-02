@@ -89,7 +89,7 @@ defmodule Octocon.Alters do
     end
   end
 
-  def resolve_alter_id_dumb(system_identity, {:id, alter_id}), do: alter_id
+  def resolve_alter_id_dumb(_system_identity, {:id, alter_id}), do: alter_id
 
   def resolve_alter_id_dumb(system_identity, {:alias, aliaz}) do
     where = unwrap_system_identity_where(system_identity, alias: aliaz)
@@ -347,9 +347,14 @@ defmodule Octocon.Alters do
   rescue
     _ ->
       if force_id == nil do
-        # Manually resync the user's alter count
-        highest_alter_id = get_highest_alter_id({:system, user.id})
-        create_alter_internal(user, attrs, highest_alter_id + 1)
+        expected_alter_id = get_highest_alter_id({:system, user.id}) + 1
+
+        if user.lifetime_alter_count + 1 != expected_alter_id + 1 do
+          # Retry with the correct alter ID
+          create_alter_internal(user, attrs, expected_alter_id)
+        else
+          {:error, :database}
+        end
       end
   end
 
@@ -388,6 +393,8 @@ defmodule Octocon.Alters do
                 alter: alter |> OctoconWeb.System.AlterJSON.data_me()
               })
             end)
+
+            OctoconDiscord.Autocomplete.Alter.invalidate(system_identity)
 
             {:ok, alter_id, get_alter_by_id!({:system, user.id}, {:id, alter_id})}
 
@@ -443,6 +450,8 @@ defmodule Octocon.Alters do
             OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "alter_deleted", %{
               alter_id: alter_id
             })
+
+            OctoconDiscord.Autocomplete.Alter.invalidate(system_identity)
           end)
 
           spawn(fn ->
@@ -515,6 +524,10 @@ defmodule Octocon.Alters do
                   alter
                   |> OctoconWeb.System.AlterJSON.data_me()
               })
+
+              if Map.has_key?(attrs, :name) or Map.has_key?(attrs, :alias) do
+                OctoconDiscord.Autocomplete.Alter.invalidate(system_identity)
+              end
             end)
 
             :ok

@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Alter.RemovePr
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/alter remove-proxy-name`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/alter remove-proxy-name` command removes an existing proxy name from an alter.
         ### Usage

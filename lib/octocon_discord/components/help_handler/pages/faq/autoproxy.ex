@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.Autoproxy do
     [
       %Embed{
         title: "#{Emojis.faq()} How does autoproxy work?",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         Autoproxy is a feature in Octocon that allows you to automatically proxy as an alter when you send a message, without having to specify their proxy every time. There are three autoproxy modes:
 

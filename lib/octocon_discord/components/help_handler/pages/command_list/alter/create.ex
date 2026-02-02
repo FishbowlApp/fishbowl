@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Alter.Create d
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/alter create`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/alter create` command creates a new alter.
         ### Usage

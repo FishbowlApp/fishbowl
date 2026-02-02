@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Alter.Security
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/alter security`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/alter security` command sets an alter's security level. Security levels determine who can view an alter's profile.
         ### Usage

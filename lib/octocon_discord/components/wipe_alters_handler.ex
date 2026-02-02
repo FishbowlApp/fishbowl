@@ -2,10 +2,7 @@ defmodule OctoconDiscord.Components.WipeAltersHandler do
   @moduledoc false
   use GenServer
 
-  alias Nostrum.Struct.Component.{
-    ActionRow,
-    Button
-  }
+  import OctoconDiscord.Utils.CV2
 
   alias Nostrum.Api
 
@@ -43,24 +40,26 @@ defmodule OctoconDiscord.Components.WipeAltersHandler do
        })
        when confirmations_left > 0 do
     [
-      embeds: [
-        %Nostrum.Struct.Embed{
-          title: "Wipe alters",
-          color: Utils.hex_to_int("#FF0000"),
-          description:
-            "**WARNING**: This command will **permanently** wipe all alters from your system, but keep your account and settings.\n\nTo confirm, click the button below a total of **3** times."
-        }
-      ],
       components: [
-        ActionRow.action_row([
-          Button.interaction_button(
-            "Confirm (#{3 - confirmations_left}/3)",
+        container(
+          [
+            text("### Wipe alters"),
+            text(
+              "**WARNING**: This command will **permanently** wipe all alters from your system, but keep your account and settings.\n\nTo confirm, click the button below a total of **3** times."
+            )
+          ],
+          %{accent_color: 0xFF0000}
+        ),
+        action_row([
+          button(
             "wipe-alters|confirm|#{uid}",
-            style: 4,
-            emoji: %Nostrum.Struct.Emoji{name: "⚠️"}
+            :danger,
+            label: "Confirm (#{3 - confirmations_left}/3)",
+            emoji: %{name: "⚠️"}
           )
         ])
-      ]
+      ],
+      flags: cv2_flags(false)
     ]
   end
 
@@ -72,15 +71,20 @@ defmodule OctoconDiscord.Components.WipeAltersHandler do
     Accounts.wipe_alters({:system, system_id})
 
     [
-      embeds: [
-        %Nostrum.Struct.Embed{
-          title: ":broom: Success!",
-          color: Utils.hex_to_int("#00FF00"),
-          description:
-            "Your alters have been wiped, and your alter IDs have been reset (your next alter will have the ID `1`)."
-        }
+      components: [
+        container(
+          [
+            text("### :broom: Success!"),
+            text(
+              "Your alters have been wiped, and your alter IDs have been reset (your next alter will have the ID `1`)."
+            )
+          ],
+          %{
+            accent_color: 0x00FF00
+          }
+        )
       ],
-      components: []
+      flags: cv2_flags(false)
     ]
   end
 

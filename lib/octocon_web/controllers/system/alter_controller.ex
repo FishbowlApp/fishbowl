@@ -123,29 +123,32 @@ defmodule OctoconWeb.System.AlterController do
       |> put_status(:bad_request)
       |> json(%{error: "No valid alter attributes provided.", code: "no_alter_attributes"})
     else
-      case Alters.update_alter({:system, system_id}, {:id, id}, attrs) do
-        :ok ->
-          send_resp(conn, :no_content, "")
-
-        {:error, :changeset} ->
-          conn
-          |> put_status(:bad_request)
-          |> json(%{error: "Invalid alter attributes.", code: "invalid_alter_attributes"})
-
-        {:error, :no_alter_id} ->
-          conn
-          |> put_status(:not_found)
-          |> json(%{error: "Alter not found.", code: "alter_not_found"})
-
-        {:error, :alias_taken} ->
+      if Map.has_key?(attrs, :alias) do
+        if Alters.alias_taken?({:system, system_id}, attrs.alias) do
           conn
           |> put_status(:bad_request)
           |> json(%{error: "That alias is already taken.", code: "alias_taken"})
+        else
+          case Alters.update_alter({:system, system_id}, {:id, id}, attrs) do
+            :ok ->
+              send_resp(conn, :no_content, "")
 
-        _ ->
-          conn
-          |> put_status(:internal_server_error)
-          |> json(%{error: "An unknown error occurred.", code: "unknown_error"})
+            {:error, :changeset} ->
+              conn
+              |> put_status(:bad_request)
+              |> json(%{error: "Invalid alter attributes.", code: "invalid_alter_attributes"})
+
+            {:error, :no_alter_id} ->
+              conn
+              |> put_status(:not_found)
+              |> json(%{error: "Alter not found.", code: "alter_not_found"})
+
+            _ ->
+              conn
+              |> put_status(:internal_server_error)
+              |> json(%{error: "An unknown error occurred.", code: "unknown_error"})
+          end
+        end
       end
     end
   end

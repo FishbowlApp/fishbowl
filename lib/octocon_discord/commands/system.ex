@@ -1,6 +1,8 @@
 defmodule OctoconDiscord.Commands.System do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.{
@@ -8,8 +10,6 @@ defmodule OctoconDiscord.Commands.System do
     Alters,
     Fronts
   }
-
-  alias OctoconDiscord.Utils
 
   @subcommands %{
     "me" => &__MODULE__.me/2,
@@ -37,108 +37,111 @@ defmodule OctoconDiscord.Commands.System do
     # `/system view` can be used by unregistered users
     case name do
       "view" -> callback.()
-      _ -> Utils.ensure_registered(discord_id, callback)
+      _ -> ensure_registered(discord_id, callback)
     end
   end
 
   def me(%{discord_id: discord_id}, _options) do
     system = Accounts.get_user!({:discord, discord_id})
-    Utils.system_embed(system, true)
+    system_component(system, true)
   end
 
   def view(_context, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    Utils.system_id_from_opts(opts, fn identity, _ ->
+    system_id_from_opts(opts, fn identity, _ ->
       system = Accounts.get_user!(identity)
-      Utils.system_embed(system, false)
+      system_component(system, false)
     end)
   end
 
   def alter(%{discord_id: discord_id}, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    alter_id = Utils.get_command_option(options, "alter-id")
+    alter_id = get_command_option(options, "alter-id")
 
-    Utils.system_id_from_opts(opts, fn identity, _ ->
-      if Utils.alter_id_valid?(alter_id) do
+    system_id_from_opts(opts, fn identity, _ ->
+      if alter_id_valid?(alter_id) do
         case Alters.get_alter_guarded(identity, {:id, alter_id}, {:discord, discord_id}) do
           :error ->
-            Utils.error_embed(
+            error_component(
               "Could not access this alter. You may not have permission to view them."
             )
 
           {:ok, alter} ->
             [
-              content:
-                if(alter.security_level !== :public,
-                  do:
-                    "**NOTE:** This alter's information is only visible to you. You probably shouldn't share this with anyone else.",
-                  else: nil
-                ),
-              embeds: [Utils.alter_embed(alter, true)],
-              ephemeral?: true
+              components:
+                [
+                  text(
+                    "**NOTE:** This alter's information is only visible to you. You probably shouldn't share this with anyone else."
+                  ),
+                  alter_component(alter, false, true)
+                ]
+                |> List.flatten(),
+              flags: cv2_flags()
             ]
         end
       else
-        Utils.error_embed("**#{alter_id}** is not a valid alter ID.")
+        error_component("**#{alter_id}** is not a valid alter ID.")
       end
     end)
   end
 
   def fronting(%{discord_id: discord_id}, options) do
     opts = %{
-      system_id: Utils.get_command_option(options, "system-id"),
-      discord_id: Utils.get_command_option(options, "discord"),
-      username: Utils.get_command_option(options, "username")
+      system_id: get_command_option(options, "system-id"),
+      discord_id: get_command_option(options, "discord"),
+      username: get_command_option(options, "username")
     }
 
-    Utils.system_id_from_opts(opts, fn identity, decorator ->
+    system_id_from_opts(opts, fn identity, decorator ->
       currently_fronting =
         Fronts.currently_fronting_guarded(identity, {:discord, discord_id})
 
       if currently_fronting == [] do
-        Utils.error_embed(
+        error_component(
           "No alters are currently fronting in that system, or you do not have permission to view them."
         )
       else
-        now_epoch = Timex.Duration.now(:second)
-
         [
-          embeds: [
-            %Nostrum.Struct.Embed{
-              title:
-                "Currently fronting alters for system #{decorator} (#{length(currently_fronting)})",
-              description:
-                Enum.map_join(
-                  currently_fronting,
-                  "\n",
-                  fn %{front: front, alter: alter, primary: primary} ->
-                    start_epoch = front.time_start |> Timex.to_unix()
-
-                    "- `#{alter.id}  ` **#{alter.name}** #{case front.comment do
-                      [] -> ""
-                      "" -> ""
-                      comment -> "(#{comment})"
-                    end}#{if primary,
-                      do: " :star:",
-                      else: ""}\n  - *#{(now_epoch - start_epoch) |> Timex.Duration.from_seconds() |> Timex.format_duration(:humanized)}*\n"
-                  end
+          components: [
+            container(
+              [
+                text(
+                  "## Currently fronting in system #{decorator} (#{length(currently_fronting)})\n*Note: You may not have permission to view all fronting alters.*"
                 ),
-              footer: %Nostrum.Struct.Embed.Footer{
-                text: "⭐ = Main front"
-              }
-            }
+                separator(spacing: :large),
+                Enum.map(currently_fronting, fn %{front: front, alter: alter, primary: primary} ->
+                  inserted_at =
+                    front.time_start |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+
+                  text("""
+                  #{if primary, do: ":star: ", else: ""}**#{alter.name || "Unnamed alter"}**#{case alter.pronouns do
+                    nil -> ""
+                    pronouns -> " (#{pronouns})"
+                  end}
+                  - ID: `#{alter.id}`
+                  - Fronting since: <t:#{inserted_at}:R>
+                  #{if front.comment && front.comment != "",
+                    do: "- Comment: #{front.comment}",
+                    else: ""}
+                  """)
+                end),
+                separator(spacing: :large),
+                text("*⭐ = Main front*")
+              ]
+              |> List.flatten()
+            )
           ],
-          ephemeral?: true
+          flags: cv2_flags()
         ]
       end
     end)

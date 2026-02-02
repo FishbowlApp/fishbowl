@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Root do
     [
       %Embed{
         title: "Welcome to the Octocon help interface!",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         This interactive guide will help you navigate the various features of the Octocon bot.
 

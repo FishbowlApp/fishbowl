@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.GetStarted do
     [
       %Embed{
         title: "#{Emojis.faq()} How do I get started with the bot?",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         First, you'll have to create an account! You can do this with the `/register` command.
 

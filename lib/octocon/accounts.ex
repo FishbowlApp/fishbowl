@@ -266,7 +266,7 @@ defmodule Octocon.Accounts do
     else
       current_region = Octocon.ClusterUtils.current_db_region()
       uuid = allocate_uuid()
-      OctoconDiscord.ProxyCache.invalidate(discord_id)
+      OctoconDiscord.Cache.Proxy.invalidate(discord_id)
 
       user =
         discord_id
@@ -337,7 +337,7 @@ defmodule Octocon.Accounts do
         |> Repo.update_regional({:user, {:system, user.id}})
         |> case do
           {:ok, value} ->
-            OctoconDiscord.ProxyCache.invalidate(discord_id)
+            OctoconDiscord.Cache.Proxy.invalidate(discord_id)
 
             spawn(fn ->
               update_user_registry(user.id, %{discord_id: discord_id})
@@ -641,7 +641,7 @@ defmodule Octocon.Accounts do
 
     if match?({:ok, _}, result) do
       spawn(fn ->
-        OctoconDiscord.ProxyCache.update_primary_front(user.discord_id, alter_id || nil)
+        OctoconDiscord.Cache.Proxy.update_primary_front(user.discord_id, alter_id || nil)
 
         OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "primary_front", %{
           alter_id: alter_id || nil
@@ -677,7 +677,7 @@ defmodule Octocon.Accounts do
       |> Repo.update_regional({:user, {:system, user.id}})
 
     if match?({:ok, _}, result) do
-      OctoconDiscord.ProxyCache.invalidate(user.discord_id)
+      OctoconDiscord.Cache.Proxy.invalidate(user.discord_id)
     end
 
     result
@@ -721,7 +721,7 @@ defmodule Octocon.Accounts do
       |> Repo.update_regional({:user, {:system, user.id}})
 
     if match?({:ok, _}, result) do
-      OctoconDiscord.ProxyCache.invalidate(user.discord_id)
+      OctoconDiscord.Cache.Proxy.invalidate(user.discord_id)
     end
 
     result
@@ -743,11 +743,12 @@ defmodule Octocon.Accounts do
         {:error, :not_deleted}
 
       {:ok, _} ->
-        OctoconDiscord.ProxyCache.invalidate(user.discord_id)
-
         spawn(fn ->
           delete_user_registry({:system, user.id})
           delete_user_data(user.id)
+
+          OctoconDiscord.Cache.Proxy.invalidate(user.discord_id)
+          OctoconDiscord.Autocomplete.invalidate_all(system_identity)
         end)
 
         spawn(fn ->
@@ -862,7 +863,7 @@ defmodule Octocon.Accounts do
   This also resets the user's lifetime alter count to 0, so the next alter will be assigned ID 1.
   """
   def wipe_alters(system_identity) do
-    OctoconDiscord.ProxyCache.invalidate(system_identity)
+    OctoconDiscord.Cache.Proxy.invalidate(system_identity)
 
     user = get_user!(system_identity)
 
@@ -901,6 +902,9 @@ defmodule Octocon.Accounts do
 
     spawn(fn ->
       OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "alters_wiped", %{})
+
+      OctoconDiscord.Autocomplete.Alter.invalidate(system_identity)
+      OctoconDiscord.Autocomplete.Front.invalidate(system_identity)
     end)
 
     :ok

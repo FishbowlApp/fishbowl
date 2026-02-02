@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Settings.ShowS
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/settings show-system-tag`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/settings show-system-tag` command toggles whether or not your system tag is shown when you proxy.
 

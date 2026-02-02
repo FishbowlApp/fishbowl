@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Front.RemoveMa
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/front remove-main`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/front remove-main` command removes the currently set main fronter.
         ### Usage

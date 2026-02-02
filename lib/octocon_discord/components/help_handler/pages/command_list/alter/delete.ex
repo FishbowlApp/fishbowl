@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Alter.Delete d
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/alter delete`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/alter delete` command deletes an existing alter.
         ### Usage

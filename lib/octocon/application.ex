@@ -20,12 +20,11 @@ defmodule Octocon.Application do
 
   use Application
 
-  import Cachex.Spec
-
   require Logger
 
   @impl Application
   def start(_type, _args) do
+    Logger.add_handlers(:octocon)
     group = Octocon.RPC.NodeTracker.current_group()
     Logger.warning("Starting node of type: #{group}")
 
@@ -59,17 +58,7 @@ defmodule Octocon.Application do
       # Distribution
       generate_libcluster_child(),
       Octocon.RPC.NodeTracker,
-      Supervisor.child_spec(
-        {Cachex,
-         name: Octocon.Cache.UserRegistry,
-         hooks: [
-           hook(
-             module: Cachex.Limit.Scheduled,
-             args: {20_000, [], [frequency: :timer.seconds(30)]}
-           )
-         ]},
-        id: :user_registry_cache
-      ),
+      Octocon.UserRegistryCache,
       Octocon.Repo,
 
       # PubSub system

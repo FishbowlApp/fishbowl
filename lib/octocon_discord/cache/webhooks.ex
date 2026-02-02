@@ -1,25 +1,30 @@
-defmodule OctoconDiscord.WebhookManager do
+defmodule OctoconDiscord.Cache.Webhooks do
   @moduledoc false
+
+  import Cachex.Spec
+
+  use Octocon.CachexChild,
+    name: __MODULE__,
+    hooks: [
+      hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
+    ],
+    expiration: expiration(default: :timer.minutes(10))
+
   alias Nostrum.Api
 
   @proxy_name "Octocon Proxy"
   @timeout :timer.seconds(5)
 
   def get_webhook(channel_id) do
-    task = Task.async(fn -> do_fetch(channel_id) end)
-
-    Task.await(task, @timeout)
-    # case Cachex.fetch!(OctoconDiscord.Cache.Webhooks, channel_id) do
-    #   %{id: _, token: _} = result -> result
-    #   _ -> nil
-    # end
+    Task.async(fn -> do_fetch(channel_id) end)
+    |> Task.await(@timeout)
   end
 
   defp do_fetch(channel_id) do
     case Cachex.fetch!(
-           OctoconDiscord.Cache.Webhooks,
+           __MODULE__,
            channel_id,
-           &OctoconDiscord.WebhookManager.cache_function/1
+           &cache_function/1
          ) do
       %{id: _, token: _} = result -> result
       _ -> nil
@@ -27,14 +32,14 @@ defmodule OctoconDiscord.WebhookManager do
   end
 
   def cache_function(channel_id) do
-    case Api.get_channel_webhooks(channel_id) do
+    case Api.Channel.webhooks(channel_id) do
       {:ok, webhooks} ->
         case Enum.find(webhooks, fn webhook -> webhook.name == @proxy_name end) do
           webhook when is_map(webhook) ->
             {:commit, %{id: webhook.id, token: webhook.token}}
 
           nil ->
-            {:ok, webhook} = Api.create_webhook(channel_id, %{name: @proxy_name})
+            {:ok, webhook} = Api.Webhook.create(channel_id, %{name: @proxy_name})
             {:commit, %{id: webhook.id, token: webhook.token}}
         end
 

@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.AnotherQuestion do
     [
       %Embed{
         title: "#{Emojis.faq()} I have another question!",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         If your question isn't answered here, feel free to ask in our [support server](https://octocon.app/discord)! We're happy to help. :smile:
 
