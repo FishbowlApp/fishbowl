@@ -447,7 +447,7 @@ defmodule OctoconDiscord.Proxy do
     #     }
     #   )
 
-      result =
+    result =
       Api.Message.create(
         String.to_integer(log_channel),
         %{
