@@ -31,7 +31,7 @@ defmodule OctoconDiscord.Components.TagPaginator do
               button(
                 "tag|view|#{tag.id}",
                 :secondary,
-                emoji: %{name: "open", id: 1_464_866_849_052_426_252}
+                emoji: Emojis.component_emoji(Emojis.open())
               )
             )
           ]

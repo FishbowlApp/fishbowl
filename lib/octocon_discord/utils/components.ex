@@ -2,6 +2,7 @@ defmodule OctoconDiscord.Utils.Components do
   alias Octocon.Accounts
 
   alias OctoconDiscord.Utils
+  alias OctoconDiscord.Utils.Emojis
 
   import OctoconDiscord.Utils.CV2
 
@@ -311,7 +312,7 @@ defmodule OctoconDiscord.Utils.Components do
                       button(
                         "tag|view|#{parent_tag.id}",
                         :secondary,
-                        emoji: %{name: "open", id: 1_464_866_849_052_426_252}
+                        emoji: Emojis.component_emoji(Emojis.open())
                       )
                     )
                   end

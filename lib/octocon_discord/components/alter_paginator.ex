@@ -6,6 +6,8 @@ defmodule OctoconDiscord.Components.AlterPaginator do
     create_command: "alter create",
     list_command: "alter list"
 
+  alias OctoconDiscord.Utils.Emojis
+
   def generate_page(
         page_alters,
         %{
@@ -43,7 +45,7 @@ defmodule OctoconDiscord.Components.AlterPaginator do
               button(
                 "alter|view|#{alter.id}",
                 :secondary,
-                emoji: %{name: "open", id: 1_464_866_849_052_426_252}
+                emoji: Emojis.component_emoji(Emojis.open())
               )
             )
           ]
