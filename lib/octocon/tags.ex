@@ -147,6 +147,8 @@ defmodule Octocon.Tags do
                   tag: TagRenderer.data_me(%{tag | alters: []})
                 }
               )
+
+              OctoconDiscord.Autocomplete.Tag.invalidate(system_identity)
             end)
 
             {:ok, tag}
@@ -191,6 +193,8 @@ defmodule Octocon.Tags do
                       tag: TagRenderer.data_me(%{tag | alters: []})
                     }
                   )
+
+                  OctoconDiscord.Autocomplete.Tag.invalidate(system_identity)
                 end)
 
                 {:ok, tag}
@@ -272,34 +276,70 @@ defmodule Octocon.Tags do
     tag = Task.async(fn -> get_tag(system_identity, tag_id) end)
     parent = Task.async(fn -> get_tag(system_identity, parent_tag_id) end)
 
-    case {Task.await(tag), Task.await(parent)} do
-      {tag, parent} when tag == nil or parent == nil ->
-        {:error, :not_found}
+    if tag_id == parent_tag_id do
+      {:error, :tag_cycle}
+    else
+      case {Task.await(tag), Task.await(parent)} do
+        {tag, parent} when tag == nil or parent == nil ->
+          {:error, :not_found}
 
-      {tag, parent} when tag.user_id != parent.user_id ->
-        {:error, :not_found}
+        {tag, parent} when tag.user_id != parent.user_id ->
+          {:error, :not_found}
 
-      {tag, _parent} ->
-        tag
-        |> Tag.changeset(%{parent_tag_id: parent_tag_id})
-        |> Repo.update_regional({:user, system_identity})
-        |> case do
-          {:ok, _} ->
-            spawn(fn ->
-              system_id = Accounts.id_from_system_identity(system_identity, :system)
+        {tag, _parent} ->
+          if can_set_parent?(system_identity, tag_id, parent_tag_id) do
+            tag
+            |> Tag.changeset(%{parent_tag_id: parent_tag_id})
+            |> Repo.update_regional({:user, system_identity})
+            |> case do
+              {:ok, _} ->
+                spawn(fn ->
+                  system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-              OctoconWeb.Endpoint.broadcast!(
-                "system:#{system_id}",
-                "tag_updated",
-                %{tag: TagRenderer.data_me(get_tag({:system, system_id}, tag_id))}
-              )
-            end)
+                  OctoconWeb.Endpoint.broadcast!(
+                    "system:#{system_id}",
+                    "tag_updated",
+                    %{tag: TagRenderer.data_me(get_tag({:system, system_id}, tag_id))}
+                  )
+                end)
 
-            :ok
+                :ok
 
-          _ ->
-            {:error, :changeset}
-        end
+              _ ->
+                {:error, :changeset}
+            end
+          else
+            {:error, :tag_cycle}
+          end
+      end
+    end
+  end
+
+  def can_set_parent?(system_identity, child_id, new_parent_id) do
+    walk_up(system_identity, new_parent_id, child_id)
+  end
+
+  defp walk_up(_system_identity, nil, _child_id), do: true
+
+  defp walk_up(_system_identity, current_id, child_id) when current_id == child_id do
+    false
+  end
+
+  defp walk_up(system_identity, current_id, child_id) do
+    where = unwrap_system_identity_where(system_identity)
+
+    query =
+      Tag
+      |> where(^where)
+      |> where([t], t.id == ^current_id)
+      |> select([t], t.parent_tag_id)
+
+    case Repo.one_regional(query, {:user, system_identity}) do
+      nil ->
+        true
+
+      parent_id ->
+        walk_up(system_identity, parent_id, child_id)
     end
   end
 
@@ -355,6 +395,10 @@ defmodule Octocon.Tags do
                 "tag_updated",
                 %{tag: TagRenderer.data_me(tag)}
               )
+
+              if Map.has_key?(attrs, :name) do
+                OctoconDiscord.Autocomplete.Tag.invalidate(system_identity)
+              end
             end)
 
             {:ok, tag}
@@ -363,6 +407,9 @@ defmodule Octocon.Tags do
             {:error, :changeset}
         end
     end
+  rescue
+    _ in Ecto.Query.CastError ->
+      {:error, :not_found}
   end
 
   def delete_tag(system_identity, tag_id) do
@@ -388,6 +435,8 @@ defmodule Octocon.Tags do
             "tag_deleted",
             %{tag_id: tag_id}
           )
+
+          OctoconDiscord.Autocomplete.Tag.invalidate(system_identity)
         end)
 
         :ok
@@ -432,6 +481,29 @@ defmodule Octocon.Tags do
         # end)
 
         :ok
+    end
+  end
+
+  def get_random_tag(system_identity) do
+    system_id = Accounts.id_from_system_identity(system_identity, :system)
+
+    all_tag_ids =
+      from(
+        t in Tag,
+        where: t.user_id == ^system_id,
+        select: t.id
+      )
+      |> Repo.all_regional({:user, system_identity})
+
+    if all_tag_ids == [] do
+      nil
+    else
+      random_tag_id = Enum.random(all_tag_ids)
+
+      case get_tag(system_identity, random_tag_id) do
+        nil -> nil
+        tag -> {:ok, tag}
+      end
     end
   end
 end

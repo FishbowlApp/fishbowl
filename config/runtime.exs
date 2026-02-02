@@ -73,8 +73,8 @@ if config_env() == :prod do
   config :octocon, :node_group, node_group
   config :octocon, :current_db_region, current_db_region
 
-  # TODO: Only :auxiliary
-  # TODO: Rename :auxiliary to :ingress
+  # [TODO]: Only :auxiliary
+  # [TODO]: Rename :auxiliary to :ingress
   if node_group in [:primary, :auxiliary] || System.get_env("PHX_SERVER") do
     config :octocon, OctoconWeb.Endpoint, server: true
   else

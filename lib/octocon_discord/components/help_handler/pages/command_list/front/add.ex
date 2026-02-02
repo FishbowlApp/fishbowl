@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Front.Add do
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/front add`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/front add` command adds an alter to front.
         ### Usage

@@ -59,7 +59,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq do
     [
       %Embed{
         title: "#{Emojis.faq()} FAQ",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         Have a question about how to use Octocon? Check out the FAQ below! Use the dropdown menu to navigate to a specific question.
         #{@questions_joined}

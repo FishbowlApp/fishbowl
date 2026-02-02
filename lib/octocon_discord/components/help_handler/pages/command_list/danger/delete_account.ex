@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Danger.DeleteA
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/danger delete-account`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/danger delete-account` command **irreversibly** deletes the Octocon account associated with your Discord account. Upon running it, you will receive a DM from the Octocon bot with a confirmation prompt.
 

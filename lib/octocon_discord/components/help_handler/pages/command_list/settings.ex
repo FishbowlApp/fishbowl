@@ -53,7 +53,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Settings do
     [
       %Embed{
         title: "#{Emojis.folder()} `/settings`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/settings` command group configures various settings for your system, as well as import data from other platforms. Choose a subcommand below to learn more about it!
         """

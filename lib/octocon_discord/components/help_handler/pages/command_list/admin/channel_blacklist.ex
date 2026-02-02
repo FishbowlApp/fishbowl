@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Admin.ChannelB
     [
       %Embed{
         title: "#{Emojis.folder()} `/admin channel-blacklist`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/admin channel-blacklist` command group manages this server's channel blacklist. Channels (or entire categories) in this blacklist cannot be proxied in.
         ## #{Emojis.slashcommand()} `/admin channel-blacklist list`

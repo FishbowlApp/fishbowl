@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Friend.Accept 
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/friend accept`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/friend accept` command accepts an incoming friend request from another user.
         ### Usage

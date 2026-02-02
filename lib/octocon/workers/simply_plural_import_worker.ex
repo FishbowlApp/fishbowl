@@ -15,8 +15,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
   alias Octocon.{
     Accounts,
     Alters,
-    Alters.Alter,
-    Repo
+    Alters.Alter
   }
 
   alias OctoconWeb.Uploaders.Avatar
@@ -93,7 +92,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
       "#{alter_count} alters have been successfully imported from Simply Plural. They have been assigned IDs #{start_count} - #{start_count + alter_count - 1}.\n\n**Note:** This process should only be completed once; doing it again will result in duplicate alters."
     )
 
-    OctoconDiscord.ProxyCache.invalidate({:system, system_id})
+    OctoconDiscord.Cache.Proxy.invalidate({:system, system_id})
 
     spawn(fn ->
       Task.async_stream(

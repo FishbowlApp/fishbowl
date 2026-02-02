@@ -1,4 +1,4 @@
-defmodule OctoconDiscord.Emojis do
+defmodule OctoconDiscord.Utils.Emojis do
   @moduledoc false
 
   alias Nostrum.Struct.Emoji
@@ -16,7 +16,11 @@ defmodule OctoconDiscord.Emojis do
   def faq, do: %Emoji{name: "faq", id: 1_255_765_434_872_107_018}
   def slashcommand, do: %Emoji{name: "slashcommand", id: 1_255_764_957_375_758_388}
   def folder, do: %Emoji{name: "folder", id: 1_255_840_880_980_529_152}
-  def backarrow, do: %Emoji{name: "backarrow", id: 1_256_277_935_778_828_448}
+  def first, do: %Emoji{name: "first", id: 1_467_695_298_037_158_122}
+  def back, do: %Emoji{name: "back", id: 1_467_695_301_962_895_566}
+  def forward, do: %Emoji{name: "forward", id: 1_467_695_300_381_507_595}
+  def last, do: %Emoji{name: "last", id: 1_467_695_299_152_580_701}
+  def open, do: %Emoji{name: "open", id: 1_464_865_174_807_773_184}
 
   def component_emoji(%Emoji{name: name, id: id}) do
     %{name: name, id: id}

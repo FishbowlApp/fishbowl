@@ -1,9 +1,9 @@
 defmodule OctoconDiscord.Commands.Alter do
   @moduledoc false
 
-  @behaviour Nosedrum.ApplicationCommand
+  use OctoconDiscord.Commands
 
-  import OctoconDiscord.Utils, only: [with_id_or_alias: 2]
+  @behaviour Nosedrum.ApplicationCommand
 
   alias OctoconDiscord.Components.AlterPaginator
 
@@ -11,8 +11,6 @@ defmodule OctoconDiscord.Commands.Alter do
     Accounts,
     Alters
   }
-
-  alias OctoconDiscord.Utils
 
   @subcommands %{
     "create" => &__MODULE__.create/2,
@@ -37,7 +35,7 @@ defmodule OctoconDiscord.Commands.Alter do
     %{data: %{resolved: resolved}, user: %{id: discord_id}} = interaction
     discord_id = to_string(discord_id)
 
-    Utils.ensure_registered(discord_id, fn ->
+    ensure_registered(discord_id, fn ->
       %{data: %{options: [%{name: name, options: options}]}} = interaction
 
       @subcommands[name].(
@@ -48,16 +46,16 @@ defmodule OctoconDiscord.Commands.Alter do
   end
 
   def create(%{system_identity: system_identity}, options) do
-    name = Utils.get_command_option(options, "name")
+    name = get_command_option(options, "name")
 
     case Alters.create_alter(system_identity, %{name: name}) do
       {:ok, id, _} ->
-        Utils.success_embed(
-          "Successfully created alter **#{name}**! Their ID is **#{id}**. You can view their profile with `/alter view #{id}`.\n\n**Note:** This alter is currently private. You can change this with `/alter security #{id}`."
+        success_component(
+          "Successfully created alter **#{name}**! Their ID is **#{id}**. You can view their profile with `/alter view id:#{id}`.\n\n**Note:** This alter is currently private. You can change this with `/alter security id:#{id}`."
         )
 
       {:error, _} ->
-        Utils.error_embed(
+        error_component(
           "Whoops! An unknown error occurred while creating the alter. Please try again."
         )
     end
@@ -67,20 +65,18 @@ defmodule OctoconDiscord.Commands.Alter do
     with_id_or_alias(options, fn alter_identity ->
       case Alters.delete_alter(system_identity, alter_identity) do
         :ok ->
-          Utils.success_embed(
+          success_component(
             "Successfully deleted alter with ID/alias **#{elem(alter_identity, 1)}**!"
           )
 
         {:error, :no_alter_id} ->
-          Utils.error_embed("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
+          error_component("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
 
         {:error, :no_alter_alias} ->
-          Utils.error_embed("You don't have an alter with alias **#{elem(alter_identity, 1)}**.")
+          error_component("You don't have an alter with alias **#{elem(alter_identity, 1)}**.")
 
         {:error, _} ->
-          Utils.error_embed(
-            "An unknown error occurred while deleting the alter. Please try again."
-          )
+          error_component("An unknown error occurred while deleting the alter. Please try again.")
       end
     end)
   end
@@ -89,18 +85,20 @@ defmodule OctoconDiscord.Commands.Alter do
     with_id_or_alias(options, fn alter_identity ->
       case Alters.get_alter_by_id(system_identity, alter_identity) do
         {:ok, alter} ->
-          show = Utils.get_show_option(options)
+          show = get_show_option(options)
+
+          fronts = Octocon.Fronts.currently_fronting(system_identity)
 
           [
-            embeds: [Utils.alter_embed(alter)],
-            ephemeral?: !show
+            components: alter_component(alter, fronts, show),
+            flags: cv2_flags(!show)
           ]
 
         {:error, :no_alter_id} ->
-          Utils.error_embed("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
+          error_component("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
 
         {:error, :no_alter_alias} ->
-          Utils.error_embed("You don't have an alter with alias **#{elem(alter_identity, 1)}**.")
+          error_component("You don't have an alter with alias **#{elem(alter_identity, 1)}**.")
       end
     end)
   end
@@ -108,14 +106,14 @@ defmodule OctoconDiscord.Commands.Alter do
   def random(%{system_identity: system_identity}, options) do
     case Alters.get_random_alter(system_identity) do
       nil ->
-        Utils.error_embed("You don't have any alters to choose from.")
+        error_component("You don't have any alters to choose from.")
 
       {:ok, alter} ->
-        show = Utils.get_show_option(options)
+        show = get_show_option(options)
 
         [
-          embeds: [Utils.alter_embed(alter)],
-          ephemeral?: !show
+          components: alter_component(alter, false, show),
+          flags: cv2_flags(!show)
         ]
     end
   end
@@ -124,7 +122,7 @@ defmodule OctoconDiscord.Commands.Alter do
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
     sort =
-      case Utils.get_command_option(options, "sort") do
+      case get_command_option(options, "sort") do
         nil -> :id
         "id" -> :id
         "alphabetical" -> :alphabetical
@@ -157,34 +155,37 @@ defmodule OctoconDiscord.Commands.Alter do
       ) do
     case options do
       map when map_size(map) == 0 ->
-        Utils.error_embed("You must provide at least one field to update.")
+        error_component("You must provide at least one field to update.")
 
       _ ->
         case Alters.update_alter(system_identity, alter_identity, options) do
           :ok ->
             [
-              embeds:
+              components:
                 if embed_alter do
                   [
-                    Utils.success_embed_raw(success_text),
-                    Utils.alter_embed(Alters.get_alter_by_id!(system_identity, alter_identity))
+                    success_component_raw(success_text),
+                    alter_component(
+                      Alters.get_alter_by_id!(system_identity, alter_identity),
+                      false,
+                      false
+                    )
                   ]
                 else
-                  [Utils.success_embed_raw(success_text)]
-                end,
-              ephemeral?: true
+                  [success_component_raw(success_text)]
+                end
+                |> List.flatten(),
+              flags: cv2_flags()
             ]
 
           {:error, :no_alter_id} ->
-            Utils.error_embed("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
+            error_component("You don't have an alter with ID **#{elem(alter_identity, 1)}**.")
 
           {:error, :no_alter_alias} ->
-            Utils.error_embed(
-              "You don't have an alter with alias **#{elem(alter_identity, 1)}**."
-            )
+            error_component("You don't have an alter with alias **#{elem(alter_identity, 1)}**.")
 
           {:error, _} ->
-            Utils.error_embed(
+            error_component(
               "An unknown error occurred while updating the alter. Please try again."
             )
         end
@@ -195,12 +196,12 @@ defmodule OctoconDiscord.Commands.Alter do
     with_id_or_alias(options, fn alter_identity ->
       to_update =
         %{
-          name: Utils.get_command_option(options, "name"),
-          pronouns: Utils.get_command_option(options, "pronouns"),
-          description: Utils.get_command_option(options, "description"),
-          proxy_name: Utils.get_command_option(options, "proxy-name"),
-          color: Utils.get_command_option(options, "color"),
-          alias: Utils.get_command_option(options, "alias")
+          name: get_command_option(options, "name"),
+          pronouns: get_command_option(options, "pronouns"),
+          description: get_command_option(options, "description"),
+          proxy_name: get_command_option(options, "proxy-name"),
+          color: get_command_option(options, "color"),
+          alias: get_command_option(options, "alias")
         }
         |> Map.filter(fn {_, v} -> v != nil end)
 
@@ -211,14 +212,14 @@ defmodule OctoconDiscord.Commands.Alter do
             throw("You already have an alter with the alias **#{to_update[:alias]}**.")
           end
 
-          case Utils.validate_alias(to_update[:alias]) do
+          case validate_alias(to_update[:alias]) do
             {:error, error} -> throw(error)
             {:alias, _} -> :ok
           end
         end
 
         if Map.has_key?(to_update, :color) do
-          case Utils.validate_hex_color(to_update[:color]) do
+          case validate_hex_color(to_update[:color]) do
             :error ->
               throw("Invalid color. Please provide a valid hex code.")
 
@@ -239,14 +240,14 @@ defmodule OctoconDiscord.Commands.Alter do
           )
         end
       catch
-        e -> Utils.error_embed(e)
+        e -> error_component(e)
       end
     end)
   end
 
   def security(context, options) do
     with_id_or_alias(options, fn alter_identity ->
-      security_level = Utils.get_command_option(options, "level") |> String.to_existing_atom()
+      security_level = get_command_option(options, "level") |> String.to_existing_atom()
 
       update_alter(
         context,
@@ -283,7 +284,7 @@ defmodule OctoconDiscord.Commands.Alter do
   end
 
   def extra_images(_context, _options) do
-    Utils.error_embed("This command is not yet implemented.")
+    error_component("This command is not yet implemented.")
   end
 
   @impl Nosedrum.ApplicationCommand
@@ -316,7 +317,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             max_length: 80,
             description: "The ID (or alias) of the alter to delete.",
-            required: true
+            required: true,
+            autocomplete: true
           }
         ]
       },
@@ -331,16 +333,17 @@ defmodule OctoconDiscord.Commands.Alter do
               type: :string,
               max_length: 80,
               description: "The ID (or alias) of the alter to view.",
-              required: true
+              required: true,
+              autocomplete: true
             }
           ]
-          |> Utils.add_show_option()
+          |> add_show_option()
       },
       %{
         name: "random",
         description: "Views a random alter.",
         type: :sub_command,
-        options: Utils.add_show_option([])
+        options: add_show_option([])
       },
       %{
         name: "list",
@@ -368,7 +371,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             description: "The ID (or alias) of the alter to update.",
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           },
           %{
             name: "level",
@@ -399,7 +403,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 max_length: 80,
                 description: "The ID (or alias) of the alter to set the avatar of.",
-                required: true
+                required: true,
+                autocomplete: true
               },
               %{
                 name: "avatar",
@@ -419,7 +424,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 description: "The ID (or alias) of the alter to remove the avatar of.",
                 max_length: 80,
-                required: true
+                required: true,
+                autocomplete: true
               }
             ]
           }
@@ -440,7 +446,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 max_length: 80,
                 description: "The ID (or alias) of the alter to set the proxy of.",
-                required: true
+                required: true,
+                autocomplete: true
               },
               %{
                 name: "prefix",
@@ -468,7 +475,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 description: "The ID (or alias) of the alter to add a new proxy to.",
                 max_length: 80,
-                required: true
+                required: true,
+                autocomplete: true
               },
               %{
                 name: "prefix",
@@ -496,7 +504,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 description: "The ID (or alias) of the alter to remove the proxy from.",
                 max_length: 80,
-                required: true
+                required: true,
+                autocomplete: true
               },
               %{
                 name: "prefix",
@@ -524,7 +533,8 @@ defmodule OctoconDiscord.Commands.Alter do
                 type: :string,
                 description: "The ID (or alias) of the alter to clear the proxies from.",
                 max_length: 80,
-                required: true
+                required: true,
+                autocomplete: true
               }
             ]
           }
@@ -618,7 +628,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             description: "The ID (or alias) of the alter to remove the alias from.",
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           }
         ]
       },
@@ -632,7 +643,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             description: "The ID (or alias) of the alter to remove the proxy name from.",
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           }
         ]
       },
@@ -646,7 +658,8 @@ defmodule OctoconDiscord.Commands.Alter do
             type: :string,
             description: "The ID (or alias) of the alter to update.",
             max_length: 80,
-            required: true
+            required: true,
+            autocomplete: true
           },
           %{
             name: "name",

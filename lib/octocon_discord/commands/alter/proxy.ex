@@ -1,18 +1,12 @@
 defmodule OctoconDiscord.Commands.Alter.Proxy do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   require Logger
 
-  alias OctoconDiscord.ProxyCache
-
   alias Octocon.Alters
-
-  alias OctoconDiscord.{
-    ProxyCache,
-    Utils
-  }
-
-  import OctoconDiscord.Utils, only: [with_id_or_alias: 2]
+  alias OctoconDiscord.Cache
 
   @subcommands %{
     "set" => &__MODULE__.set/2,
@@ -36,10 +30,10 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
       else
         case alter_identity do
           {:id, alter_id} ->
-            Utils.error_embed("You don't have an alter with ID **#{alter_id}**.")
+            error_component("You don't have an alter with ID **#{alter_id}**.")
 
           {:alias, aliaz} ->
-            Utils.error_embed("You don't have an alter with the alias **#{aliaz}**.")
+            error_component("You don't have an alter with the alias **#{aliaz}**.")
         end
       end
     end)
@@ -53,11 +47,11 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
         } = context,
         options
       ) do
-    prefix = Utils.get_command_option(options, "prefix") || ""
-    suffix = Utils.get_command_option(options, "suffix") || ""
+    prefix = get_command_option(options, "prefix") || ""
+    suffix = get_command_option(options, "suffix") || ""
 
     if String.length(prefix) == 0 && String.length(suffix) == 0 do
-      Utils.error_embed("You must provide a prefix or suffix for your proxy.")
+      error_component("You must provide a prefix or suffix for your proxy.")
     else
       proxy = prefix <> "text" <> suffix
 
@@ -66,7 +60,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
         |> Map.get(:discord_proxies, [])
 
       if Enum.member?(proxies, proxy) do
-        ProxyCache.evict_proxies(discord_id)
+        Cache.Proxy.evict_proxies(discord_id)
 
         OctoconDiscord.Commands.Alter.update_alter(
           context,
@@ -76,7 +70,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
           true
         )
       else
-        Utils.error_embed("That alter doesn't have a proxy with that prefix and suffix.")
+        error_component("That alter doesn't have a proxy with that prefix and suffix.")
       end
     end
   end
@@ -94,7 +88,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
         Alters.get_alter_by_id!(system_identity, alter_identity, [:discord_proxies])
         |> Map.get(:discord_proxies, []) || []
 
-      ProxyCache.evict_proxies(discord_id)
+      Cache.Proxy.evict_proxies(discord_id)
 
       OctoconDiscord.Commands.Alter.update_alter(
         context,
@@ -110,7 +104,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
 
   def set(%{alter_identity: alter_identity, discord_id: discord_id} = context, options) do
     validate_proxy(context, options, fn proxy ->
-      ProxyCache.evict_proxies(discord_id)
+      Cache.Proxy.evict_proxies(discord_id)
 
       OctoconDiscord.Commands.Alter.update_alter(
         context,
@@ -123,7 +117,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
   end
 
   def clear(%{alter_identity: alter_identity, discord_id: discord_id} = context, _options) do
-    ProxyCache.evict_proxies(to_string(discord_id))
+    Cache.Proxy.evict_proxies(to_string(discord_id))
 
     OctoconDiscord.Commands.Alter.update_alter(
       context,
@@ -135,14 +129,14 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
   end
 
   defp validate_proxy(%{discord_id: discord_id}, options, callback) do
-    prefix = Utils.get_command_option(options, "prefix") || ""
-    suffix = Utils.get_command_option(options, "suffix") || ""
+    prefix = get_command_option(options, "prefix") || ""
+    suffix = get_command_option(options, "suffix") || ""
 
     if String.length(prefix) == 0 && String.length(suffix) == 0 do
-      Utils.error_embed("You must provide a prefix or suffix for your proxy.")
+      error_component("You must provide a prefix or suffix for your proxy.")
     else
       proxy_exists? =
-        ProxyCache.get(discord_id)
+        Cache.Proxy.get(discord_id)
         |> elem(1)
         |> Map.get(:proxies, [])
         |> Enum.any?(fn {{pre, suf, _}, _} ->
@@ -150,7 +144,7 @@ defmodule OctoconDiscord.Commands.Alter.Proxy do
         end)
 
       if proxy_exists? do
-        Utils.error_embed("One of your alters already has a proxy with that prefix and suffix.")
+        error_component("One of your alters already has a proxy with that prefix and suffix.")
       else
         callback.(prefix <> "text" <> suffix)
       end

@@ -4,10 +4,6 @@ defmodule OctoconDiscord.Supervisor do
   """
   use Supervisor
 
-  import Cachex.Spec
-
-  alias Octocon.ClusterUtils
-
   require Logger
 
   def start_link(_init_arg) do
@@ -17,65 +13,44 @@ defmodule OctoconDiscord.Supervisor do
   @impl Supervisor
   def init([]) do
     children = [
+      # Cachex-backed and custom ETS-based cache managers
+      OctoconDiscord.Cache,
+
+      # Autocomplete handlers
+      OctoconDiscord.Autocomplete,
+
+      # Component handlers
+      OctoconDiscord.Components,
       Nostrum.Application,
       Supervisor.child_spec({Task, fn -> start_status_updater() end}, id: :start_status_updater),
-      # Server settings cache (each guild cached for 10 minutes)
-      Supervisor.child_spec(
-        {Cachex,
-         name: OctoconDiscord.Cache.ServerSettings,
-         hooks: [
-           hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
-         ],
-         expiration: expiration(default: :timer.minutes(10))},
-        id: :server_settings_cache
-      ),
-      # Webhooks cache (each channel cached for 10 minutes)
-      Supervisor.child_spec(
-        {Cachex,
-         name: OctoconDiscord.Cache.Webhooks,
-         hooks: [
-           hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
-         ],
-         expiration: expiration(default: :timer.minutes(10))},
-        id: :webhooks_cache
-      ),
-      # Custom ETS-backed persistent caches
-      OctoconDiscord.ProxyCache,
-      OctoconDiscord.ChannelBlacklistManager,
+
       # Gateway events
       Supervisor.child_spec({Task, fn -> start_unique_consumer() end},
         id: :start_unique_consumer
       ),
-      # Component handlers
-      OctoconDiscord.Components.HelpHandler,
-      OctoconDiscord.Components.AlterPaginator,
-      OctoconDiscord.Components.WipeAltersHandler,
-      OctoconDiscord.Components.DeleteAccountHandler,
-      OctoconDiscord.Components.ReproxyHandler,
+
       # Application commands
       {Nosedrum.Storage.Dispatcher, name: Nosedrum.Storage.Dispatcher}
-      # TODO: Manual sharding
-      # Supervisor.child_spec({Task, fn -> init_shards() end}, id: :init_shards)
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  defp init_shards do
-    node_count = ClusterUtils.primary_node_count()
-    desired_shards = OctoconDiscord.get_desired_shards()
+  # defp init_shards do
+  #   node_count = ClusterUtils.primary_node_count()
+  #   desired_shards = OctoconDiscord.get_desired_shards()
 
-    for i <- 1..node_count do
-      # If desired_shards is 100, and we have 4 nodes, we want to start shards 0-24 on node 1, 25-49 on node 2, etc.
-      start_shard = div((i - 1) * desired_shards, node_count)
-      end_shard = div(i * desired_shards, node_count) - 1
+  #   for i <- 1..node_count do
+  #     # If desired_shards is 100, and we have 4 nodes, we want to start shards 0-24 on node 1, 25-49 on node 2, etc.
+  #     start_shard = div((i - 1) * desired_shards, node_count)
+  #     end_shard = div(i * desired_shards, node_count) - 1
 
-      Horde.DynamicSupervisor.start_child(
-        Octocon.Primary.HordeSupervisor,
-        {OctoconDiscord.ShardManager, {i, start_shard, end_shard, desired_shards}}
-      )
-    end
-  end
+  #     Horde.DynamicSupervisor.start_child(
+  #       Octocon.Primary.HordeSupervisor,
+  #       {OctoconDiscord.ShardManager, {i, start_shard, end_shard, desired_shards}}
+  #     )
+  #   end
+  # end
 
   def start_unique_consumer do
     Logger.info("Starting unique consumer")

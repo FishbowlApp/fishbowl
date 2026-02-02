@@ -53,7 +53,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Friend do
     [
       %Embed{
         title: "#{Emojis.folder()} `/friend`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/friend` command group manages your friends and friend requests. Choose a subcommand below to learn more about it!
         """

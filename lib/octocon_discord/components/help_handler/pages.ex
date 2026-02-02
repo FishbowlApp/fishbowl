@@ -2,8 +2,8 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages do
   defmacro __using__(_opts) do
     quote do
       alias OctoconDiscord.{
-        Emojis,
-        Utils
+        Utils,
+        Utils.Emojis
       }
 
       alias Nostrum.Struct.{
@@ -21,7 +21,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages do
         Button.interaction_button(
           "Back",
           "help|nav-#{page}|#{uid}",
-          emoji: Emojis.backarrow(),
+          emoji: Emojis.back(),
           style: 2
         )
       end

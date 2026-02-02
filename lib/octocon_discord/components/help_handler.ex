@@ -2,9 +2,9 @@ defmodule OctoconDiscord.Components.HelpHandler do
   @moduledoc false
   use GenServer
 
-  alias Nostrum.Api
+  import OctoconDiscord.Utils.Components
 
-  alias OctoconDiscord.Utils
+  alias Nostrum.Api
 
   alias OctoconDiscord.Components.HelpHandler.Pages
 
@@ -92,7 +92,7 @@ defmodule OctoconDiscord.Components.HelpHandler do
 
     :ets.insert(@table, {uid, data})
 
-    # TODO: Possibly clean up correlations after a while?
+    # [TODO]: Possibly clean up correlations after a while?
     Process.send_after(__MODULE__, {:drop, uid}, :timer.minutes(10))
 
     generate_response(data)
@@ -158,9 +158,9 @@ defmodule OctoconDiscord.Components.HelpHandler do
     Api.create_interaction_response(interaction, %{
       type: 7,
       data:
-        Utils.error_embed("This help interface has expired. Please run `/help` again.")
+        error_component("This help interface has expired. Please run `/help` again.")
         |> Enum.into(%{})
-        |> Map.drop([:ephemeral?])
+        |> Map.drop([:flags])
         |> Map.put(:components, nil)
     })
   end

@@ -1,9 +1,9 @@
 defmodule OctoconDiscord.Commands.Messages.PingAccount do
   @moduledoc false
 
-  @behaviour Nosedrum.ApplicationCommand
+  use OctoconDiscord.Commands
 
-  alias OctoconDiscord.Utils
+  @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.Messages
 
@@ -39,7 +39,7 @@ defmodule OctoconDiscord.Commands.Messages.PingAccount do
     if is_bot do
       case Messages.lookup_message(message_id) do
         nil ->
-          Utils.error_embed(
+          error_component(
             "This message either:\n\n- Was not proxied by Octocon.\n- Is more than 6 months old."
           )
 
@@ -47,20 +47,27 @@ defmodule OctoconDiscord.Commands.Messages.PingAccount do
           permalink = "https://discord.com/channels/#{guild_id}/#{channel_id}/#{message_id}"
 
           [
-            content: "<@#{message.author_id}>",
-            embeds: [
-              %Nostrum.Struct.Embed{
-                color: Utils.hex_to_int("#0FBEAA"),
-                title: ":bell: You've been pinged!",
-                description:
-                  "<@#{user_id}> has pinged you from a [proxied message](#{permalink})."
-              }
+            components: [
+              text("<@#{message.author_id}>"),
+              container(
+                [
+                  text("### :bell: You've been pinged!"),
+                  text(
+                    if to_string(user_id) == to_string(message.author_id) do
+                      "You have pinged yourself from a [proxied message](#{permalink})."
+                    else
+                      "<@#{user_id}> has pinged you from a [proxied message](#{permalink})."
+                    end
+                  )
+                ],
+                %{accent_color: hex_to_int("#3F3793")}
+              )
             ],
-            ephemeral?: false
+            flags: cv2_flags(false)
           ]
       end
     else
-      Utils.error_embed("You can only do this with messages proxied by Octocon.")
+      error_component("You can only do this with messages proxied by Octocon.")
     end
   end
 

@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Settings.Impor
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/settings import-pk`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/settings import-pk` command imports existing alters from PluralKit, including their names, descriptions, pronouns, and avatars.
 

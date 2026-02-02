@@ -36,7 +36,7 @@ defmodule Octocon.ChannelBlacklists do
   @doc """
   Given a Discord channel ID, returns whether or not that channel is blacklisted.
 
-  This should always be backed by a `OctoconDiscord.ChannelBlacklistManager` cache, as it is a latency-sensitive operation.
+  This should always be backed by a `OctoconDiscord.Cache.ChannelBlacklists` cache, as it is a latency-sensitive operation.
   """
   def channel_blacklisted?(channel_id) do
     from(c in ChannelBlacklist, where: c.channel_id == ^to_string(channel_id))

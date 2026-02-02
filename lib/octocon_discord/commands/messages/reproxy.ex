@@ -1,10 +1,11 @@
 defmodule OctoconDiscord.Commands.Messages.Reproxy do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   alias Octocon.Messages
-  alias OctoconDiscord.Utils
 
   @impl Nosedrum.ApplicationCommand
   def description, do: "Reproxies a message."
@@ -33,7 +34,7 @@ defmodule OctoconDiscord.Commands.Messages.Reproxy do
     if is_bot do
       case Messages.lookup_message(message_id) do
         nil ->
-          Utils.error_embed(
+          error_component(
             "This message either:\n\n- Was not proxied by Octocon.\n- Is more than 6 months old."
           )
 
@@ -45,7 +46,7 @@ defmodule OctoconDiscord.Commands.Messages.Reproxy do
           )
       end
     else
-      Utils.error_embed("You can only do this with messages proxied by Octocon.")
+      error_component("You can only do this with messages proxied by Octocon.")
     end
   end
 
@@ -53,7 +54,7 @@ defmodule OctoconDiscord.Commands.Messages.Reproxy do
     if db_message.author_id == to_string(user_id) do
       OctoconDiscord.Components.ReproxyHandler.handle_init(user_id, raw_message, db_message)
     else
-      Utils.error_embed("You can only reproxy your own messages.")
+      error_component("You can only reproxy your own messages.")
     end
   end
 

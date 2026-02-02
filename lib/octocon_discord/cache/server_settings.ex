@@ -1,10 +1,18 @@
-defmodule OctoconDiscord.ServerSettingsManager do
+defmodule OctoconDiscord.Cache.ServerSettings do
   alias Octocon.ServerSettings, as: Persistence
-  @cache OctoconDiscord.Cache.ServerSettings
+
+  import Cachex.Spec
+
+  use Octocon.CachexChild,
+    name: __MODULE__,
+    hooks: [
+      hook(module: Cachex.Limit.Scheduled, args: {5000, [], [frequency: :timer.seconds(30)]})
+    ],
+    expiration: expiration(default: :timer.minutes(10))
 
   def get_settings(guild_id) do
     guild_id = to_string(guild_id)
-    Cachex.fetch!(@cache, guild_id, &OctoconDiscord.ServerSettingsManager.cache_function/1)
+    Cachex.fetch!(__MODULE__, guild_id, &OctoconDiscord.Cache.ServerSettings.cache_function/1)
   end
 
   def create_settings(guild_id) do
@@ -12,7 +20,7 @@ defmodule OctoconDiscord.ServerSettingsManager do
 
     case Persistence.create_server_settings(guild_id) do
       {:ok, _} ->
-        Cachex.update(@cache, guild_id, %{})
+        Cachex.update(__MODULE__, guild_id, %{})
         :ok
 
       error ->
@@ -26,7 +34,7 @@ defmodule OctoconDiscord.ServerSettingsManager do
     case Persistence.edit_server_settings(guild_id, data) do
       {:ok, struct} ->
         settings = Map.from_struct(struct.data)
-        Cachex.update(@cache, guild_id, settings)
+        Cachex.update(__MODULE__, guild_id, settings)
 
         :ok
 
@@ -50,7 +58,7 @@ defmodule OctoconDiscord.ServerSettingsManager do
 
   def invalidate_cache(guild_id) do
     guild_id = to_string(guild_id)
-    Cachex.del!(@cache, guild_id)
+    Cachex.del!(__MODULE__, guild_id)
   end
 
   def cache_function(guild_id) do
@@ -61,7 +69,7 @@ defmodule OctoconDiscord.ServerSettingsManager do
         {:ignore, nil}
 
       settings ->
-        Cachex.update(@cache, guild_id, settings)
+        Cachex.update(__MODULE__, guild_id, settings)
         {:commit, Map.from_struct(settings)}
     end
 

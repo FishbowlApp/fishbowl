@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.CommandsPrivate do
     [
       %Embed{
         title: "#{Emojis.faq()} Are my commands private?",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         Yes! Unlike many other proxy bots, Octocon uses **ephemeral** slash commands. This means that when you run a command, **only you** can see the response.
 

@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Friend.List do
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/friend list`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/friend list` command views a list of all your friends.
         ### Usage

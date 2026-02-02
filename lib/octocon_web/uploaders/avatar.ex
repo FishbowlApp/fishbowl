@@ -27,7 +27,7 @@ defmodule OctoconWeb.Uploaders.Avatar do
     &process/2
   end
 
-  def process(:primary, file) do
+  def process(:primary, %Waffle.File{} = file) do
     with {:ok, original_raw} <- File.read(file.path),
          {:ok, original} <- Image.from_binary(original_raw),
          {:ok, thumbnail} <- Image.thumbnail(original, "500x500", fit: :cover),

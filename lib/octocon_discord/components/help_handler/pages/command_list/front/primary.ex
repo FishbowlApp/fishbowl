@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Front.Main do
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/front main`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/front main` command sets a currently fronting alter as main front. This will make this alter appear at the top of the front list, and will proxy as them by default when `/autoproxy` is set to `Front` mode.
         ### Usage

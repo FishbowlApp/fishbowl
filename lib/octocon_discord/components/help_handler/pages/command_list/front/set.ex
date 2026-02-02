@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Front.Set do
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/front set`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/front set` command sets an alter as front. This will replace any other alters currently fronting, as if you had used `/front end` on all of them first.
         ### Usage

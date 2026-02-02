@@ -1,12 +1,12 @@
 defmodule OctoconDiscord.Commands.BotInfo do
   @moduledoc false
 
+  use OctoconDiscord.Commands
+
   @behaviour Nosedrum.ApplicationCommand
 
   # @commit_hash System.cmd("git", ["rev-parse", "HEAD"]) |> elem(0) |> String.trim()
   # @commit_hash_short String.slice(@commit_hash, 0..6)
-
-  alias OctoconDiscord.Utils
 
   alias Octocon.{
     Accounts,
@@ -22,6 +22,21 @@ defmodule OctoconDiscord.Commands.BotInfo do
       process_count = :erlang.system_info(:process_count)
       process_limit = :erlang.system_info(:process_limit)
       process_percentage = (process_count / process_limit) |> Kernel.*(100) |> Float.ceil(2)
+
+      average_shard_latency =
+        Nostrum.Util.get_all_shard_latencies()
+        |> Map.values()
+        |> Enum.filter(fn latency -> latency != nil && latency != 0 end)
+        |> case do
+          [] ->
+            "Unknown"
+
+          latencies ->
+            (Enum.sum(latencies) / Enum.count(latencies))
+            |> round()
+            |> to_string()
+            |> Kernel.<>("ms")
+        end
 
       beam_uptime =
         ((:erlang.statistics(:wall_clock) |> elem(0)) / 1000)
@@ -61,7 +76,7 @@ defmodule OctoconDiscord.Commands.BotInfo do
         embeds: [
           %Nostrum.Struct.Embed{
             title: "Octocon Bot Info",
-            color: Utils.hex_to_int("#0FBEAA"),
+            color: hex_to_int("#3F3793"),
             fields: [
               %Nostrum.Struct.Embed.Field{
                 name: "Local node information",
@@ -97,6 +112,11 @@ defmodule OctoconDiscord.Commands.BotInfo do
               %Nostrum.Struct.Embed.Field{
                 name: "Shard count",
                 value: "#{Nostrum.Util.gateway() |> elem(1)}",
+                inline: true
+              },
+              %Nostrum.Struct.Embed.Field{
+                name: "Avg shard latency",
+                value: average_shard_latency,
                 inline: true
               },
               %Nostrum.Struct.Embed.Field{
@@ -146,7 +166,7 @@ defmodule OctoconDiscord.Commands.BotInfo do
       embeds: [
         %Nostrum.Struct.Embed{
           title: "Fetching bot info...",
-          color: Utils.hex_to_int("#0FBEAA")
+          color: hex_to_int("#3F3793")
         }
       ]
     ]

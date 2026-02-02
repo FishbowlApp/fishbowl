@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.WhoCanSee do
     [
       %Embed{
         title: "#{Emojis.faq()} Who can see my alters/tags?",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         Unlike many alternatives, **all data is private by default** in Octocon. This is to ensure your privacy and security. No one can see your alters, tags, or other data unless you explicitly share it with them.
         ### Security levels

@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Resources do
     [
       %Embed{
         title: "#{Emojis.faq()} Resources",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         Here are some resources that you might find helpful:
         ### Official links

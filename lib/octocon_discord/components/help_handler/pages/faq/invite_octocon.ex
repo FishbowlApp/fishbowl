@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.InviteOctocon do
     [
       %Embed{
         title: "#{Emojis.faq()} How do I invite Octocon to my server?",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         So long as you have the proper permissions, you can invite Octocon to your server by clicking on my profile and then the `+ Add App` button!
 

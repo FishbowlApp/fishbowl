@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Settings.IdsAs
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/settings ids-as-aliases`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/settings ids-as-aliases` command toggles whether or not alter IDs and aliases can be used as automatic proxy prefixes.
 

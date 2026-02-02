@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Danger.WipeAlt
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/danger wipe-alters`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/danger wipe-alters` command **irreversibly** wipes all alters from your account. Upon running it, you will receive a DM from the Octocon bot with a confirmation prompt.
 

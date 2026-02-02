@@ -5,7 +5,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Settings.Proxy
     [
       %Embed{
         title: "#{Emojis.slashcommand()} `/settings proxy-show-pronouns`",
-        color: Utils.hex_to_int("#0FBEAA"),
+        color: Utils.hex_to_int("#3F3793"),
         description: """
         The `/settings proxy-show-pronouns` command toggles whether or not an alter's pronouns are automatically shown as part of their display name when you proxy.
 

@@ -438,6 +438,8 @@ defmodule Octocon.Friendships do
           OctoconWeb.Endpoint.broadcast!("system:#{to}", "friend_removed", %{
             friend_id: removed
           })
+
+          OctoconDiscord.Autocomplete.Friend.invalidate({:system, to})
         end)
       end)
 
@@ -486,6 +488,21 @@ defmodule Octocon.Friendships do
               end)
             end)
 
+            spawn(fn ->
+              OctoconDiscord.Autocomplete.FriendRequest.invalidate(
+                {:system, from_id},
+                :outgoing
+              )
+
+              OctoconDiscord.Autocomplete.FriendRequest.invalidate(
+                {:system, to_id},
+                :incoming
+              )
+
+              OctoconDiscord.Autocomplete.Friend.invalidate({:system, from_id})
+              OctoconDiscord.Autocomplete.Friend.invalidate({:system, to_id})
+            end)
+
             :ok
 
           _ ->
@@ -524,6 +541,18 @@ defmodule Octocon.Friendships do
               system_id: removed
             })
           end)
+        end)
+
+        spawn(fn ->
+          OctoconDiscord.Autocomplete.FriendRequest.invalidate(
+            {:system, to_id},
+            :incoming
+          )
+
+          OctoconDiscord.Autocomplete.FriendRequest.invalidate(
+            {:system, from_id},
+            :outgoing
+          )
         end)
 
         :ok
@@ -607,6 +636,18 @@ defmodule Octocon.Friendships do
                   system: to
                 }
                 |> OctoconWeb.FriendRequestJSON.data()
+              )
+            end)
+
+            spawn(fn ->
+              OctoconDiscord.Autocomplete.FriendRequest.invalidate(
+                {:system, to_id},
+                :incoming
+              )
+
+              OctoconDiscord.Autocomplete.FriendRequest.invalidate(
+                {:system, from_id},
+                :outgoing
               )
             end)
 
