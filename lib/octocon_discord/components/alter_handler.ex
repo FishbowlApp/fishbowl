@@ -87,7 +87,7 @@ defmodule OctoconDiscord.Components.AlterHandler do
 
       handle_interaction("view", alter_id, interaction)
     else
-      Components.error_component_raw("This alter is not currently fronting.")
+      error_component_raw("This alter is not currently fronting.")
       |> send_response(interaction)
     end
   end

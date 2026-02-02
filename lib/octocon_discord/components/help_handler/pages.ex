@@ -21,7 +21,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages do
         Button.interaction_button(
           "Back",
           "help|nav-#{page}|#{uid}",
-          emoji: Emojis.backarrow(),
+          emoji: Emojis.back(),
           style: 2
         )
       end

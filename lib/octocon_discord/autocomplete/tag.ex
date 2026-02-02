@@ -28,8 +28,11 @@ defmodule OctoconDiscord.Autocomplete.Tag do
 
   def handle_interaction(discord_id, focused_option, _interaction) do
     case focused_option do
-      %{name: "tag", value: prefix} ->
+      %{name: name, value: prefix} when name in ["tag", "parent_tag"] ->
         get_autocomplete_responses(discord_id, prefix)
+
+      %{name: "alter", value: prefix} ->
+        OctoconDiscord.Autocomplete.Alter.get_autocomplete_responses(discord_id, prefix)
 
       _ ->
         []

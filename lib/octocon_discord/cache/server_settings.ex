@@ -12,7 +12,7 @@ defmodule OctoconDiscord.Cache.ServerSettings do
 
   def get_settings(guild_id) do
     guild_id = to_string(guild_id)
-    Cachex.fetch!(__MODULE__, guild_id, &OctoconDiscord.ServerSettingsManager.cache_function/1)
+    Cachex.fetch!(__MODULE__, guild_id, &OctoconDiscord.Cache.ServerSettings.cache_function/1)
   end
 
   def create_settings(guild_id) do

@@ -9,18 +9,21 @@ defmodule OctoconDiscord.Commands.Tag do
 
   alias Octocon.{
     Accounts,
-    Alters,
     Tags
   }
 
   @subcommands %{
     "create" => &__MODULE__.create/2,
-    "delete" => &__MODULE__.delete/2
-    # "view" => &__MODULE__.view/2,
-    # "security" => &__MODULE__.security/2,
-    # "list" => &__MODULE__.list/2,
-    # "edit" => &__MODULE__.edit/2,
-    # "random" => &__MODULE__.random/2,
+    "delete" => &__MODULE__.delete/2,
+    "view" => &__MODULE__.view/2,
+    "security" => &__MODULE__.security/2,
+    "list" => &__MODULE__.list/2,
+    "set-parent" => &__MODULE__.set_parent/2,
+    "remove-parent" => &__MODULE__.remove_parent/2,
+    "edit" => &__MODULE__.edit/2,
+    "random" => &__MODULE__.random/2,
+    "add-alter" => &__MODULE__.add_alter/2,
+    "remove-alter" => &__MODULE__.remove_alter/2
   }
 
   @impl Nosedrum.ApplicationCommand
@@ -50,7 +53,7 @@ defmodule OctoconDiscord.Commands.Tag do
           "Successfully created tag **#{name}**! You can view it with `/tag view`.\n\n**Note:** This tag is currently private. You can change this with `/tag security`."
         )
 
-      {:error, e} ->
+      {:error, _} ->
         error_component("An unknown error occurred while creating the tag. Please try again.")
     end
   end
@@ -75,173 +78,229 @@ defmodule OctoconDiscord.Commands.Tag do
         error_component("That tag does not exist.")
 
       tag ->
-        # [
-        #   components: Utils.tag_component(tag),
-        #   flags: Utils.cv2_flags()
-        # ]
-        success_component("[TODO]: #{inspect(tag)}")
+        show = get_show_option(options)
+
+        alters =
+          Octocon.Alters.get_alters_by_id_bounded(system_identity, tag.alters, [
+            :id,
+            :name,
+            :pronouns,
+            :security_level
+          ])
+
+        [
+          components: tag_component(tag, alters, show),
+          flags: cv2_flags(!show)
+        ]
     end
   end
 
-  # def random(%{system_identity: system_identity}, options) do
-  #   case Tags.get_random_tag(system_identity) do
-  #     nil ->
-  #       Utils.error_component("You don't have any alters to choose from.")
+  def random(%{system_identity: system_identity}, options) do
+    case Tags.get_random_tag(system_identity) do
+      nil ->
+        error_component("You don't have any tags to choose from.")
 
-  #     {:ok, alter} ->
-  #       show = Utils.get_show_option(options)
+      {:ok, tag} ->
+        show = get_show_option(options)
 
-  #       [
-  #         components: Utils.alter_component(alter, false, show),
-  #         flags: Utils.cv2_flags(!show)
-  #       ]
-  #   end
-  # end
+        alters =
+          Octocon.Alters.get_alters_by_id_bounded(system_identity, tag.alters, [
+            :id,
+            :name,
+            :pronouns,
+            :security_level
+          ])
 
-  # def list(%{system_identity: system_identity}, options) do
-  #   system_id = Accounts.id_from_system_identity(system_identity, :system)
+        [
+          components: tag_component(tag, alters, show),
+          flags: cv2_flags(!show)
+        ]
+    end
+  end
 
-  #   sort =
-  #     case Utils.get_command_option(options, "sort") do
-  #       nil -> :id
-  #       "id" -> :id
-  #       "alphabetical" -> :alphabetical
-  #     end
+  def list(%{system_identity: system_identity}, _options) do
+    system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-  #   alters =
-  #     Alters.get_alters_by_id({:system, system_id}, [
-  #       :id,
-  #       :name,
-  #       :pronouns,
-  #       :discord_proxies,
-  #       :alias
-  #     ])
+    tags =
+      Tags.get_tags({:system, system_id})
+      |> Enum.sort_by(& &1.name)
 
-  #   sorted_alters =
-  #     case sort do
-  #       :id -> alters
-  #       :alphabetical -> alters |> Enum.sort_by(& &1.name)
-  #     end
+    TagPaginator.handle_init(system_id, tags, length(tags))
+  end
 
-  #   AlterPaginator.handle_init(system_id, sorted_alters, length(sorted_alters))
-  # end
+  def set_parent(%{system_identity: system_identity}, options) do
+    tag_id = get_command_option(options, "tag")
+    parent_tag_id = get_command_option(options, "parent_tag")
 
-  # def update_alter(
-  #       %{system_identity: system_identity},
-  #       alter_identity,
-  #       options,
-  #       success_text,
-  #       embed_alter \\ true
-  #     ) do
-  #   case options do
-  #     map when map_size(map) == 0 ->
-  #       Utils.error_component("You must provide at least one field to update.")
+    case Tags.set_parent_tag(system_identity, tag_id, parent_tag_id) do
+      :ok ->
+        success_component("Successfully updated the tag's parent tag!")
 
-  #     _ ->
-  #       case Alters.update_alter(system_identity, alter_identity, options) do
-  #         :ok ->
-  #           [
-  #             components:
-  #               if embed_alter do
-  #                 [
-  #                   Utils.success_component_raw(success_text),
-  #                   Utils.alter_component(
-  #                     Alters.get_alter_by_id!(system_identity, alter_identity),
-  #                     false,
-  #                     false
-  #                   )
-  #                 ]
-  #               else
-  #                 [Utils.success_component_raw(success_text)]
-  #               end
-  #               |> List.flatten(),
-  #             flags: Utils.cv2_flags()
-  #           ]
+      {:error, :not_found} ->
+        error_component("The specified tag does not exist.")
 
-  #         {:error, :no_alter_id} ->
-  #           Utils.error_component(
-  #             "You don't have an alter with ID **#{elem(alter_identity, 1)}**."
-  #           )
+      {:error, :tag_cycle} ->
+        error_component(
+          "Setting that parent tag would create a cycle. Please choose a different tag."
+        )
 
-  #         {:error, :no_alter_alias} ->
-  #           Utils.error_component(
-  #             "You don't have an alter with alias **#{elem(alter_identity, 1)}**."
-  #           )
+      {:error, _} ->
+        error_component("An unknown error occurred while updating the tag. Please try again.")
+    end
+  end
 
-  #         {:error, _} ->
-  #           Utils.error_component(
-  #             "An unknown error occurred while updating the alter. Please try again."
-  #           )
-  #       end
-  #   end
-  # end
+  def remove_parent(%{system_identity: system_identity}, options) do
+    tag_id = get_command_option(options, "tag")
 
-  # def edit(%{system_identity: system_identity} = context, options) do
-  #   with_id_or_alias(options, fn alter_identity ->
-  #     to_update =
-  #       %{
-  #         name: Utils.get_command_option(options, "name"),
-  #         pronouns: Utils.get_command_option(options, "pronouns"),
-  #         description: Utils.get_command_option(options, "description"),
-  #         proxy_name: Utils.get_command_option(options, "proxy-name"),
-  #         color: Utils.get_command_option(options, "color"),
-  #         alias: Utils.get_command_option(options, "alias")
-  #       }
-  #       |> Map.filter(fn {_, v} -> v != nil end)
+    case Tags.remove_parent_tag(system_identity, tag_id) do
+      :ok ->
+        success_component("Successfully removed the tag's parent tag!")
 
-  #     # This is ugly, but it works.
-  #     try do
-  #       if Map.has_key?(to_update, :alias) do
-  #         if Alters.alias_taken?(system_identity, to_update[:alias]) do
-  #           throw("You already have an alter with the alias **#{to_update[:alias]}**.")
-  #         end
+      {:error, :not_found} ->
+        error_component("The specified tag does not exist.")
 
-  #         case Utils.validate_alias(to_update[:alias]) do
-  #           {:error, error} -> throw(error)
-  #           {:alias, _} -> :ok
-  #         end
-  #       end
+      {:error, _} ->
+        error_component("An unknown error occurred while updating the tag. Please try again.")
+    end
+  end
 
-  #       if Map.has_key?(to_update, :color) do
-  #         case Utils.validate_hex_color(to_update[:color]) do
-  #           :error ->
-  #             throw("Invalid color. Please provide a valid hex code.")
+  def add_alter(%{system_identity: system_identity}, options) do
+    tag_id = get_command_option(options, "tag")
+    idalias = get_command_option(options, "alter")
 
-  #           {:ok, new_color} ->
-  #             update_alter(
-  #               context,
-  #               alter_identity,
-  #               Map.put(to_update, :color, "#" <> new_color),
-  #               "Successfully edited alter with ID/alias **#{elem(alter_identity, 1)}**!"
-  #             )
-  #         end
-  #       else
-  #         update_alter(
-  #           context,
-  #           alter_identity,
-  #           to_update,
-  #           "Successfully edited alter with ID/alias **#{elem(alter_identity, 1)}**!"
-  #         )
-  #       end
-  #     catch
-  #       e -> Utils.error_component(e)
-  #     end
-  #   end)
-  # end
+    with_id_or_alias(idalias, fn alter_identity ->
+      case Tags.attach_alter_to_tag(system_identity, tag_id, alter_identity) do
+        :ok ->
+          success_component("Successfully added the alter to the tag!")
 
-  # def security(context, options) do
-  #   with_id_or_alias(options, fn alter_identity ->
-  #     security_level = Utils.get_command_option(options, "level") |> String.to_existing_atom()
+        {:error, :alter_not_found} ->
+          error_component("You don't have an alter with the ID or alias **#{idalias}**.")
 
-  #     update_alter(
-  #       context,
-  #       alter_identity,
-  #       %{security_level: security_level},
-  #       "Successfully updated alter's security level!",
-  #       true
-  #     )
-  #   end)
-  # end
+        {:error, _} ->
+          error_component("An unknown error occurred while updating the tag. Please try again.")
+      end
+    end)
+  end
+
+  def remove_alter(%{system_identity: system_identity}, options) do
+    tag_id = get_command_option(options, "tag")
+    idalias = get_command_option(options, "alter")
+
+    with_id_or_alias(idalias, fn alter_identity ->
+      case Tags.detach_alter_from_tag(system_identity, tag_id, alter_identity) do
+        :ok ->
+          success_component("Successfully added the alter to the tag!")
+
+        {:error, :alter_not_found} ->
+          error_component("You don't have an alter with the ID or alias **#{idalias}**.")
+
+        {:error, _} ->
+          error_component("An unknown error occurred while updating the tag. Please try again.")
+      end
+    end)
+  end
+
+  def update_tag(
+        %{system_identity: system_identity},
+        tag_id,
+        options,
+        success_text,
+        embed_tag \\ true
+      ) do
+    case options do
+      map when map_size(map) == 0 ->
+        error_component("You must provide at least one field to update.")
+
+      _ ->
+        case Tags.update_tag(system_identity, tag_id, options) do
+          {:ok, tag} ->
+            [
+              components:
+                if embed_tag do
+                  alters =
+                    Octocon.Alters.get_alters_by_id_bounded(system_identity, tag.alters, [
+                      :id,
+                      :name,
+                      :pronouns,
+                      :security_level
+                    ])
+
+                  [
+                    success_component_raw(success_text),
+                    tag_component(
+                      tag,
+                      alters,
+                      false
+                    )
+                  ]
+                else
+                  [success_component_raw(success_text)]
+                end
+                |> List.flatten(),
+              flags: cv2_flags()
+            ]
+
+          {:error, :not_found} ->
+            error_component("You don't have a tag with ID **#{tag_id}**.")
+
+          {:error, _} ->
+            error_component("An unknown error occurred while updating the tag. Please try again.")
+        end
+    end
+  end
+
+  def edit(context, options) do
+    tag_id = get_command_option(options, "tag")
+
+    to_update =
+      %{
+        name: get_command_option(options, "name"),
+        description: get_command_option(options, "description"),
+        color: get_command_option(options, "color")
+      }
+      |> Map.filter(fn {_, v} -> v != nil end)
+
+    # This is ugly, but it works.
+    try do
+      if Map.has_key?(to_update, :color) do
+        case validate_hex_color(to_update[:color]) do
+          :error ->
+            throw("Invalid color. Please provide a valid hex code.")
+
+          {:ok, new_color} ->
+            update_tag(
+              context,
+              tag_id,
+              Map.put(to_update, :color, "#" <> new_color),
+              "Successfully edited tag!"
+            )
+        end
+      else
+        update_tag(
+          context,
+          tag_id,
+          to_update,
+          "Successfully edited tag!"
+        )
+      end
+    catch
+      e -> error_component(e)
+    end
+  end
+
+  def security(context, options) do
+    security_level = get_command_option(options, "level") |> String.to_existing_atom()
+
+    tag_id = get_command_option(options, "tag")
+
+    update_tag(
+      context,
+      tag_id,
+      %{security_level: security_level},
+      "Successfully updated this tag's security level!",
+      true
+    )
+  end
 
   @impl Nosedrum.ApplicationCommand
   def type, do: :slash
@@ -295,12 +354,12 @@ defmodule OctoconDiscord.Commands.Tag do
           ]
           |> add_show_option()
       },
-      # %{
-      #   name: "random",
-      #   description: "Views a random tag.",
-      #   type: :sub_command,
-      #   options: Utils.add_show_option([])
-      # },
+      %{
+        name: "random",
+        description: "Views a random tag.",
+        type: :sub_command,
+        options: add_show_option([])
+      },
       %{
         name: "list",
         description: "Lists all of your tags.",
@@ -368,6 +427,90 @@ defmodule OctoconDiscord.Commands.Tag do
             max_length: 7,
             description: "The new color (hex code) of the tag.",
             required: false
+          }
+        ]
+      },
+      %{
+        name: "set-parent",
+        description: "Sets the parent tag of an existing tag.",
+        type: :sub_command,
+        options: [
+          %{
+            name: "tag",
+            type: :string,
+            description: "The tag to update.",
+            max_length: 36,
+            required: true,
+            autocomplete: true
+          },
+          %{
+            name: "parent_tag",
+            type: :string,
+            description: "The new parent tag.",
+            max_length: 36,
+            required: true,
+            autocomplete: true
+          }
+        ]
+      },
+      %{
+        name: "remove-parent",
+        description: "Removes the parent tag of an existing tag.",
+        type: :sub_command,
+        options: [
+          %{
+            name: "tag",
+            type: :string,
+            description: "The tag to update.",
+            max_length: 36,
+            required: true,
+            autocomplete: true
+          }
+        ]
+      },
+      %{
+        name: "add-alter",
+        description: "Adds an alter to a tag.",
+        type: :sub_command,
+        options: [
+          %{
+            name: "tag",
+            type: :string,
+            description: "The tag to update.",
+            max_length: 36,
+            required: true,
+            autocomplete: true
+          },
+          %{
+            name: "alter",
+            type: :string,
+            description: "The ID (or alias) of the alter to add to the tag.",
+            max_length: 80,
+            required: true,
+            autocomplete: true
+          }
+        ]
+      },
+      %{
+        name: "remove-alter",
+        description: "Removes an alter from a tag.",
+        type: :sub_command,
+        options: [
+          %{
+            name: "tag",
+            type: :string,
+            description: "The tag to update.",
+            max_length: 36,
+            required: true,
+            autocomplete: true
+          },
+          %{
+            name: "alter",
+            type: :string,
+            description: "The ID (or alias) of the alter to remove from the tag.",
+            max_length: 80,
+            required: true,
+            autocomplete: true
           }
         ]
       }

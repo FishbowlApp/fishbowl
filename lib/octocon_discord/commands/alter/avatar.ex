@@ -91,7 +91,7 @@ defmodule OctoconDiscord.Commands.Alter.Avatar do
     spawn(fn ->
       system_id = Accounts.id_from_system_identity(system_identity, :system)
       alter_id = Alters.resolve_alter(system_identity, alter_identity)
-      Octocon.nuke_existing_avatars!(system_id, alter_id)
+      Octocon.Utils.nuke_existing_avatars!(system_id, alter_id)
     end)
 
     result

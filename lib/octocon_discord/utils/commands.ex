@@ -1,6 +1,8 @@
 defmodule OctoconDiscord.Utils.Commands do
   import OctoconDiscord.Utils.Components
 
+  alias Octocon.Accounts
+
   def get_command_option(options, name) do
     case Enum.find(options, fn %{name: option} -> option == name end) do
       nil -> nil
