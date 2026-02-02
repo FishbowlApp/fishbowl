@@ -20,7 +20,7 @@ defmodule OctoconDiscord.Utils.Emojis do
   def back, do: %Emoji{name: "back", id: 1_467_695_301_962_895_566}
   def forward, do: %Emoji{name: "forward", id: 1_467_695_300_381_507_595}
   def last, do: %Emoji{name: "last", id: 1_467_695_299_152_580_701}
-  def open, do: %Emoji{name: "open", id: 1_464_865_174_807_773_184}
+  def open, do: %Emoji{name: "open", id: 1_467_702_233_771_675_821}
 
   def component_emoji(%Emoji{name: name, id: id}) do
     %{name: name, id: id}
