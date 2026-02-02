@@ -419,63 +419,32 @@ defmodule OctoconDiscord.Proxy do
 
     creation_time = Nostrum.Snowflake.creation_time(message_id) |> DateTime.to_unix()
 
-    # result =
-    #   Api.Message.create(
-    #     String.to_integer(log_channel),
-    #     %{
-    #       components: [
-    #         container(
-    #           [
-    #             section(
-    #               [
-    #                 text("### Message proxied"),
-    #                 text(truncated_content)
-    #               ],
-    #               thumbnail(Utils.get_avatar_url(author_id, avatar_hash))
-    #             ),
-    #             separator(spacing: :large),
-    #             text("**Author:** <@#{author_id}>"),
-    #             text("**Sent at:** <t:#{creation_time}:F> (<t:#{creation_time}:R>)")
-    #           ],
-    #           %{accent_color: Utils.hex_to_int("#3F3793")}
-    #         ),
-    #         action_row([
-    #           link_button(permalink, label: "Jump to message")
-    #         ])
-    #       ],
-    #       flags: cv2_flags(false) |> Bitwise.bor(Bitwise.bsl(1, 12))
-    #     }
-    #   )
-
     result =
       Api.Message.create(
         String.to_integer(log_channel),
         %{
-          content: "",
-          url: permalink,
-          embeds: [
-            %Nostrum.Struct.Embed{
-              title: "Message proxied",
-              timestamp: Nostrum.Snowflake.creation_time(message_id),
-              fields: [
-                %Nostrum.Struct.Embed.Field{
-                  name: "Author",
-                  value: "<@#{author_id}>",
-                  inline: true
-                },
-                %Nostrum.Struct.Embed.Field{
-                  name: "Permalink",
-                  value: "[Jump to message](#{permalink})",
-                  inline: true
-                }
+          components: [
+            container(
+              [
+                section(
+                  [
+                    text("### Message proxied"),
+                    text(truncated_content)
+                  ],
+                  thumbnail(Utils.get_avatar_url(author_id, avatar_hash))
+                ),
+                separator(spacing: :large),
+                text("**Author:** <@#{author_id}>"),
+                text("**Sent at:** <t:#{creation_time}:F> (<t:#{creation_time}:R>)")
               ],
-              thumbnail: %Nostrum.Struct.Embed.Thumbnail{
-                url: Utils.get_avatar_url(author_id, avatar_hash)
-              },
-              color: Utils.hex_to_int("#3F3793"),
-              description: truncated_content
-            }
-          ]
+              %{accent_color: Utils.hex_to_int("#3F3793")}
+            ),
+            action_row([
+              link_button(permalink, label: "Jump to message")
+            ])
+          ],
+          allowed_mentions: :none,
+          flags: cv2_flags(false) |> Bitwise.bor(Bitwise.bsl(1, 12))
         }
       )
 
