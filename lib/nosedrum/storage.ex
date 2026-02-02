@@ -183,7 +183,7 @@ defmodule Nosedrum.Storage do
     }
 
     Nostrum.Api.create_interaction_response(interaction, res)
-    |> IO.inspect()
+    # |> IO.inspect()
   end
 
   @doc """
