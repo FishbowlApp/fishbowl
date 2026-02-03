@@ -50,6 +50,9 @@ defmodule Octocon.Tags do
     else
       %{tag | alters: tag_alters}
     end
+  rescue
+    _ in Ecto.Query.CastError ->
+      nil
   end
 
   # Also returns guarded list of containing alters
@@ -119,6 +122,41 @@ defmodule Octocon.Tags do
     tags
     |> Enum.filter(fn tag -> Alters.can_view_entity?(friendship_level, tag.security_level) end)
     |> Enum.map(fn tag -> %{tag | alters: []} end)
+  end
+
+  def get_tags_for_alter(system_identity, alter_identity) do
+    alter_id =
+      case Alters.resolve_alter(system_identity, alter_identity) do
+        false -> nil
+        id -> id
+      end
+
+    if alter_id == nil do
+      []
+    else
+      where = unwrap_system_identity_where(system_identity)
+
+      tag_ids =
+        AlterTag
+        |> where(^where)
+        |> where([at], at.alter_id == ^alter_id)
+        |> select([at], at.tag_id)
+        |> Repo.all_regional({:user, system_identity})
+
+      tags =
+        Tag
+        |> where(^where)
+        |> where([t], t.id in ^tag_ids)
+        |> select([t], t)
+        |> Repo.all_regional({:user, system_identity})
+
+      tags
+    end
+  end
+
+  def get_public_tags_for_alter(system_identity, alter_identity) do
+    get_tags_for_alter(system_identity, alter_identity)
+    |> Enum.filter(fn tag -> tag.security_level == :public end)
   end
 
   def create_tag(system_identity, name) do
