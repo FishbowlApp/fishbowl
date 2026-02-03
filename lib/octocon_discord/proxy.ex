@@ -443,6 +443,7 @@ defmodule OctoconDiscord.Proxy do
               link_button(permalink, label: "Jump to message")
             ])
           ],
+          allowed_mentions: :none,
           flags: cv2_flags(false) |> Bitwise.bor(Bitwise.bsl(1, 12))
         }
       )
