@@ -1,6 +1,11 @@
 defmodule Octocon.Utils.Import do
   alias Octocon.Alters.Alter
 
+  alias Octocon.Tags.{
+    AlterTag,
+    Tag
+  }
+
   def naive_datetime_to_datetime(naive_datetime) do
     {:ok, datetime} =
       Exandra.dumpers(:naive_datetime, nil)
@@ -51,6 +56,62 @@ defmodule Octocon.Utils.Import do
       color,
       fields,
       security_level,
+      inserted_at,
+      updated_at
+    ]
+
+    {query, values}
+  end
+
+  def tag_to_insert_query(
+        %Tag{
+          user_id: user_id,
+          id: id,
+          name: name,
+          description: description,
+          color: color,
+          security_level: security_level,
+          parent_tag_id: parent_tag_id,
+          inserted_at: inserted_at,
+          updated_at: updated_at
+        },
+        region
+      ) do
+    query =
+      "INSERT INTO #{region}.tags (user_id, id, name, description, color, security_level, parent_tag_id, inserted_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+
+    values = [
+      user_id,
+      id,
+      name,
+      description,
+      color,
+      security_level,
+      parent_tag_id,
+      inserted_at,
+      updated_at
+    ]
+
+    {query, values}
+  end
+
+  def alter_tag_to_insert_query(
+        %AlterTag{
+          user_id: user_id,
+          tag_id: tag_id,
+          alter_id: alter_id,
+          inserted_at: inserted_at,
+          updated_at: updated_at
+        },
+        region
+      ) do
+    query =
+      "INSERT INTO #{region}.alter_tags (user_id, alter_id, tag_id, inserted_at, updated_at) VALUES (?, ?, ?, ?, ?)"
+
+    values = [
+      user_id,
+      alter_id,
+      tag_id,
       inserted_at,
       updated_at
     ]
