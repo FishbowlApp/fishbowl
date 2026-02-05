@@ -19,7 +19,7 @@ defmodule OctoconDiscord.Autocomplete.Friend do
              |> String.slice(0..remaining_length)) <> id_suffix
           end
 
-        {format_name_for_search(display_name), {friend_id, display_name}}
+        %{id: {friend_id, display_name}, name: format_name_for_search(display_name)}
       end)
 
     case friends do
@@ -27,7 +27,7 @@ defmodule OctoconDiscord.Autocomplete.Friend do
         {:ignore, nil}
 
       _ ->
-        {:commit, Radix.new(friends)}
+        {:commit, Search.new(fields: [:name]) |> Search.add!(friends)}
     end
   end
 

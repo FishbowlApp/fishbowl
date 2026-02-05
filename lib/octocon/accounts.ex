@@ -912,6 +912,31 @@ defmodule Octocon.Accounts do
     e -> {:error, e}
   end
 
+  def wipe_tags(system_identity) do
+    user = get_user!(system_identity)
+
+    q1 =
+      from t in Octocon.Tags.Tag,
+        where: t.user_id == ^user.id
+
+    q2 =
+      from at in Octocon.Tags.AlterTag,
+        where: at.user_id == ^user.id
+
+    [q1, q2]
+    |> Enum.each(fn query ->
+      Repo.delete_all_regional(query, {:user, {:system, user.id}})
+    end)
+
+    spawn(fn ->
+      OctoconWeb.Endpoint.broadcast!("system:#{user.id}", "tags_wiped", %{})
+    end)
+
+    :ok
+  rescue
+    e -> {:error, e}
+  end
+
   @doc """
   Builds a changeset based on the given `Octocon.Accounts.User` struct and `attrs` to change.
   """
