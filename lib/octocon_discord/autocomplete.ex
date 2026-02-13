@@ -128,8 +128,8 @@ defmodule OctoconDiscord.Autocomplete do
       Logger.error("Error generating autocomplete responses:")
       Logger.error(Exception.format(:error, e, __STACKTRACE__))
 
-      Logger.info(search_index, label: "Search index")
-      Logger.info(prefix, label: "Prefix")
+      Logger.info("Search index: #{inspect(search_index)}")
+      Logger.info("Prefix: #{prefix}")
 
       []
   end
