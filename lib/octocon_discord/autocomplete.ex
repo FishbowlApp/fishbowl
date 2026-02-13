@@ -35,6 +35,8 @@ defmodule OctoconDiscord.Autocomplete do
         ],
         expiration: expiration(default: :timer.minutes(5))
 
+      require Logger
+
       import OctoconDiscord.Autocomplete,
         only: [format_name_for_search: 1, generate_autocomplete_responses: 2, top_percent: 2]
 
@@ -48,28 +50,28 @@ defmodule OctoconDiscord.Autocomplete do
       end
 
       defp do_fetch(key, prefix) do
-        trie =
+        index =
           Cachex.fetch!(
             __MODULE__,
             key,
             OctoconDiscord.Autocomplete.wrap_cache_function(__MODULE__, is_tuple(key))
           )
 
-        if trie == nil do
+        if index == nil do
           []
         else
-          generate_autocomplete_responses(trie, prefix)
+          generate_autocomplete_responses(index, prefix)
         end
       end
 
       def invalidate(system_identity, supplementary \\ nil)
 
-      def invalidate({:discord, discord_id}, nil) when is_binary(discord_id) do
-        delete_cache_key(discord_id)
+      def invalidate({:discord, discord_id}, nil) do
+        delete_cache_key(to_string(discord_id))
       end
 
-      def invalidate({:discord, discord_id}, supplementary) when is_binary(discord_id) do
-        delete_cache_key({discord_id, supplementary})
+      def invalidate({:discord, discord_id}, supplementary) do
+        delete_cache_key({to_string(discord_id), supplementary})
       end
 
       def invalidate(system_identity, supplementary) do
@@ -121,6 +123,15 @@ defmodule OctoconDiscord.Autocomplete do
     Logger.info("Autocomplete search took #{time} µs")
 
     result
+  rescue
+    e ->
+      Logger.error("Error generating autocomplete responses:")
+      Logger.error(Exception.format(:error, e, __STACKTRACE__))
+
+      Logger.info(search_index, label: "Search index")
+      Logger.info(prefix, label: "Prefix")
+
+      []
   end
 
   defp format_discord_result(display_name, id, id_type) do
@@ -215,13 +226,13 @@ defmodule OctoconDiscord.Autocomplete do
   end
 
   def top_percent(list, percentage) do
-    k =
+    count =
       list
       |> length()
       |> Kernel.*(percentage / 100)
       |> Float.ceil()
       |> trunc()
 
-    Enum.take(list, k)
+    Enum.take(list, count)
   end
 end

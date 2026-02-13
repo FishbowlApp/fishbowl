@@ -75,12 +75,7 @@ defmodule OctoconWeb.AuthLinkController do
           error: "A Discord account is already linked to this account; please unlink it first."
         })
 
-      {:error,
-       %Ecto.Changeset{
-         errors: [
-           discord_id: {"has already been taken", _}
-         ]
-       }} ->
+      {:error, :user_exists} ->
         conn
         |> put_status(500)
         |> json(%{error: "This Discord account is already linked to another account."})
@@ -100,12 +95,7 @@ defmodule OctoconWeb.AuthLinkController do
           error: "A Google account is already linked to this account; please unlink it first."
         })
 
-      {:error,
-       %Ecto.Changeset{
-         errors: [
-           email: {"has already been taken", _}
-         ]
-       }} ->
+      {:error, :user_exists} ->
         conn
         |> put_status(500)
         |> json(%{error: "This email address is already linked to another account."})
@@ -125,12 +115,7 @@ defmodule OctoconWeb.AuthLinkController do
           error: "An Apple account is already linked to this account; please unlink it first."
         })
 
-      {:error,
-       %Ecto.Changeset{
-         errors: [
-           email: {"has already been taken", _}
-         ]
-       }} ->
+      {:error, :user_exists} ->
         conn
         |> put_status(500)
         |> json(%{error: "This Apple account is already linked to another account."})

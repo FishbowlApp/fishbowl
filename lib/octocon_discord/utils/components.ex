@@ -64,16 +64,19 @@ defmodule OctoconDiscord.Utils.Components do
           normalized_description
       end
 
-    upper_text = "## Information for <@#{system.discord_id}>\n\n#{description}"
+    upper_text = [
+      text("## Information for <@#{system.discord_id}>"),
+      text(description)
+    ]
 
     container(
       [
         case system.avatar_url do
           url when url != nil and url != "" ->
-            section([upper_text], thumbnail(url))
+            section(upper_text, thumbnail(url))
 
           _ ->
-            text(upper_text)
+            upper_text
         end,
         separator(spacing: :large),
         text("**ID:** `#{system.id}`"),
@@ -162,7 +165,7 @@ defmodule OctoconDiscord.Utils.Components do
           "## #{alter.name || "Unnamed alter"}#{if alter.pronouns && alter.pronouns != "", do: " (#{alter.pronouns})", else: ""}"
         ),
         if(fronting_text != nil, do: text(fronting_text), else: []),
-        text("#{description}")
+        text(description)
       ]
       |> List.flatten()
 
@@ -293,7 +296,7 @@ defmodule OctoconDiscord.Utils.Components do
     upper_text =
       [
         text("## #{tag.name || "Unnamed tag"}"),
-        text("#{description}")
+        text(description)
       ]
 
     inserted_at =
