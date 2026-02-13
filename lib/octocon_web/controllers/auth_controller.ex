@@ -67,11 +67,17 @@ defmodule OctoconWeb.AuthController do
         user -> user
       end
 
-    {:ok, token, _claims} = Guardian.encode_and_sign(user.user_id)
+    user_id =
+      case user do
+        %Octocon.Accounts.User{id: user_id} -> user_id
+        %{user_id: user_id} -> user_id
+      end
+
+    {:ok, token, _claims} = Guardian.encode_and_sign(user_id)
 
     metadata = get_session(conn, :metadata) |> Jason.decode!()
 
-    url_params = "?token=#{token}&id=#{user.user_id}"
+    url_params = "?token=#{token}&id=#{user_id}"
 
     redirect_url =
       case metadata do
@@ -93,11 +99,17 @@ defmodule OctoconWeb.AuthController do
         user -> user
       end
 
-    {:ok, token, _claims} = Guardian.encode_and_sign(user.user_id)
+    user_id =
+      case user do
+        %Octocon.Accounts.User{id: user_id} -> user_id
+        %{user_id: user_id} -> user_id
+      end
+
+    {:ok, token, _claims} = Guardian.encode_and_sign(user_id)
 
     metadata = get_session(conn, :metadata) |> Jason.decode!()
 
-    url_params = "?token=#{token}&id=#{user.user_id}"
+    url_params = "?token=#{token}&id=#{user_id}"
 
     redirect_url =
       case metadata do
@@ -119,9 +131,15 @@ defmodule OctoconWeb.AuthController do
         user -> user
       end
 
-    {:ok, token, _claims} = Guardian.encode_and_sign(user.user_id)
+    user_id =
+      case user do
+        %Octocon.Accounts.User{id: user_id} -> user_id
+        %{user_id: user_id} -> user_id
+      end
 
-    url_params = "?token=#{token}&id=#{user.user_id}"
+    {:ok, token, _claims} = Guardian.encode_and_sign(user_id)
+
+    url_params = "?token=#{token}&id=#{user_id}"
 
     redirect(conn, external: "https://octocon.app/deep/auth/token#{url_params}")
   end
