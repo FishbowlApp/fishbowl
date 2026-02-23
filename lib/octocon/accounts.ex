@@ -1025,6 +1025,17 @@ defmodule Octocon.Accounts do
     |> wrap_fields_broadcast(system_identity)
   end
 
+  def add_bulk_fields(system_identity, data) do
+    user = get_user!(system_identity)
+
+    fields = (user.fields || []) ++ data
+
+    user
+    |> User.update_changeset(%{fields: fields})
+    |> Repo.update_regional({:user, {:system, user.id}})
+    |> wrap_fields_broadcast(system_identity)
+  end
+
   @doc """
   Removes an existing custom field from the user with the provided system identity.
   """

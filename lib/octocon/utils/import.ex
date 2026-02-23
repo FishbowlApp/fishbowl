@@ -40,6 +40,8 @@ defmodule Octocon.Utils.Import do
     query =
       "INSERT INTO #{region}.alters (user_id, id, name, proxy_name, discord_proxies, pronouns, description, alias, pinned, archived, untracked, last_fronted, color, fields, security_level, inserted_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
+    parsed_fields = Enum.map(fields, fn %{id: id, value: value} -> %{"id" => id, "value" => value} end)
+
     values = [
       user_id,
       id,
@@ -54,7 +56,7 @@ defmodule Octocon.Utils.Import do
       untracked,
       last_fronted,
       color,
-      fields,
+      parsed_fields,
       security_level,
       inserted_at,
       updated_at
