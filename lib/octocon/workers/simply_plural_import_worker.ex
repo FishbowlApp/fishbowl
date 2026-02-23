@@ -52,13 +52,14 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
           }
         } = field
 
-        {field_id, %Octocon.Accounts.Field{
-          id: Ecto.UUID.generate(),
-          name: name |> default_if_empty(100, "Unnamed field"),
-          type: :text,
-          locked: false,
-          security_level: :private
-        }}
+        {field_id,
+         %Octocon.Accounts.Field{
+           id: Ecto.UUID.generate(),
+           name: name |> default_if_empty(100, "Unnamed field"),
+           type: :text,
+           locked: false,
+           security_level: :private
+         }}
       end)
 
     field_associations =
@@ -68,7 +69,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
     {alters, uuids, avatars} =
       Jason.decode!(alters_body)
-      |> Stream.map(&({&1["content"], &1["id"]}))
+      |> Stream.map(&{&1["content"], &1["id"]})
       |> Stream.with_index(start_count)
       |> Stream.map(fn {{alter, uuid}, index} ->
         {alter, avatar} = parse_alter(system_id, alter, index, field_associations)
@@ -94,7 +95,9 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
     tags =
       tags_response
-      |> Stream.map(fn tag -> parse_tag(system_id, tag["content"], Map.get(tag_ids, tag["id"]), tag_ids) end)
+      |> Stream.map(fn tag ->
+        parse_tag(system_id, tag["content"], Map.get(tag_ids, tag["id"]), tag_ids)
+      end)
       |> Enum.map(fn {tag, members} ->
         {
           {tag, tag_to_insert_query(tag, user_region)},
@@ -168,7 +171,10 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
       }
     )
 
-    Accounts.add_bulk_fields({:system, system_id}, Enum.map(custom_fields, fn {_field_id, field} -> field end))
+    Accounts.add_bulk_fields(
+      {:system, system_id},
+      Enum.map(custom_fields, fn {_field_id, field} -> field end)
+    )
 
     OctoconWeb.Endpoint.broadcast!("system:#{system_id}", "alters_created", %{
       alters:
@@ -262,15 +268,17 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
         archived: false,
         untracked: false,
         last_fronted: nil,
-        fields: Enum.map(alter["info"] || [], fn {field_id, value} ->
-          octocon_field_id = Map.get(field_associations, field_id)
-          value = %Octocon.Alters.Field{
-            id: octocon_field_id,
-            value: value
-          }
+        fields:
+          Enum.map(alter["info"] || [], fn {field_id, value} ->
+            octocon_field_id = Map.get(field_associations, field_id)
 
-          value
-        end),
+            value = %Octocon.Alters.Field{
+              id: octocon_field_id,
+              value: value
+            }
+
+            value
+          end),
         security_level: 3,
         inserted_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime(),
         updated_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime()
@@ -305,11 +313,12 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
        description: default_if_empty(tag["desc"], 1000),
        color: parse_color(tag["color"]),
        security_level: 3,
-       parent_tag_id: case tag["parent"] do
-          nil -> nil
-          "root" -> nil
-          parent_id -> Map.get(tag_ids, parent_id)
-       end,
+       parent_tag_id:
+         case tag["parent"] do
+           nil -> nil
+           "root" -> nil
+           parent_id -> Map.get(tag_ids, parent_id)
+         end,
        inserted_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime(),
        updated_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime()
      }, tag["members"]}
