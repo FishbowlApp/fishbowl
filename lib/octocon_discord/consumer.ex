@@ -1,10 +1,8 @@
 defmodule OctoconDiscord.Consumer do
   @moduledoc false
 
-  use Nostrum.Consumer
+  @behaviour Nostrum.Consumer
   require Logger
-
-  alias Nostrum.ConsumerGroup
 
   import OctoconDiscord.Utils.{
     Components,
@@ -38,13 +36,6 @@ defmodule OctoconDiscord.Consumer do
     "❌ Delete proxied message" => Commands.Messages.DeleteProxiedMessage,
     "🔄 Reproxy message" => Commands.Messages.Reproxy
   }
-
-  @impl GenServer
-  def init([]) do
-    Logger.info("OctoconDiscord.Consumer init")
-    ConsumerGroup.join(self())
-    {:ok, nil}
-  end
 
   def handle_event({:READY, %{shard: {this_shard, shard_count}}, _ws_state}) do
     if this_shard == 0 do
@@ -115,6 +106,7 @@ defmodule OctoconDiscord.Consumer do
   end
 
   def handle_event({:MESSAGE_CREATE, data, _ws_state}) do
+    # IO.inspect(data, limit: :infinity)
     MessageCreate.handle(data)
   end
 

@@ -1,4 +1,4 @@
-defmodule OctoconDiscord.ConsumerSupervisor do
+defmodule OctoconDiscord.BotSupervisor do
   use Supervisor
 
   require Logger
@@ -12,7 +12,7 @@ defmodule OctoconDiscord.ConsumerSupervisor do
 
       {:error, {:already_started, pid}} ->
         Logger.warning(
-          "OctoconDiscord.ConsumerSupervisor already started at #{inspect(pid)}, returning :ignore"
+          "OctoconDiscord.BotSupervisor already started at #{inspect(pid)}, returning :ignore"
         )
 
         :ignore
@@ -20,21 +20,36 @@ defmodule OctoconDiscord.ConsumerSupervisor do
   end
 
   def init([]) do
+    bot_options = %{
+      name: OctoconDiscord.Bot,
+      consumer: OctoconDiscord.Consumer,
+      intents: [
+        :guild_webhooks,
+        :guilds,
+        :guild_messages,
+        :guild_message_reactions,
+        :direct_messages,
+        :direct_message_reactions,
+        :message_content
+      ],
+      wrapped_token: fn -> Application.get_env(:octocon, :discord_token) end
+    }
+
     children = [
-      OctoconDiscord.Consumer
+      {Nostrum.Bot, bot_options}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  def get_consumer_pid do
+  def get_bot_pid do
     case Horde.Registry.lookup(Octocon.Primary.HordeRegistry, __MODULE__) do
       [] ->
         :error
 
       [{pid, _}] ->
-        [{_, consumer_pid, _, _}] = Supervisor.which_children(pid)
-        {:ok, consumer_pid}
+        [{_, bot_pid, _, _}] = Supervisor.which_children(pid)
+        {:ok, bot_pid}
     end
   end
 end
