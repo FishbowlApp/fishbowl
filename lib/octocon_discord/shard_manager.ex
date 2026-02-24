@@ -63,7 +63,7 @@ defmodule OctoconDiscord.ShardManager do
     )
 
     for shard <- start_shard..end_shard do
-      Nostrum.Shard.Supervisor.connect(shard, desired_shards)
+      Nostrum.Shard.Supervisor.connect(shard, desired_shards, OctoconDiscord.BotSupervisor.bot_options())
     end
   end
 
