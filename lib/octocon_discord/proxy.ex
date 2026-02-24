@@ -270,16 +270,28 @@ defmodule OctoconDiscord.Proxy do
           case req do
             {:ok, %{body: body}} ->
               file_data = %{name: filename, body: body}
-              attachment_data = cond do
-                filename == "voice-message.ogg" ->
-                  %{filename: "voice-message.ogg", content_type: "audio/ogg", waveform: attachment.waveform, duration_secs: attachment.duration_secs}
 
-                String.contains?(attachment.content_type, "image") ->
-                  %{filename: filename, content_type: attachment.content_type, title: attachment.title, description: attachment.description}
+              attachment_data =
+                cond do
+                  filename == "voice-message.ogg" ->
+                    %{
+                      filename: "voice-message.ogg",
+                      content_type: "audio/ogg",
+                      waveform: attachment.waveform,
+                      duration_secs: attachment.duration_secs
+                    }
 
-                true ->
-                  nil
-              end
+                  String.contains?(attachment.content_type, "image") ->
+                    %{
+                      filename: filename,
+                      content_type: attachment.content_type,
+                      title: attachment.title,
+                      description: attachment.description
+                    }
+
+                  true ->
+                    nil
+                end
 
               {:ok, {file_data, attachment_data}}
 
@@ -297,7 +309,8 @@ defmodule OctoconDiscord.Proxy do
       |> Stream.map(fn {:ok, {:ok, data}} -> data end)
       |> Enum.to_list()
 
-    is_voice_message = Enum.any?(attachments, fn {%{name: name}, _} -> name == "voice-message.ogg" end)
+    is_voice_message =
+      Enum.any?(attachments, fn {%{name: name}, _} -> name == "voice-message.ogg" end)
 
     webhook_data =
       webhook_data
