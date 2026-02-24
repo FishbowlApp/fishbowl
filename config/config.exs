@@ -112,15 +112,6 @@ config :nostrum,
     users: Nostrum.Cache.UserCache.Mnesia,
     channel_guild_mapping: Nostrum.Cache.ChannelGuildMapping.Mnesia
   },
-  gateway_intents: [
-    :guild_webhooks,
-    :guilds,
-    :guild_messages,
-    :guild_message_reactions,
-    :direct_messages,
-    :direct_message_reactions,
-    :message_content
-  ],
   # [TODO]: Manual sharding
   # num_shards: :manual,
   ffmpeg: false,

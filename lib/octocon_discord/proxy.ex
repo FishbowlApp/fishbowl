@@ -261,16 +261,39 @@ defmodule OctoconDiscord.Proxy do
     attachments =
       files
       |> Stream.filter(fn file -> file.size < 20_000_000 end)
-      |> Stream.map(fn file -> Map.take(file, [:filename, :url]) end)
       |> Task.async_stream(
-        fn %{filename: filename, url: url} ->
+        fn %{filename: filename, url: url} = attachment ->
           req =
             Finch.build(:get, url)
             |> Finch.request(Octocon.Finch)
 
           case req do
             {:ok, %{body: body}} ->
-              {:ok, %{name: filename, body: body}}
+              file_data = %{name: filename, body: body}
+
+              attachment_data =
+                cond do
+                  filename == "voice-message.ogg" ->
+                    %{
+                      filename: "voice-message.ogg",
+                      content_type: "audio/ogg",
+                      waveform: attachment.waveform,
+                      duration_secs: attachment.duration_secs
+                    }
+
+                  String.contains?(attachment.content_type, "image") ->
+                    %{
+                      filename: filename,
+                      content_type: attachment.content_type,
+                      title: attachment.title,
+                      description: attachment.description
+                    }
+
+                  true ->
+                    nil
+                end
+
+              {:ok, {file_data, attachment_data}}
 
             {:error, error} ->
               {:error, error}
@@ -286,27 +309,30 @@ defmodule OctoconDiscord.Proxy do
       |> Stream.map(fn {:ok, {:ok, data}} -> data end)
       |> Enum.to_list()
 
+    is_voice_message =
+      Enum.any?(attachments, fn {%{name: name}, _} -> name == "voice-message.ogg" end)
+
     webhook_data =
       webhook_data
-      |> Map.put(:files, attachments)
+      |> Map.put(:files, Enum.map(attachments, fn {file_data, _} -> file_data end))
       |> Map.put(
         :flags,
         if attachments == [] do
           Map.get(webhook_data, :flags)
         else
-          case hd(attachments) do
-            # This is a bit hacky, but it lets us tell Discord that we're sending a voice message
-            %{name: "voice-message.ogg"} ->
-              if context.silent_proxying do
-                Bitwise.|||(Bitwise.bsl(1, 12), Bitwise.bsl(1, 13))
-              else
-                Bitwise.bsl(1, 13)
-              end
-
-            _ ->
-              Map.get(webhook_data, :flags)
+          # This is a bit hacky, but it lets us tell Discord that we're sending a voice message
+          if is_voice_message do
+            Bitwise.|||(Bitwise.bsl(1, 12), Bitwise.bsl(1, 13))
+          else
+            Map.get(webhook_data, :flags)
           end
         end
+      )
+      |> Map.put(
+        :attachments,
+        attachments
+        |> Enum.with_index()
+        |> Enum.map(fn {{_, attachment_data}, index} -> Map.put(attachment_data, :id, index) end)
       )
 
     # Delegate to `send_proxy_message_raw` with the updated webhook data
@@ -406,7 +432,7 @@ defmodule OctoconDiscord.Proxy do
     truncated_content =
       cond do
         content == nil or content == "" ->
-          nil
+          "*This message did not have any text.*"
 
         String.length(content) > 500 ->
           content

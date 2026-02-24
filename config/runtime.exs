@@ -219,8 +219,8 @@ if config_env() == :prod do
         """),
     client_secret: {Octocon.Apple, :get_client_secret}
 
-  config :nostrum,
-    token:
+  config :octocon,
+    discord_token:
       System.get_env("DISCORD_TOKEN") ||
         raise("""
         environment variable DISCORD_TOKEN is missing.

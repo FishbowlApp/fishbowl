@@ -4,14 +4,12 @@ defmodule Octocon.RPC.NodeTracker do
   use GenServer
   require Logger
 
-  @table :octocon_nodes
-
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   defp group_nodes(group) do
-    case :ets.lookup(@table, group) do
+    case :ets.lookup(__MODULE__, group) do
       [{^group, nodes}] -> nodes
       [] -> []
     end
@@ -124,10 +122,11 @@ defmodule Octocon.RPC.NodeTracker do
   ## RPC calls run on local node
 
   def init(_opts) do
-    table = :ets.new(@table, [:named_table, :public, read_concurrency: true])
+    :ets.new(__MODULE__, [:named_table, :public, read_concurrency: true])
+
     # Monitor new node up/down activity
     :global_group.monitor_nodes(true)
-    {:ok, %{nodes: MapSet.new(), table: table}, {:continue, :get_node_groups}}
+    {:ok, %{nodes: MapSet.new()}, {:continue, :get_node_groups}}
   end
 
   def handle_continue(:get_node_groups, state) do
@@ -161,7 +160,7 @@ defmodule Octocon.RPC.NodeTracker do
 
     Logger.info("Discovered node #{inspect(node_name)} in group #{group}")
     group_nodes = group_nodes(group)
-    :ets.insert(state.table, {group, [node_name | group_nodes]})
+    :ets.insert(__MODULE__, {group, [node_name | group_nodes]})
 
     %{state | nodes: MapSet.put(state.nodes, {node_name, group})}
   end
@@ -175,7 +174,7 @@ defmodule Octocon.RPC.NodeTracker do
         group_nodes = group_nodes(group)
         # Remove the node from the known regions and update the local cache
         new_groups = Enum.reject(group_nodes, fn n -> n == node_name end)
-        :ets.insert(state.table, {group, new_groups})
+        :ets.insert(__MODULE__, {group, new_groups})
 
         # Remove the node entry from the GenServer's state
         new_nodes =

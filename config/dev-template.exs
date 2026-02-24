@@ -79,7 +79,7 @@ config :octocon, Octocon.MessageRepo,
   pool_size: 10
 
 # Discord token
-config :nostrum, token: "TODO"
+config :octocon, discord_token: "TODO"
 
 node_group =
   case System.get_env("NODE_GROUP") do

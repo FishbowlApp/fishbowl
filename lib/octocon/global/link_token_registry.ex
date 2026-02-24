@@ -4,8 +4,7 @@ defmodule Octocon.Global.LinkTokenRegistry do
   use GenServer
   require Logger
 
-  @table :link_tokens
-  @inverse_table :inverse_link_tokens
+  @inverse_table __MODULE__.Inverse
 
   @via {:via, Horde.Registry, {Octocon.Primary.HordeRegistry, __MODULE__}}
 
@@ -46,7 +45,7 @@ defmodule Octocon.Global.LinkTokenRegistry do
 
   @impl GenServer
   def init([]) do
-    :ets.new(@table, [
+    :ets.new(__MODULE__, [
       :named_table,
       :set,
       :private
@@ -73,11 +72,11 @@ defmodule Octocon.Global.LinkTokenRegistry do
       [{_, existing_link_token}] ->
         # Already exists, overwrite
         Logger.info("Overwriting existing link token: #{existing_link_token} with: #{link_token}")
-        :ets.delete(@table, existing_link_token)
+        :ets.delete(__MODULE__, existing_link_token)
         :ets.delete(@inverse_table, system_id)
     end
 
-    :ets.insert(@table, {link_token, system_id})
+    :ets.insert(__MODULE__, {link_token, system_id})
     :ets.insert(@inverse_table, {system_id, link_token})
 
     Process.send_after(self(), {:flush, link_token, system_id}, :timer.minutes(5))
@@ -87,7 +86,7 @@ defmodule Octocon.Global.LinkTokenRegistry do
 
   @impl GenServer
   def handle_call({:get, link_token}, _, state) do
-    case :ets.lookup(@table, link_token) do
+    case :ets.lookup(__MODULE__, link_token) do
       [] ->
         {:reply, nil, state}
 
@@ -98,12 +97,12 @@ defmodule Octocon.Global.LinkTokenRegistry do
 
   @impl GenServer
   def handle_call({:delete, link_token}, _, state) do
-    case :ets.lookup(@table, link_token) do
+    case :ets.lookup(__MODULE__, link_token) do
       [] ->
         :ok
 
       [{_, system_id}] ->
-        :ets.delete(@table, link_token)
+        :ets.delete(__MODULE__, link_token)
         :ets.delete(@inverse_table, system_id)
     end
 
@@ -114,7 +113,7 @@ defmodule Octocon.Global.LinkTokenRegistry do
   def handle_info({:flush, link_token, system_id}, state) do
     Logger.debug("Flushing link token: #{link_token}")
 
-    :ets.delete(@table, link_token)
+    :ets.delete(__MODULE__, link_token)
     :ets.delete(@inverse_table, system_id)
 
     {:noreply, state}
