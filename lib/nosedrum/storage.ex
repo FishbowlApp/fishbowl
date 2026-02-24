@@ -187,7 +187,8 @@ defmodule Nosedrum.Storage do
     response = Nostrum.Api.create_interaction_response(interaction, res)
 
     case response do
-      :ok -> :ok
+      :ok ->
+        :ok
 
       {:error, e} ->
         Logger.error("Error responding to interaction:\n#{inspect(e)}")
