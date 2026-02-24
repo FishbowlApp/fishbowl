@@ -20,23 +20,8 @@ defmodule OctoconDiscord.BotSupervisor do
   end
 
   def init([]) do
-    bot_options = %{
-      name: OctoconDiscord.Bot,
-      consumer: OctoconDiscord.Consumer,
-      intents: [
-        :guild_webhooks,
-        :guilds,
-        :guild_messages,
-        :guild_message_reactions,
-        :direct_messages,
-        :direct_message_reactions,
-        :message_content
-      ],
-      wrapped_token: fn -> Application.get_env(:octocon, :discord_token) end
-    }
-
     children = [
-      {Nostrum.Bot, bot_options}
+      {Nostrum.Bot, bot_options()}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -51,5 +36,22 @@ defmodule OctoconDiscord.BotSupervisor do
         [{_, bot_pid, _, _}] = Supervisor.which_children(pid)
         {:ok, bot_pid}
     end
+  end
+
+  def bot_options do
+    %{
+      name: OctoconDiscord.Bot,
+      consumer: OctoconDiscord.Consumer,
+      intents: [
+        :guild_webhooks,
+        :guilds,
+        :guild_messages,
+        :guild_message_reactions,
+        :direct_messages,
+        :direct_message_reactions,
+        :message_content
+      ],
+      wrapped_token: fn -> Application.get_env(:octocon, :discord_token) end
+    }
   end
 end
