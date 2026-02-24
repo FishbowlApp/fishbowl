@@ -75,9 +75,7 @@ defmodule OctoconDiscord.Components.WipeTagsHandler do
         container(
           [
             text("### :broom: Success!"),
-            text(
-              "Your tags have been wiped."
-            )
+            text("Your tags have been wiped.")
           ],
           %{
             accent_color: 0x00FF00

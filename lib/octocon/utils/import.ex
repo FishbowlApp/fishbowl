@@ -123,16 +123,16 @@ defmodule Octocon.Utils.Import do
   end
 
   def front_to_insert_query(
-    %Octocon.Fronts.Front{
-      id: id,
-      user_id: user_id,
-      alter_id: alter_id,
-      comment: comment,
-      time_start: time_start,
-      time_end: time_end
-    },
-    region
-  ) do
+        %Octocon.Fronts.Front{
+          id: id,
+          user_id: user_id,
+          alter_id: alter_id,
+          comment: comment,
+          time_start: time_start,
+          time_end: time_end
+        },
+        region
+      ) do
     query =
       "INSERT INTO #{region}.fronts (id, user_id, alter_id, comment, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?)"
 
@@ -149,15 +149,15 @@ defmodule Octocon.Utils.Import do
   end
 
   def current_front_to_insert_query(
-    %Octocon.Fronts.CurrentFront{
-      id: id,
-      user_id: user_id,
-      alter_id: alter_id,
-      comment: comment,
-      time_start: time_start
-    },
-    region
-  ) do
+        %Octocon.Fronts.CurrentFront{
+          id: id,
+          user_id: user_id,
+          alter_id: alter_id,
+          comment: comment,
+          time_start: time_start
+        },
+        region
+      ) do
     query =
       "INSERT INTO #{region}.current_fronts (id, user_id, alter_id, comment, time_start) VALUES (?, ?, ?, ?, ?)"
 

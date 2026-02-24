@@ -54,7 +54,8 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     tags = get_tags(id, sp_token, user_region, system_id)
     alter_tags = generate_alter_tags(tags, alter_associations, user_region, system_id)
 
-    {fronts, current_fronts} = get_fronts(id, sp_token, user_region, system_id, alter_associations)
+    {fronts, current_fronts} =
+      get_fronts(id, sp_token, user_region, system_id, alter_associations)
 
     alters
     |> Enum.map(fn {_alter, query} -> query end)
@@ -298,8 +299,14 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
           id: Ecto.UUID.generate(),
           user_id: system_id,
           alter_id: Map.get(alter_associations, member_id),
-          time_start: DateTime.from_unix!(start_time, :millisecond) |> DateTime.to_naive() |> naive_datetime_to_datetime(),
-          time_end: DateTime.from_unix!(end_time, :millisecond) |> DateTime.to_naive() |> naive_datetime_to_datetime(),
+          time_start:
+            DateTime.from_unix!(start_time, :millisecond)
+            |> DateTime.to_naive()
+            |> naive_datetime_to_datetime(),
+          time_end:
+            DateTime.from_unix!(end_time, :millisecond)
+            |> DateTime.to_naive()
+            |> naive_datetime_to_datetime(),
           comment: default_if_empty(front["customStatus"], 50)
         }
       end)
@@ -307,37 +314,42 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
     {:ok, %{body: fronters_body}} = send_sp_request(:get, "/fronters/", sp_token)
 
-    {fronts, current_fronts} = fronters_body
-    |> Jason.decode!()
-    |> Enum.map(fn %{"content" => %{"member" => member_id, "startTime" => start_time} = front} ->
-      id = Ecto.UUID.generate()
-      alter_id = Map.get(alter_associations, member_id)
-      comment = default_if_empty(front["customStatus"], 50)
-      time_start = DateTime.from_unix!(start_time, :millisecond) |> DateTime.to_naive() |> naive_datetime_to_datetime()
+    {fronts, current_fronts} =
+      fronters_body
+      |> Jason.decode!()
+      |> Enum.map(fn %{"content" => %{"member" => member_id, "startTime" => start_time} = front} ->
+        id = Ecto.UUID.generate()
+        alter_id = Map.get(alter_associations, member_id)
+        comment = default_if_empty(front["customStatus"], 50)
 
-      {
-        %Front{
-          id: id,
-          user_id: system_id,
-          alter_id: alter_id,
-          time_start: time_start,
-          comment: comment,
-          time_end: nil
-        },
-        %CurrentFront{
-          id: id,
-          user_id: system_id,
-          alter_id: alter_id,
-          time_start: time_start,
-          comment: comment
+        time_start =
+          DateTime.from_unix!(start_time, :millisecond)
+          |> DateTime.to_naive()
+          |> naive_datetime_to_datetime()
+
+        {
+          %Front{
+            id: id,
+            user_id: system_id,
+            alter_id: alter_id,
+            time_start: time_start,
+            comment: comment,
+            time_end: nil
+          },
+          %CurrentFront{
+            id: id,
+            user_id: system_id,
+            alter_id: alter_id,
+            time_start: time_start,
+            comment: comment
+          }
         }
-      }
-    end)
-    |> Enum.filter(fn {front, _} -> front.alter_id != nil end)
-    |> Enum.reduce({fronts, []}, fn
-      {front, current_front}, {fronts, current_fronts} ->
-        {[front | fronts], [current_front | current_fronts]}
-    end)
+      end)
+      |> Enum.filter(fn {front, _} -> front.alter_id != nil end)
+      |> Enum.reduce({fronts, []}, fn
+        {front, current_front}, {fronts, current_fronts} ->
+          {[front | fronts], [current_front | current_fronts]}
+      end)
 
     {
       Enum.map(fronts, &{&1, front_to_insert_query(&1, user_region)}),
