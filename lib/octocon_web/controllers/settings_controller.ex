@@ -143,25 +143,6 @@ defmodule OctoconWeb.SettingsController do
     end
   end
 
-  # defp encrypt_key_with_public_key(
-  #   user,
-  #   recovery_code, public_key_pem) do
-  #   public_key =
-  #     :public_key.pem_decode(public_key_pem)
-  #     |> hd()
-  #     |> :public_key.pem_entry_decode()
-
-  #   key = generate_encryption_key(user, recovery_code)
-
-  #   encrypted_key =
-  #     :public_key.encrypt_public(key, public_key, rsa_padding: :rsa_pkcs1_oaep_padding, rsa_mgf1_md: :sha256)
-  #     |> Base.encode64()
-
-  #   {:ok, encrypted_key}
-  # rescue
-  #   e -> {:error, e}
-  # end
-
   defp generate_encryption_key(%Octocon.Accounts.User{id: user_id, salt: salt}, recovery_code) do
     pepper = Application.get_env(:octocon, :pepper)
     hash_data = pepper <> user_id <> recovery_code

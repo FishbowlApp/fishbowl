@@ -63,8 +63,7 @@ defmodule OctoconDiscord.StatusUpdater do
 
     Nostrum.Api.Self.update_status(
       :online,
-      "/help | In #{format_number(guild_count)} servers!",
-      0
+      {:custom, "/help | In #{format_number(guild_count)} servers!"}
     )
   end
 

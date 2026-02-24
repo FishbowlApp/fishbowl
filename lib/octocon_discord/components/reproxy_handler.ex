@@ -9,8 +9,6 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
 
   alias Octocon.Alters
 
-  @table :reproxy_handler
-
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
@@ -24,7 +22,7 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
       db_message: db_message
     }
 
-    :ets.insert(@table, {uid, data})
+    :ets.insert(__MODULE__, {uid, data})
 
     Process.send_after(__MODULE__, {:drop, uid}, :timer.minutes(10))
 
@@ -53,7 +51,7 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
 
   def handle_interaction("confirm", uid, interaction) do
     data =
-      :ets.lookup(@table, uid)
+      :ets.lookup(__MODULE__, uid)
       |> hd()
       |> elem(1)
 
@@ -64,7 +62,7 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
       |> Enum.into(%{})
       |> Map.put(:flags, 64)
 
-    :ets.delete(@table, uid)
+    :ets.delete(__MODULE__, uid)
 
     a = %{
       type: 4,
@@ -204,11 +202,11 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
   end
 
   def drop(uid) do
-    :ets.delete(@table, uid)
+    :ets.delete(__MODULE__, uid)
   end
 
   def init([]) do
-    :ets.new(@table, [
+    :ets.new(__MODULE__, [
       :set,
       :named_table,
       :public,
@@ -221,7 +219,7 @@ defmodule OctoconDiscord.Components.ReproxyHandler do
   end
 
   def handle_info({:drop, uid}, state) do
-    :ets.delete(@table, uid)
+    :ets.delete(__MODULE__, uid)
     {:noreply, state}
   end
 
