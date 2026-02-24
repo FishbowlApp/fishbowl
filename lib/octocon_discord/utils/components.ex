@@ -64,16 +64,19 @@ defmodule OctoconDiscord.Utils.Components do
           normalized_description
       end
 
-    upper_text = "## Information for <@#{system.discord_id}>\n\n#{description}"
+    upper_text = [
+      text("## Information for <@#{system.discord_id}>"),
+      text(description)
+    ]
 
     container(
       [
         case system.avatar_url do
           url when url != nil and url != "" ->
-            section([upper_text], thumbnail(url))
+            section(upper_text, thumbnail(url))
 
           _ ->
-            text(upper_text)
+            upper_text
         end,
         separator(spacing: :large),
         text("**ID:** `#{system.id}`"),
@@ -104,7 +107,7 @@ defmodule OctoconDiscord.Utils.Components do
     ]
   end
 
-  def alter_component(alter, fronts, guarded \\ false) do
+  def alter_component(alter, guarded \\ false) do
     normalized_description =
       (alter.description || "")
       |> String.replace("\\n", "\n")
@@ -124,13 +127,18 @@ defmodule OctoconDiscord.Utils.Components do
           normalized_description
       end
 
-    show_extra_components = fronts != false and not guarded
+    fronts = if guarded, do: [], else: Octocon.Fronts.currently_fronting({:system, alter.user_id})
+
+    tags =
+      if guarded,
+        do: Octocon.Tags.get_public_tags_for_alter({:system, alter.user_id}, {:id, alter.id}),
+        else: Octocon.Tags.get_tags_for_alter({:system, alter.user_id}, {:id, alter.id})
 
     is_fronting =
-      show_extra_components and alter.id in (fronts |> Enum.map(& &1.front.alter_id))
+      not guarded and alter.id in (fronts |> Enum.map(& &1.front.alter_id))
 
     is_primary =
-      show_extra_components and
+      not guarded and
         alter.id ==
           fronts
           |> Enum.find(fn f -> f.primary end)
@@ -157,7 +165,7 @@ defmodule OctoconDiscord.Utils.Components do
           "## #{alter.name || "Unnamed alter"}#{if alter.pronouns && alter.pronouns != "", do: " (#{alter.pronouns})", else: ""}"
         ),
         if(fronting_text != nil, do: text(fronting_text), else: []),
-        text("#{description}")
+        text(description)
       ]
       |> List.flatten()
 
@@ -195,6 +203,16 @@ defmodule OctoconDiscord.Utils.Components do
             proxies -> Enum.map_join(proxies, "\n", fn proxy -> "- `#{proxy}`" end)
           end}
           """),
+          if tags == [] do
+            []
+          else
+            [
+              separator(spacing: :large),
+              text("""
+              **Tags:**\n#{tags |> Enum.sort_by(& &1.name) |> Enum.map_join("\n", fn tag -> "- #{tag.name}" end)}
+              """)
+            ]
+          end,
           if guarded do
             []
           else
@@ -215,7 +233,7 @@ defmodule OctoconDiscord.Utils.Components do
         %{accent_color: Utils.hex_to_int(alter.color)}
       ),
       cond do
-        !show_extra_components ->
+        guarded ->
           []
 
         is_fronting ->
@@ -244,11 +262,11 @@ defmodule OctoconDiscord.Utils.Components do
             )
           ])
       end,
-      if show_extra_components do
-        action_row([])
-
+      if guarded do
         []
       else
+        action_row([])
+
         []
       end
     ]
@@ -278,7 +296,7 @@ defmodule OctoconDiscord.Utils.Components do
     upper_text =
       [
         text("## #{tag.name || "Unnamed tag"}"),
-        text("#{description}")
+        text(description)
       ]
 
     inserted_at =
@@ -319,7 +337,7 @@ defmodule OctoconDiscord.Utils.Components do
               end
           end,
           if alters == [] do
-            text("**Alters**: None")
+            text("**Alters**:\nNone")
           else
             filtered_alters =
               if guarded do
@@ -329,7 +347,7 @@ defmodule OctoconDiscord.Utils.Components do
               end
 
             if filtered_alters == [] do
-              text("**Alters:** None")
+              text("**Alters:**\nNone")
             else
               text("""
               **Alters:**\n#{filtered_alters |> Enum.sort_by(& &1.name) |> Enum.map_join("\n",

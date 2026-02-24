@@ -10,9 +10,7 @@ defmodule OctoconDiscord.Components.AlterHandler do
     alter =
       Octocon.Alters.get_alter_by_id!(system_identity, {:id, alter_id})
 
-    fronts = Fronts.currently_fronting(system_identity)
-
-    send_response(alter_component(alter, fronts, false), interaction)
+    send_response(alter_component(alter, false), interaction)
   end
 
   def handle_interaction("addfront", alter_id, interaction) do

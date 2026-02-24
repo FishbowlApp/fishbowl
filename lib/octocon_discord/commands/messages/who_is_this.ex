@@ -88,7 +88,7 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
         []
 
       {:ok, alter} ->
-        alter_component(alter, false, false)
+        alter_component(alter, false)
     end
   end
 
@@ -101,7 +101,7 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
 
     case Alters.get_alter_guarded({:system, system_id}, {:id, alter_id}, caller_identity) do
       :error -> []
-      {:ok, alter} -> alter_component(alter, false, true)
+      {:ok, alter} -> alter_component(alter, true)
     end
   end
 

@@ -19,7 +19,7 @@ defmodule OctoconDiscord.Autocomplete.FriendRequest do
              |> String.slice(0..remaining_length)) <> id_suffix
           end
 
-        {format_name_for_search(display_name), {friend_id, display_name}}
+        %{id: {friend_id, display_name}, name: format_name_for_search(display_name)}
       end)
 
     case requests do
@@ -27,7 +27,7 @@ defmodule OctoconDiscord.Autocomplete.FriendRequest do
         {:ignore, nil}
 
       _ ->
-        {:commit, Radix.new(requests)}
+        {:commit, Search.new(fields: [:name]) |> Search.add!(requests)}
     end
   end
 
@@ -47,7 +47,7 @@ defmodule OctoconDiscord.Autocomplete.FriendRequest do
              |> String.slice(0..remaining_length)) <> id_suffix
           end
 
-        {format_name_for_search(display_name), {friend_id, display_name}}
+        %{id: {friend_id, display_name}, name: format_name_for_search(display_name)}
       end)
 
     case requests do
@@ -55,7 +55,7 @@ defmodule OctoconDiscord.Autocomplete.FriendRequest do
         {:ignore, nil}
 
       _ ->
-        {:commit, Radix.new(requests)}
+        {:commit, Search.new(fields: [:name]) |> Search.add!(requests)}
     end
   end
 

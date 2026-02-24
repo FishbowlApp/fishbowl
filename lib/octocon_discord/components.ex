@@ -9,6 +9,7 @@ defmodule OctoconDiscord.Components do
     "tag" => __MODULE__.TagHandler,
     "tag-pag" => __MODULE__.TagPaginator,
     "wipe-alters" => __MODULE__.WipeAltersHandler,
+    "wipe-tags" => __MODULE__.WipeTagsHandler,
     "delete-account" => __MODULE__.DeleteAccountHandler,
     "help" => __MODULE__.HelpHandler,
     "reproxy" => __MODULE__.ReproxyHandler
@@ -18,6 +19,7 @@ defmodule OctoconDiscord.Components do
     __MODULE__.AlterPaginator,
     __MODULE__.TagPaginator,
     __MODULE__.WipeAltersHandler,
+    __MODULE__.WipeTagsHandler,
     __MODULE__.DeleteAccountHandler,
     __MODULE__.HelpHandler,
     __MODULE__.ReproxyHandler
