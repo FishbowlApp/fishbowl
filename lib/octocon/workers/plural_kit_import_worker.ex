@@ -30,104 +30,36 @@ defmodule Octocon.Workers.PluralKitImportWorker do
       }) do
     Logger.info("Performing PluralKit import for user #{system_id}")
 
-    {:ok, %{body: self_body}} = send_pk_request(:get, "/systems/@me", pk_token)
-    {:ok, %{body: alters_body}} = send_pk_request(:get, "/systems/@me/members", pk_token)
-
-    {:ok, %{body: groups_body}} =
-      send_pk_request(:get, "/systems/@me/groups?with_members=true", pk_token)
-
     user_region = Octocon.UserRegistryCache.get_region({:system, system_id})
-    start_count = Accounts.get_user!({:system, system_id}).lifetime_alter_count + 1
+
+    user = Accounts.get_user!({:system, system_id})
+    start_count = user.lifetime_alter_count + 1
+
+    {:ok, %{body: self_body}} = send_pk_request(:get, "/systems/@me", pk_token)
 
     %{
       "description" => description,
       "tag" => system_tag
     } = Jason.decode!(self_body)
 
-    {alters, uuids, avatars} =
-      Jason.decode!(alters_body)
-      |> Stream.with_index(start_count)
-      |> Stream.map(fn {alter, index} ->
-        parse_alter(system_id, alter, index)
-      end)
-      |> Stream.map(fn {alter, uuid, avatar} ->
-        {{alter, alter_to_insert_query(alter, user_region)}, uuid, avatar}
-      end)
-      |> Enum.reduce({[], [], []}, fn
-        {alter, uuid, nil}, {alters, uuids, avatars} ->
-          {[alter | alters], [uuid | uuids], avatars}
-
-        {alter, uuid, avatar}, {alters, uuids, avatars} ->
-          {[alter | alters], [uuid | uuids], [avatar | avatars]}
-      end)
+    {alters, alter_associations, avatars} =
+      get_alters(pk_token, user_region, system_id, start_count)
 
     alter_count = length(alters)
 
-    tags =
-      Jason.decode!(groups_body)
-      |> Stream.map(fn group -> parse_tag(system_id, group) end)
-      |> Enum.map(fn {tag, members} ->
-        {
-          {tag, tag_to_insert_query(tag, user_region)},
-          members
-        }
-      end)
-
-    alter_associations =
-      uuids
-      |> Enum.zip(Enum.map(alters, fn {alter, _query} -> alter.id end))
-      |> Enum.into(%{})
-
-    alter_tags =
-      tags
-      |> Enum.map(fn {{tag, _}, members} ->
-        {
-          tag.id,
-          Enum.map(members, fn member -> Map.get(alter_associations, member) end)
-        }
-      end)
-      |> Enum.map(fn {tag_id, member_ids} ->
-        member_ids
-        |> Enum.map(fn alter_id ->
-          %AlterTag{
-            user_id: system_id,
-            alter_id: alter_id,
-            tag_id: tag_id,
-            inserted_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime(),
-            updated_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime()
-          }
-          |> alter_tag_to_insert_query(user_region)
-        end)
-      end)
-      |> List.flatten()
+    tags = get_tags(pk_token, user_region, system_id)
+    alter_tags = generate_alter_tags(tags, alter_associations, user_region, system_id)
 
     alters
     |> Enum.map(fn {_alter, query} -> query end)
-    |> Enum.chunk_every(500)
-    |> Enum.each(fn chunk ->
-      batch = %Exandra.Batch{queries: chunk}
-
-      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
-    end)
+    |> execute_batch()
 
     tags
     |> Enum.map(fn {{_tag, query}, _members} -> query end)
-    |> Enum.chunk_every(500)
-    |> Enum.each(fn chunk ->
-      batch = %Exandra.Batch{queries: chunk}
-
-      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
-    end)
+    |> execute_batch()
 
     alter_tags
-    |> Enum.chunk_every(500)
-    |> Enum.each(fn chunk ->
-      batch = %Exandra.Batch{queries: chunk}
-
-      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
-    end)
-
-    user = Accounts.get_user!({:system, system_id})
+    |> execute_batch()
 
     Accounts.update_user(
       user,
@@ -137,6 +69,10 @@ defmodule Octocon.Workers.PluralKitImportWorker do
       }
     )
 
+    existing_system_tag =
+      (user.discord_settings || %Octocon.Accounts.DiscordSettings{})
+      |> Map.get(:system_tag, nil)
+
     Accounts.update_discord_settings(
       user,
       %{
@@ -144,11 +80,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
           default_if_empty(
             system_tag,
             20,
-            Map.get(
-              user.discord_settings || %Octocon.Accounts.DiscordSettings{},
-              :system_tag,
-              nil
-            )
+            existing_system_tag
           )
       }
     )
@@ -210,6 +142,72 @@ defmodule Octocon.Workers.PluralKitImportWorker do
       Logger.error("Error importing PluralKit alters")
       Logger.error(Exception.format(:error, e, __STACKTRACE__))
       {:error, e}
+  end
+
+  defp get_alters(pk_token, user_region, system_id, start_count) do
+    {:ok, %{body: alters_body}} = send_pk_request(:get, "/systems/@me/members", pk_token)
+
+    {alters, uuids, avatars} =
+      Jason.decode!(alters_body)
+      |> Stream.with_index(start_count)
+      |> Stream.map(fn {alter, index} ->
+        parse_alter(system_id, alter, index)
+      end)
+      |> Stream.map(fn {alter, uuid, avatar} ->
+        {{alter, alter_to_insert_query(alter, user_region)}, uuid, avatar}
+      end)
+      |> Enum.reduce({[], [], []}, fn
+        {alter, uuid, nil}, {alters, uuids, avatars} ->
+          {[alter | alters], [uuid | uuids], avatars}
+
+        {alter, uuid, avatar}, {alters, uuids, avatars} ->
+          {[alter | alters], [uuid | uuids], [avatar | avatars]}
+      end)
+
+    alter_associations =
+      uuids
+      |> Enum.zip(Enum.map(alters, fn {alter, _query} -> alter.id end))
+      |> Enum.into(%{})
+
+    {alters, alter_associations, avatars}
+  end
+
+  defp get_tags(pk_token, user_region, system_id) do
+    {:ok, %{body: groups_body}} =
+      send_pk_request(:get, "/systems/@me/groups?with_members=true", pk_token)
+
+    Jason.decode!(groups_body)
+    |> Stream.map(fn group -> parse_tag(system_id, group) end)
+    |> Enum.map(fn {tag, members} ->
+      {
+        {tag, tag_to_insert_query(tag, user_region)},
+        members
+      }
+    end)
+  end
+
+  defp generate_alter_tags(tags, alter_associations, user_region, system_id) do
+    tags
+    |> Enum.map(fn {{tag, _}, members} ->
+      {
+        tag.id,
+        Enum.map(members, fn member -> Map.get(alter_associations, member) end)
+      }
+    end)
+    |> Enum.map(fn {tag_id, member_ids} ->
+      member_ids
+      |> Enum.map(fn alter_id ->
+        %AlterTag{
+          user_id: system_id,
+          alter_id: alter_id,
+          tag_id: tag_id,
+          inserted_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime(),
+          updated_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime()
+        }
+        |> alter_tag_to_insert_query(user_region)
+      end)
+    end)
+    |> List.flatten()
   end
 
   defp send_pk_request(method, endpoint, token) do

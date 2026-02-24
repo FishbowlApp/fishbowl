@@ -7,11 +7,13 @@ defmodule OctoconDiscord.Commands.Danger do
 
   alias OctoconDiscord.Components.{
     DeleteAccountHandler,
-    WipeAltersHandler
+    WipeAltersHandler,
+    WipeTagsHandler
   }
 
   @subcommands %{
     "wipe-alters" => &__MODULE__.wipe_alters/2,
+    "wipe-tags" => &__MODULE__.wipe_tags/2,
     "delete-account" => &__MODULE__.delete_account/2
   }
 
@@ -46,6 +48,12 @@ defmodule OctoconDiscord.Commands.Danger do
     success_component("Check your DMs!")
   end
 
+  def wipe_tags(%{system_identity: system_identity}, _options) do
+    WipeTagsHandler.handle_init(system_identity)
+
+    success_component("Check your DMs!")
+  end
+
   @impl Nosedrum.ApplicationCommand
   def type, do: :slash
 
@@ -61,6 +69,12 @@ defmodule OctoconDiscord.Commands.Danger do
         name: "wipe-alters",
         description:
           "WARNING: Wipes all alters from your system, but keeps your account and settings.",
+        type: :sub_command
+      },
+      %{
+        name: "wipe-tags",
+        description:
+          "WARNING: Wipes all tags from your system, but keeps your account and settings.",
         type: :sub_command
       }
     ]

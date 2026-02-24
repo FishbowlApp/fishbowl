@@ -262,10 +262,12 @@ defmodule OctoconDiscord.Commands.Settings do
 
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    PluralKitImportWorker.perform(%{"system_id" => system_id, "pk_token" => pk_token})
+    spawn(fn ->
+      PluralKitImportWorker.perform(%{"system_id" => system_id, "pk_token" => pk_token})
+    end)
 
     success_component(
-      "Octocon is attempting to import your alters from PluralKit. This may take a while; check your alters with `/alter list`."
+      "Octocon is attempting to import your alters from PluralKit. This may take a while; you will receive a DM from the Octocon bot when it is complete."
     )
   end
 
@@ -273,10 +275,12 @@ defmodule OctoconDiscord.Commands.Settings do
     sp_token = get_command_option(options, "token")
     system_id = Accounts.id_from_system_identity(system_identity, :system)
 
-    SimplyPluralImportWorker.perform(%{"system_id" => system_id, "sp_token" => sp_token})
+    spawn(fn ->
+      SimplyPluralImportWorker.perform(%{"system_id" => system_id, "sp_token" => sp_token})
+    end)
 
     success_component(
-      "Octocon is attempting to import your alters from Simply Plural. This may take a while; check your alters with `/alter list`."
+      "Octocon is attempting to import your alters from Simply Plural. This may take a while; you will receive a DM from the Octocon bot when it is complete."
     )
   end
 

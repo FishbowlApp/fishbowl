@@ -121,4 +121,64 @@ defmodule Octocon.Utils.Import do
 
     {query, values}
   end
+
+  def front_to_insert_query(
+    %Octocon.Fronts.Front{
+      id: id,
+      user_id: user_id,
+      alter_id: alter_id,
+      comment: comment,
+      time_start: time_start,
+      time_end: time_end
+    },
+    region
+  ) do
+    query =
+      "INSERT INTO #{region}.fronts (id, user_id, alter_id, comment, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?)"
+
+    values = [
+      id,
+      user_id,
+      alter_id,
+      comment,
+      time_start,
+      time_end
+    ]
+
+    {query, values}
+  end
+
+  def current_front_to_insert_query(
+    %Octocon.Fronts.CurrentFront{
+      id: id,
+      user_id: user_id,
+      alter_id: alter_id,
+      comment: comment,
+      time_start: time_start
+    },
+    region
+  ) do
+    query =
+      "INSERT INTO #{region}.current_fronts (id, user_id, alter_id, comment, time_start) VALUES (?, ?, ?, ?, ?)"
+
+    values = [
+      id,
+      user_id,
+      alter_id,
+      comment,
+      time_start
+    ]
+
+    {query, values}
+  end
+
+  def execute_batch(queries) do
+    queries
+    |> Enum.chunk_every(500)
+    |> Enum.each(fn chunk ->
+      batch = %Exandra.Batch{queries: chunk}
+
+      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
+    end)
+  end
 end
