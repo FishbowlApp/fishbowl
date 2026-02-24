@@ -12,6 +12,8 @@ defmodule Nosedrum.Storage do
   @moduledoc since: "0.4.0"
   alias Nostrum.Struct.{Guild, Interaction}
 
+  require Logger
+
   @callback_type_map %{
     pong: 1,
     channel_message_with_source: 4,
@@ -182,8 +184,21 @@ defmodule Nosedrum.Storage do
       data: data
     }
 
-    Nostrum.Api.create_interaction_response(interaction, res)
-    # |> IO.inspect()
+    response = Nostrum.Api.create_interaction_response(interaction, res)
+
+    case response do
+      {:ok} ->
+        :ok
+
+      {:error, e} ->
+        Logger.error("Error responding to interaction:\n#{inspect(e)}")
+        Logger.error("Interaction data:")
+        Logger.error(interaction)
+        Logger.error("Response data:")
+        Logger.error(res)
+    end
+
+    response
   end
 
   @doc """

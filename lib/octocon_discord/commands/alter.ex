@@ -87,10 +87,8 @@ defmodule OctoconDiscord.Commands.Alter do
         {:ok, alter} ->
           show = get_show_option(options)
 
-          fronts = Octocon.Fronts.currently_fronting(system_identity)
-
           [
-            components: alter_component(alter, fronts, show),
+            components: alter_component(alter, show),
             flags: cv2_flags(!show)
           ]
 
@@ -112,7 +110,7 @@ defmodule OctoconDiscord.Commands.Alter do
         show = get_show_option(options)
 
         [
-          components: alter_component(alter, false, show),
+          components: alter_component(alter, show),
           flags: cv2_flags(!show)
         ]
     end
@@ -167,7 +165,6 @@ defmodule OctoconDiscord.Commands.Alter do
                     success_component_raw(success_text),
                     alter_component(
                       Alters.get_alter_by_id!(system_identity, alter_identity),
-                      false,
                       false
                     )
                   ]

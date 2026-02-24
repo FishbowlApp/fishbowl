@@ -83,7 +83,7 @@ defmodule OctoconDiscord.Commands.System do
                   text(
                     "**NOTE:** This alter's information is only visible to you. You probably shouldn't share this with anyone else."
                   ),
-                  alter_component(alter, false, true)
+                  alter_component(alter, true)
                 ]
                 |> List.flatten(),
               flags: cv2_flags()

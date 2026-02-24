@@ -14,7 +14,7 @@ defmodule OctoconDiscord.Autocomplete.Tag do
           |> String.trim()
           |> String.slice(0..100)
 
-        {format_name_for_search(display_name), {id, display_name}}
+        %{id: {id, display_name}, name: format_name_for_search(display_name)}
       end)
 
     case tags do
@@ -22,7 +22,7 @@ defmodule OctoconDiscord.Autocomplete.Tag do
         {:ignore, nil}
 
       _ ->
-        {:commit, Radix.new(tags)}
+        {:commit, Search.new(fields: [:name]) |> Search.add!(tags)}
     end
   end
 

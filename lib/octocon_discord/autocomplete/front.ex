@@ -15,7 +15,7 @@ defmodule OctoconDiscord.Autocomplete.Front do
            |> String.trim()
            |> String.slice(0..remaining_length)) <> id_suffix
 
-        {format_name_for_search(display_name), {id, display_name}}
+        %{id: {id, display_name}, name: format_name_for_search(display_name), alter_id: id}
       end)
 
     case fronting do
@@ -23,7 +23,7 @@ defmodule OctoconDiscord.Autocomplete.Front do
         {:ignore, nil}
 
       _ ->
-        {:commit, Radix.new(fronting)}
+        {:commit, Search.new(fields: [:name, :alter_id]) |> Search.add!(fronting)}
     end
   end
 

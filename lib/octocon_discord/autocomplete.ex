@@ -35,8 +35,10 @@ defmodule OctoconDiscord.Autocomplete do
         ],
         expiration: expiration(default: :timer.minutes(5))
 
+      require Logger
+
       import OctoconDiscord.Autocomplete,
-        only: [format_name_for_search: 1, generate_autocomplete_responses: 2]
+        only: [format_name_for_search: 1, generate_autocomplete_responses: 2, top_percent: 2]
 
       @timeout :timer.seconds(5)
 
@@ -48,28 +50,28 @@ defmodule OctoconDiscord.Autocomplete do
       end
 
       defp do_fetch(key, prefix) do
-        trie =
+        index =
           Cachex.fetch!(
             __MODULE__,
             key,
             OctoconDiscord.Autocomplete.wrap_cache_function(__MODULE__, is_tuple(key))
           )
 
-        if trie == nil do
+        if index == nil do
           []
         else
-          generate_autocomplete_responses(trie, prefix)
+          generate_autocomplete_responses(index, prefix)
         end
       end
 
       def invalidate(system_identity, supplementary \\ nil)
 
-      def invalidate({:discord, discord_id}, nil) when is_binary(discord_id) do
-        delete_cache_key(discord_id)
+      def invalidate({:discord, discord_id}, nil) do
+        delete_cache_key(to_string(discord_id))
       end
 
-      def invalidate({:discord, discord_id}, supplementary) when is_binary(discord_id) do
-        delete_cache_key({discord_id, supplementary})
+      def invalidate({:discord, discord_id}, supplementary) do
+        delete_cache_key({to_string(discord_id), supplementary})
       end
 
       def invalidate(system_identity, supplementary) do
@@ -90,24 +92,59 @@ defmodule OctoconDiscord.Autocomplete do
     end
   end
 
-  def generate_autocomplete_responses(trie, prefix, id_type \\ :string)
-      when is_tuple(trie) and is_binary(prefix) and byte_size(prefix) <= 20 do
-    trie
-    |> Radix.more(format_name_for_search(prefix))
-    |> Enum.take(25)
-    |> Enum.map(fn {_key, {id, display_name}} ->
-      value =
-        case id_type do
-          :string -> to_string(id)
-          :integer -> id
-        end
+  def generate_autocomplete_responses(search_index, prefix, id_type \\ :string)
 
-      %{
-        name: display_name,
-        value: value
-      }
+  def generate_autocomplete_responses(%{ids: ids}, "", id_type) do
+    ids
+    |> Map.keys()
+    |> Enum.sort_by(fn {_, name} -> String.downcase(name) end)
+    |> Enum.take(10)
+    |> Enum.map(fn {id, display_name} ->
+      format_discord_result(display_name, id, id_type)
     end)
-    |> Enum.sort_by(&String.downcase(&1.name))
+  end
+
+  def generate_autocomplete_responses(search_index, prefix, id_type)
+      when is_binary(prefix) do
+    prefix = String.slice(prefix, 0..20)
+
+    {time, result} =
+      :timer.tc(fn ->
+        search_index
+        # |> Radix.more(format_name_for_search(prefix))
+        |> Search.search(prefix, prefix?: true, fuzzy?: true)
+        # |> top_percent(50)
+        |> Enum.take(10)
+        |> Enum.map(fn %{id: {id, display_name}} ->
+          format_discord_result(display_name, id, id_type)
+        end)
+      end)
+
+    Logger.info("Autocomplete search took #{time} µs")
+
+    result
+  rescue
+    e ->
+      Logger.error("Error generating autocomplete responses:")
+      Logger.error(Exception.format(:error, e, __STACKTRACE__))
+
+      Logger.info("Search index: #{inspect(search_index)}")
+      Logger.info("Prefix: #{prefix}")
+
+      []
+  end
+
+  defp format_discord_result(display_name, id, id_type) do
+    value =
+      case id_type do
+        :string -> to_string(id)
+        :integer -> id
+      end
+
+    %{
+      name: display_name,
+      value: value
+    }
   end
 
   def wrap_cache_function(cache_module, false) do
@@ -186,5 +223,16 @@ defmodule OctoconDiscord.Autocomplete do
       %{options: children} ->
         flatten_leaf_options(children)
     end)
+  end
+
+  def top_percent(list, percentage) do
+    count =
+      list
+      |> length()
+      |> Kernel.*(percentage / 100)
+      |> Float.ceil()
+      |> trunc()
+
+    Enum.take(list, count)
   end
 end
