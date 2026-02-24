@@ -73,7 +73,11 @@ defmodule Octocon.MixProject do
       {:pigeon, "2.0.0-rc.1"},
 
       # Discord
-      {:nostrum, github: "Kraigie/nostrum", ref: "e63a62fa85934a555251684cf789d81073f68adb", override: true, runtime: false},
+      {:nostrum,
+       github: "Kraigie/nostrum",
+       ref: "e63a62fa85934a555251684cf789d81073f68adb",
+       override: true,
+       runtime: false},
       # {:nostrum, "~> 0.10", override: true, runtime: false},
       {:certifi, "~> 2.16", override: true},
       # Use zstd for gateway compression
