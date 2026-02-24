@@ -16,6 +16,8 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     Accounts,
     Alters,
     Alters.Alter,
+    Fronts.CurrentFront,
+    Fronts.Front,
     Tags.AlterTag,
     Tags.Tag
   }
@@ -24,6 +26,8 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
   @sp_endpoint URI.parse("https://api.apparyllis.com/v1/")
   @cdn_endpoint URI.parse("https://spaces.apparyllis.com/")
+
+  @start_epoch 1_420_070_400_000
 
   def perform(%{"system_id" => system_id, "sp_token" => sp_token}) do
     Logger.info("Performing Simply Plural import for user #{system_id}")
@@ -35,133 +39,41 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
       }
     } = get_system_data(sp_token)
 
-    {:ok, %{body: custom_fields_body}} = send_sp_request(:get, "/customFields/#{id}", sp_token)
-    {:ok, %{body: alters_body}} = send_sp_request(:get, "/members/#{id}", sp_token)
-    {:ok, %{body: groups_body}} = send_sp_request(:get, "/groups/#{id}", sp_token)
-
     user_region = Octocon.UserRegistryCache.get_region({:system, system_id})
-    start_count = Accounts.get_user!({:system, system_id}).lifetime_alter_count + 1
 
-    custom_fields =
-      Jason.decode!(custom_fields_body)
-      |> Enum.map(fn field ->
-        %{
-          "id" => field_id,
-          "content" => %{
-            "name" => name
-          }
-        } = field
+    user = Accounts.get_user!({:system, system_id})
+    start_count = user.lifetime_alter_count + 1
 
-        {field_id,
-         %Octocon.Accounts.Field{
-           id: Ecto.UUID.generate(),
-           name: name |> default_if_empty(100, "Unnamed field"),
-           type: :text,
-           locked: false,
-           security_level: :private
-         }}
-      end)
+    {custom_fields, field_associations} = get_custom_fields(id, sp_token)
 
-    field_associations =
-      custom_fields
-      |> Enum.map(fn {field_id, field} -> {field_id, field.id} end)
-      |> Enum.into(%{})
-
-    {alters, uuids, avatars} =
-      Jason.decode!(alters_body)
-      |> Stream.map(&{&1["content"], &1["id"]})
-      |> Stream.with_index(start_count)
-      |> Stream.map(fn {{alter, uuid}, index} ->
-        {alter, avatar} = parse_alter(system_id, alter, index, field_associations)
-        {alter, uuid, avatar}
-      end)
-      |> Stream.map(fn {alter, uuid, avatar} ->
-        {{alter, alter_to_insert_query(alter, user_region)}, uuid, avatar}
-      end)
-      |> Enum.reduce({[], [], []}, fn
-        {alter, uuid, nil}, {alters, uuids, avatars} ->
-          {[alter | alters], [uuid | uuids], avatars}
-
-        {alter, uuid, avatar}, {alters, uuids, avatars} ->
-          {[alter | alters], [uuid | uuids], [avatar | avatars]}
-      end)
-
-    tags_response = Jason.decode!(groups_body)
-
-    tag_ids =
-      tags_response
-      |> Enum.map(fn tag -> {tag["id"], Ecto.UUID.generate()} end)
-      |> Enum.into(%{})
-
-    tags =
-      tags_response
-      |> Stream.map(fn tag ->
-        parse_tag(system_id, tag["content"], Map.get(tag_ids, tag["id"]), tag_ids)
-      end)
-      |> Enum.map(fn {tag, members} ->
-        {
-          {tag, tag_to_insert_query(tag, user_region)},
-          members
-        }
-      end)
-
-    alter_associations =
-      uuids
-      |> Enum.zip(Enum.map(alters, fn {alter, _query} -> alter.id end))
-      |> Enum.into(%{})
-
-    alter_tags =
-      tags
-      |> Enum.map(fn {{tag, _}, members} ->
-        {
-          tag.id,
-          Enum.map(members, fn member -> Map.get(alter_associations, member) end)
-        }
-      end)
-      |> Enum.map(fn {tag_id, member_ids} ->
-        member_ids
-        |> Enum.map(fn alter_id ->
-          %AlterTag{
-            user_id: system_id,
-            alter_id: alter_id,
-            tag_id: tag_id,
-            inserted_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime(),
-            updated_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime()
-          }
-          |> alter_tag_to_insert_query(user_region)
-        end)
-      end)
-      |> List.flatten()
+    {alters, alter_associations, avatars} =
+      get_alters(id, sp_token, user_region, system_id, start_count, field_associations)
 
     alter_count = length(alters)
 
+    tags = get_tags(id, sp_token, user_region, system_id)
+    alter_tags = generate_alter_tags(tags, alter_associations, user_region, system_id)
+
+    {fronts, current_fronts} = get_fronts(id, sp_token, user_region, system_id, alter_associations)
+
     alters
     |> Enum.map(fn {_alter, query} -> query end)
-    |> Enum.chunk_every(500)
-    |> Enum.each(fn chunk ->
-      batch = %Exandra.Batch{queries: chunk}
-
-      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
-    end)
+    |> execute_batch()
 
     tags
     |> Enum.map(fn {{_tag, query}, _members} -> query end)
-    |> Enum.chunk_every(500)
-    |> Enum.each(fn chunk ->
-      batch = %Exandra.Batch{queries: chunk}
-
-      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
-    end)
+    |> execute_batch()
 
     alter_tags
-    |> Enum.chunk_every(500)
-    |> Enum.each(fn chunk ->
-      batch = %Exandra.Batch{queries: chunk}
+    |> execute_batch()
 
-      :ok = Exandra.execute_batch(Octocon.Repo, batch, consistency: :one)
-    end)
+    fronts
+    |> Enum.map(fn {_front, query} -> query end)
+    |> execute_batch()
 
-    user = Accounts.get_user!({:system, system_id})
+    current_fronts
+    |> Enum.map(fn {_current_front, query} -> query end)
+    |> execute_batch()
 
     Accounts.update_user(
       user,
@@ -241,6 +153,198 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
     Jason.decode!(body)
   end
 
+  defp get_custom_fields(id, sp_token) do
+    {:ok, %{body: custom_fields_body}} = send_sp_request(:get, "/customFields/#{id}", sp_token)
+
+    custom_fields =
+      Jason.decode!(custom_fields_body)
+      |> Enum.map(fn field ->
+        %{
+          "id" => field_id,
+          "content" => %{
+            "name" => name
+          }
+        } = field
+
+        {field_id,
+         %Octocon.Accounts.Field{
+           id: Ecto.UUID.generate(),
+           name: name |> default_if_empty(100, "Unnamed field"),
+           type: :text,
+           locked: false,
+           security_level: :private
+         }}
+      end)
+
+    field_associations =
+      custom_fields
+      |> Enum.map(fn {field_id, field} -> {field_id, field.id} end)
+      |> Enum.into(%{})
+
+    {custom_fields, field_associations}
+  end
+
+  defp get_alters(id, sp_token, user_region, system_id, start_count, field_associations) do
+    {:ok, %{body: custom_fronts_body}} = send_sp_request(:get, "/customFronts/#{id}", sp_token)
+    {:ok, %{body: alters_body}} = send_sp_request(:get, "/members/#{id}", sp_token)
+
+    {alters, uuids, avatars} =
+      (Jason.decode!(alters_body) ++ Jason.decode!(custom_fronts_body))
+      |> Stream.map(&{&1["content"], &1["id"]})
+      |> Stream.with_index(start_count)
+      |> Stream.map(fn {{alter, uuid}, index} ->
+        {alter, avatar} = parse_alter(system_id, alter, index, field_associations)
+        {alter, uuid, avatar}
+      end)
+      |> Stream.map(fn {alter, uuid, avatar} ->
+        {{alter, alter_to_insert_query(alter, user_region)}, uuid, avatar}
+      end)
+      |> Enum.reduce({[], [], []}, fn
+        {alter, uuid, nil}, {alters, uuids, avatars} ->
+          {[alter | alters], [uuid | uuids], avatars}
+
+        {alter, uuid, avatar}, {alters, uuids, avatars} ->
+          {[alter | alters], [uuid | uuids], [avatar | avatars]}
+      end)
+
+    alter_associations =
+      uuids
+      |> Enum.zip(Enum.map(alters, fn {alter, _query} -> alter.id end))
+      |> Enum.into(%{})
+
+    {alters, alter_associations, avatars}
+  end
+
+  defp get_tags(id, sp_token, user_region, system_id) do
+    {:ok, %{body: groups_body}} = send_sp_request(:get, "/groups/#{id}", sp_token)
+    tags_response = Jason.decode!(groups_body)
+
+    tag_ids =
+      tags_response
+      |> Enum.map(fn tag -> {tag["id"], Ecto.UUID.generate()} end)
+      |> Enum.into(%{})
+
+    tags_response
+    |> Stream.map(fn tag ->
+      parse_tag(system_id, tag["content"], Map.get(tag_ids, tag["id"]), tag_ids)
+    end)
+    |> Enum.map(fn {tag, members} ->
+      {
+        {tag, tag_to_insert_query(tag, user_region)},
+        members
+      }
+    end)
+  end
+
+  defp generate_alter_tags(tags, alter_associations, user_region, system_id) do
+    tags
+    |> Enum.map(fn {{tag, _}, members} ->
+      {
+        tag.id,
+        Enum.map(members, fn member -> Map.get(alter_associations, member) end)
+      }
+    end)
+    |> Enum.map(fn {tag_id, member_ids} ->
+      Enum.map(member_ids, fn alter_id ->
+        %AlterTag{
+          user_id: system_id,
+          alter_id: alter_id,
+          tag_id: tag_id,
+          inserted_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime(),
+          updated_at: NaiveDateTime.utc_now(:second) |> naive_datetime_to_datetime()
+        }
+        |> alter_tag_to_insert_query(user_region)
+      end)
+    end)
+    |> List.flatten()
+  end
+
+  defp get_fronts(id, sp_token, user_region, system_id, alter_associations) do
+    import_month_interval = Application.get_env(:octocon, :sp_import_fronts_month_interval, 6)
+    end_time = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+    chunk_size = import_month_interval * 30 * 24 * 60 * 60 * 1000
+
+    number_of_requests = (end_time - @start_epoch) |> div(chunk_size) |> ceil()
+
+    fronts =
+      0..number_of_requests
+      |> Enum.flat_map(fn i ->
+        start_time = @start_epoch + i * chunk_size
+        end_time = min(@start_epoch + (i + 1) * chunk_size, end_time)
+
+        {:ok, %{body: fronts_body}} =
+          send_sp_request(
+            :get,
+            "/frontHistory/#{id}?startTime=#{start_time}&endTime=#{end_time}",
+            sp_token
+          )
+
+        result = Jason.decode!(fronts_body)
+
+        Process.sleep(200)
+
+        result
+      end)
+      |> Enum.uniq_by(fn front -> front["id"] end)
+      |> Enum.map(fn %{
+                       "content" =>
+                         %{
+                           "member" => member_id,
+                           "startTime" => start_time,
+                           "endTime" => end_time
+                         } = front
+                     } ->
+        %Front{
+          id: Ecto.UUID.generate(),
+          user_id: system_id,
+          alter_id: Map.get(alter_associations, member_id),
+          time_start: DateTime.from_unix!(start_time, :millisecond) |> DateTime.to_naive() |> naive_datetime_to_datetime(),
+          time_end: DateTime.from_unix!(end_time, :millisecond) |> DateTime.to_naive() |> naive_datetime_to_datetime(),
+          comment: default_if_empty(front["customStatus"], 50)
+        }
+      end)
+      |> Enum.filter(fn fronts -> fronts.alter_id != nil end)
+
+    {:ok, %{body: fronters_body}} = send_sp_request(:get, "/fronters/", sp_token)
+
+    {fronts, current_fronts} = fronters_body
+    |> Jason.decode!()
+    |> Enum.map(fn %{"content" => %{"member" => member_id, "startTime" => start_time} = front} ->
+      id = Ecto.UUID.generate()
+      alter_id = Map.get(alter_associations, member_id)
+      comment = default_if_empty(front["customStatus"], 50)
+      time_start = DateTime.from_unix!(start_time, :millisecond) |> DateTime.to_naive() |> naive_datetime_to_datetime()
+
+      {
+        %Front{
+          id: id,
+          user_id: system_id,
+          alter_id: alter_id,
+          time_start: time_start,
+          comment: comment,
+          time_end: nil
+        },
+        %CurrentFront{
+          id: id,
+          user_id: system_id,
+          alter_id: alter_id,
+          time_start: time_start,
+          comment: comment
+        }
+      }
+    end)
+    |> Enum.filter(fn {front, _} -> front.alter_id != nil end)
+    |> Enum.reduce({fronts, []}, fn
+      {front, current_front}, {fronts, current_fronts} ->
+        {[front | fronts], [current_front | current_fronts]}
+    end)
+
+    {
+      Enum.map(fronts, &{&1, front_to_insert_query(&1, user_region)}),
+      Enum.map(current_fronts, &{&1, current_front_to_insert_query(&1, user_region)})
+    }
+  end
+
   defp send_sp_request(method, endpoint, token) do
     uri = URI.append_path(@sp_endpoint, endpoint)
 
@@ -266,7 +370,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
         alias: nil,
         pinned: false,
         archived: false,
-        untracked: false,
+        untracked: alter["archived"] == nil,
         last_fronted: nil,
         fields:
           Enum.map(alter["info"] || [], fn {field_id, value} ->
