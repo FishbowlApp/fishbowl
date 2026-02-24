@@ -7,8 +7,6 @@ defmodule OctoconDiscord.Cache.Proxy do
     ClusterUtils
   }
 
-  @table :discord_proxy_cache
-
   # Client
 
   def start_link(_init_arg) do
@@ -46,7 +44,7 @@ defmodule OctoconDiscord.Cache.Proxy do
   end
 
   defp lookup_local(discord_id) when is_binary(discord_id) do
-    case :ets.lookup(@table, discord_id) do
+    case :ets.lookup(__MODULE__, discord_id) do
       [] ->
         Logger.debug("Memory cache miss for #{discord_id}")
         nil
@@ -95,7 +93,7 @@ defmodule OctoconDiscord.Cache.Proxy do
   end
 
   def nuke_cache_internal do
-    :ets.delete_all_objects(@table)
+    :ets.delete_all_objects(__MODULE__)
   end
 
   def nuke_cache do
@@ -105,7 +103,7 @@ defmodule OctoconDiscord.Cache.Proxy do
   end
 
   def invalidate_internal(discord_id) when is_binary(discord_id) do
-    :ets.delete(@table, discord_id)
+    :ets.delete(__MODULE__, discord_id)
   end
 
   @doc """
@@ -139,7 +137,7 @@ defmodule OctoconDiscord.Cache.Proxy do
   def update_primary_front(discord_id, alter_id), do: update(discord_id, :primary_front, alter_id)
 
   def insert(discord_id, data) do
-    :ets.insert(@table, {discord_id, data})
+    :ets.insert(__MODULE__, {discord_id, data})
   end
 
   def evict_proxies(discord_id) do
@@ -193,7 +191,7 @@ defmodule OctoconDiscord.Cache.Proxy do
 
   @impl GenServer
   def init([]) do
-    :ets.new(@table, [
+    :ets.new(__MODULE__, [
       :set,
       :named_table,
       :public,

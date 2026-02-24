@@ -8,8 +8,6 @@ defmodule OctoconDiscord.Components.HelpHandler do
 
   alias OctoconDiscord.Components.HelpHandler.Pages
 
-  @table :help_command
-
   @pages %{
     root: Pages.Root,
     command_list: Pages.CommandList,
@@ -90,7 +88,7 @@ defmodule OctoconDiscord.Components.HelpHandler do
       uid: uid
     }
 
-    :ets.insert(@table, {uid, data})
+    :ets.insert(__MODULE__, {uid, data})
 
     # [TODO]: Possibly clean up correlations after a while?
     Process.send_after(__MODULE__, {:drop, uid}, :timer.minutes(10))
@@ -112,7 +110,7 @@ defmodule OctoconDiscord.Components.HelpHandler do
     page = interaction.data.values |> hd() |> String.to_existing_atom()
 
     old_data =
-      :ets.lookup(@table, uid)
+      :ets.lookup(__MODULE__, uid)
       |> hd()
       |> elem(1)
 
@@ -121,7 +119,7 @@ defmodule OctoconDiscord.Components.HelpHandler do
       | current_page: page
     }
 
-    :ets.insert(@table, {uid, data})
+    :ets.insert(__MODULE__, {uid, data})
 
     Api.create_interaction_response(interaction, %{
       type: 7,
@@ -135,7 +133,7 @@ defmodule OctoconDiscord.Components.HelpHandler do
     page_atom = String.to_existing_atom(page)
 
     old_data =
-      :ets.lookup(@table, uid)
+      :ets.lookup(__MODULE__, uid)
       |> hd()
       |> elem(1)
 
@@ -144,7 +142,7 @@ defmodule OctoconDiscord.Components.HelpHandler do
       | current_page: page_atom
     }
 
-    :ets.insert(@table, {uid, data})
+    :ets.insert(__MODULE__, {uid, data})
 
     Api.create_interaction_response(interaction, %{
       type: 7,
@@ -166,12 +164,12 @@ defmodule OctoconDiscord.Components.HelpHandler do
   end
 
   def drop(uid) do
-    :ets.delete(@table, uid)
+    :ets.delete(__MODULE__, uid)
   end
 
   @impl GenServer
   def init([]) do
-    :ets.new(@table, [
+    :ets.new(__MODULE__, [
       :set,
       :named_table,
       :public,
@@ -185,7 +183,7 @@ defmodule OctoconDiscord.Components.HelpHandler do
 
   @impl GenServer
   def handle_info({:drop, uid}, state) do
-    :ets.delete(@table, uid)
+    :ets.delete(__MODULE__, uid)
     {:noreply, state}
   end
 end

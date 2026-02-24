@@ -9,8 +9,6 @@ defmodule OctoconDiscord.Components.WipeTagsHandler do
   alias Octocon.Accounts
   alias OctoconDiscord.Utils
 
-  @table :wipe_tags
-
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
@@ -26,7 +24,7 @@ defmodule OctoconDiscord.Components.WipeTagsHandler do
       confirmations_left: 3
     }
 
-    :ets.insert(@table, {uid, data})
+    :ets.insert(__MODULE__, {uid, data})
 
     Process.send_after(__MODULE__, {:drop, uid}, :timer.minutes(5))
 
@@ -88,7 +86,7 @@ defmodule OctoconDiscord.Components.WipeTagsHandler do
 
   def handle_interaction("confirm", uid, interaction) do
     old_data =
-      :ets.lookup(@table, uid)
+      :ets.lookup(__MODULE__, uid)
       |> hd()
       |> elem(1)
 
@@ -97,7 +95,7 @@ defmodule OctoconDiscord.Components.WipeTagsHandler do
       | confirmations_left: old_data.confirmations_left - 1
     }
 
-    :ets.insert(@table, {uid, data})
+    :ets.insert(__MODULE__, {uid, data})
 
     Api.create_interaction_response(interaction, %{
       type: 7,
@@ -106,11 +104,11 @@ defmodule OctoconDiscord.Components.WipeTagsHandler do
   end
 
   def drop(uid) do
-    :ets.delete(@table, uid)
+    :ets.delete(__MODULE__, uid)
   end
 
   def init([]) do
-    :ets.new(@table, [
+    :ets.new(__MODULE__, [
       :set,
       :named_table,
       :public,
@@ -123,7 +121,7 @@ defmodule OctoconDiscord.Components.WipeTagsHandler do
   end
 
   def handle_info({:drop, uid}, state) do
-    :ets.delete(@table, uid)
+    :ets.delete(__MODULE__, uid)
     {:noreply, state}
   end
 end

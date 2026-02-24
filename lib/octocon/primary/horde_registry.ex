@@ -21,7 +21,7 @@ defmodule Octocon.Primary.HordeRegistry do
       ClusterUtils.primary_nodes(true)
       |> Enum.map(fn node -> {__MODULE__, node} end)
 
-    Logger.info("Valid nodes (supervisor): #{inspect(nodes)}")
+    Logger.info("Valid nodes (registry): #{inspect(nodes)}")
 
     nodes
   end

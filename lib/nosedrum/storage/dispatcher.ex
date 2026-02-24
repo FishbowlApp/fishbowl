@@ -33,7 +33,7 @@ defmodule Nosedrum.Storage.Dispatcher do
   def handle_interaction(%Interaction{} = interaction, id \\ __MODULE__) do
     with {:ok, module} <- GenServer.call(id, {:fetch, interaction}),
          response <- module.command(interaction),
-         {:ok} <- Storage.respond(interaction, response),
+         :ok <- Storage.respond(interaction, response),
          {_defer_type, callback_tuple} <- Keyword.get(response, :type) do
       Storage.followup(interaction, callback_tuple)
     else
@@ -42,7 +42,7 @@ defmodule Nosedrum.Storage.Dispatcher do
 
       # the response type was not a callback tuple, no need to follow up
       res_type when is_atom(res_type) ->
-        {:ok}
+        :ok
 
       {:error, reason} ->
         {:error, reason}
@@ -174,7 +174,7 @@ defmodule Nosedrum.Storage.Dispatcher do
   @impl true
   def handle_call({:remove, name, command_id, :global}, _from, commands) do
     case Nostrum.Api.ApplicationCommand.delete_global_command(command_id) do
-      {:ok} = response ->
+      :ok = response ->
         {:reply, response, Map.delete(commands, name)}
 
       error ->
@@ -188,7 +188,7 @@ defmodule Nosedrum.Storage.Dispatcher do
     res =
       Enum.reduce(guild_id_list, {[], []}, fn guild_id, {errors, responses} ->
         case Nostrum.Api.ApplicationCommand.delete_guild_command(guild_id, command_id) do
-          {:ok} ->
+          :ok ->
             {errors, [:ok | responses]}
 
           error ->
@@ -202,7 +202,7 @@ defmodule Nosedrum.Storage.Dispatcher do
   @impl true
   def handle_call({:remove, name, command_id, guild_id}, _from, commands) do
     case Nostrum.Api.ApplicationCommand.delete_guild_command(guild_id, command_id) do
-      {:ok} = response ->
+      :ok = response ->
         {:reply, response, Map.delete(commands, name)}
 
       error ->

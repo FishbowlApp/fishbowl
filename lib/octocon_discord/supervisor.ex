@@ -57,7 +57,7 @@ defmodule OctoconDiscord.Supervisor do
 
     Horde.DynamicSupervisor.start_child(
       Octocon.Primary.HordeSupervisor,
-      OctoconDiscord.ConsumerSupervisor
+      OctoconDiscord.BotSupervisor
     )
   end
 

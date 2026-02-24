@@ -9,8 +9,6 @@ defmodule OctoconDiscord.Cache.ChannelBlacklists do
   use GenServer
   require Logger
 
-  @table :discord_channel_blacklists
-
   # Client
 
   @doc false
@@ -22,10 +20,10 @@ defmodule OctoconDiscord.Cache.ChannelBlacklists do
   Adds a channel to the blacklist.
   """
   def add(guild_id, channel_id) when is_binary(guild_id) and is_binary(channel_id) do
-    if :ets.lookup(@table, channel_id) != [] do
+    if :ets.lookup(__MODULE__, channel_id) != [] do
       {:error, :already_blacklisted}
     else
-      :ets.insert(@table, {channel_id, []})
+      :ets.insert(__MODULE__, {channel_id, []})
 
       ChannelBlacklists.create_channel_blacklist(%{guild_id: guild_id, channel_id: channel_id})
 
@@ -37,10 +35,10 @@ defmodule OctoconDiscord.Cache.ChannelBlacklists do
   Removes a channel from the blacklist.
   """
   def remove(channel_id) when is_binary(channel_id) do
-    if :ets.lookup(@table, channel_id) == [] do
+    if :ets.lookup(__MODULE__, channel_id) == [] do
       {:error, :not_blacklisted}
     else
-      :ets.delete(@table, channel_id)
+      :ets.delete(__MODULE__, channel_id)
       ChannelBlacklists.delete_channel_blacklist(%ChannelBlacklist{channel_id: channel_id})
 
       :ok
@@ -53,12 +51,12 @@ defmodule OctoconDiscord.Cache.ChannelBlacklists do
   def blacklisted?(channel_id, parent_id)
 
   def blacklisted?(channel_id, nil) when is_binary(channel_id) do
-    :ets.lookup(@table, channel_id) != []
+    :ets.lookup(__MODULE__, channel_id) != []
   end
 
   def blacklisted?(channel_id, parent_id)
       when is_binary(channel_id) and is_binary(parent_id) do
-    :ets.lookup(@table, channel_id) != [] or :ets.lookup(@table, parent_id) != []
+    :ets.lookup(__MODULE__, channel_id) != [] or :ets.lookup(__MODULE__, parent_id) != []
   end
 
   @doc """
@@ -73,7 +71,7 @@ defmodule OctoconDiscord.Cache.ChannelBlacklists do
   @doc false
   @impl GenServer
   def init([]) do
-    :ets.new(@table, [
+    :ets.new(__MODULE__, [
       :set,
       :named_table,
       :public,
@@ -93,7 +91,7 @@ defmodule OctoconDiscord.Cache.ChannelBlacklists do
     channels = ChannelBlacklists.list_channel_blacklists_bare()
 
     :ets.insert(
-      @table,
+      __MODULE__,
       channels
       |> Enum.map(fn channel_id -> {channel_id, []} end)
     )
