@@ -29,23 +29,31 @@ defmodule OctoconDiscord.StatusUpdater do
     GenServer.call(@via, :start)
   end
 
+  def bump({this_shard, shard_count}) do
+    GenServer.cast(@via, {:bump, {this_shard, shard_count}})
+  end
+
   @impl GenServer
   def init([]) do
-    {:ok, :stopped}
+    {:ok, {:stopped, 0}}
   end
 
   @impl GenServer
-  def handle_call(:start, _, :started) do
-    {:reply, :already_started, :started}
-  end
+  def handle_cast({:bump, {this_shard, shard_count}}, {:stopped, bump_count}) do
+    Logger.info("Received bump from shard #{this_shard}/#{shard_count}.")
 
-  @impl GenServer
-  def handle_call(:start, _, :stopped) do
-    Logger.info("Starting OctoconDiscord.StatusUpdater loop")
+    new_count = bump_count + 1
 
-    Process.send_after(self(), :update, :timer.seconds(30))
+    if new_count >= shard_count do
+      Logger.info("All shards have bumped; starting OctoconDiscord.StatusUpdater.")
 
-    {:reply, :ok, :started}
+      update_status()
+      Process.send_after(self(), :update, @interval)
+
+      {:noreply, :started}
+    else
+      {:noreply, {:stopped, new_count}}
+    end
   end
 
   @impl GenServer

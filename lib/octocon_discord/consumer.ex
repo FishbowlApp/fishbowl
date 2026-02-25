@@ -38,7 +38,7 @@ defmodule OctoconDiscord.Consumer do
   }
 
   def handle_event({:READY, %{shard: {this_shard, shard_count}}, _ws_state}) do
-    if this_shard == 0 do
+    unless :persistent_term.get(:commands_initialized, false) do
       Logger.info(
         "First shard is READY; bulk-registering all application commands (#{map_size(@commands)})..."
       )
@@ -56,12 +56,11 @@ defmodule OctoconDiscord.Consumer do
         {:error, e} ->
           Logger.error("Failed to register all commands: #{inspect(e)}")
       end
+
+      :persistent_term.put(:commands_initialized, true)
     end
 
-    if this_shard == shard_count - 1 do
-      Logger.info("Last shard is READY; starting OctoconDiscord.StatusUpdater.")
-      OctoconDiscord.StatusUpdater.start()
-    end
+    OctoconDiscord.StatusUpdater.bump({this_shard, shard_count})
 
     :ok
   end
