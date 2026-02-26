@@ -246,7 +246,18 @@ defmodule OctoconDiscord.Commands.Admin do
   end
 
   defp ensure_permissions(%{guild_id: guild_id, member: member}, callback) do
-    guild = get_cached_guild(guild_id)
+    %{
+      id: id,
+      owner_id: owner_id,
+      roles: roles
+    } = get_cached_guild(guild_id)
+
+    guild = %Nostrum.Struct.Guild{
+      id: id,
+      owner_id: owner_id,
+      roles: roles
+    }
+
     permissions = Nostrum.Struct.Guild.Member.guild_permissions(member, guild)
 
     if Enum.member?(permissions, :manage_guild) or Enum.member?(permissions, :administrator) do

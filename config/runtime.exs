@@ -305,8 +305,11 @@ if config_env() == :prod do
 
   config :octocon, Octocon.FCM,
     adapter: Pigeon.FCM,
-    project_id: "octocon-fb",
-    service_account_json:
+    auth: Octocon.Goth,
+    project_id: "octocon-fb"
+
+  config :octocon,
+    fcm_service_account_json:
       (System.get_env("FCM_SERVICE_ACCOUNT") ||
          raise("""
          environment variable FCM_SERVICE_ACCOUNT is missing.

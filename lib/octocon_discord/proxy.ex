@@ -483,45 +483,69 @@ defmodule OctoconDiscord.Proxy do
     end
   end
 
+  defp build_reply_embed(
+         message,
+         %{
+           author: reply_author,
+           content: reply_content,
+           id: reply_id,
+           channel_id: reply_channel_id
+         },
+         color
+       )
+       when is_nil(reply_content) or reply_content == "" do
+    reply_embed(
+      reply_author,
+      "[Reply to:](https://discord.com/channels/#{message.guild_id}/#{reply_channel_id}/#{reply_id}) *This message did not have any text.*",
+      color
+    )
+  end
+
   # Recreate replies as embeds
   # [TODO]: Replace with components
-  defp build_reply_embed(message, reply, color) do
-    %{
-      author: reply_author,
-      content: reply_content
-    } = reply
-
+  defp build_reply_embed(
+         message,
+         %{
+           author: reply_author,
+           content: reply_content,
+           id: reply_id,
+           channel_id: reply_channel_id
+         },
+         color
+       ) do
     truncated_content =
-      cond do
-        reply_content == nil or reply_content == "" ->
-          nil
-
-        String.length(reply_content) > 75 ->
-          trimmed =
-            reply_content
-            |> String.slice(0..75)
-
-          spoiler_count =
-            trimmed
-            |> String.split("||")
-            |> length()
-            |> then(&Kernel.-(&1, 1))
-
-          # If the spoiler count is odd, we need to add a spoiler tag to the end
-          # This ensures spoilered content isn't accidentally revealed when truncating
-          trimmed <> if rem(spoiler_count, 2) == 0, do: "...", else: "||..."
-
-        true ->
+      if String.length(reply_content) > 75 do
+        trimmed =
           reply_content
+          |> String.slice(0..75)
+
+        spoiler_count =
+          trimmed
+          |> String.split("||")
+          |> length()
+          |> then(&Kernel.-(&1, 1))
+
+        # If the spoiler count is odd, we need to add a spoiler tag to the end
+        # This ensures spoilered content isn't accidentally revealed when truncating
+        trimmed <> if rem(spoiler_count, 2) == 0, do: "...", else: "||..."
+      else
+        reply_content
       end
 
+    reply_embed(
+      reply_author,
+      "[Reply to:](https://discord.com/channels/#{message.guild_id}/#{reply_channel_id}/#{reply_id}) #{truncated_content}",
+      color
+    )
+  end
+
+  defp reply_embed(%{id: id, avatar: avatar, username: username}, text, color) do
     %Nostrum.Struct.Embed{
       author: %Nostrum.Struct.Embed.Author{
-        icon_url: Utils.get_avatar_url(reply_author.id, reply_author.avatar),
-        name: "#{reply_author.username} ↩️"
+        icon_url: Utils.get_avatar_url(id, avatar),
+        name: "#{username} ↩️"
       },
-      description:
-        "[Reply to:](https://discord.com/channels/#{message.guild_id}/#{reply.channel_id}/#{reply.id}) #{truncated_content}",
+      description: text,
       color: Utils.hex_to_int(color)
     }
   end
