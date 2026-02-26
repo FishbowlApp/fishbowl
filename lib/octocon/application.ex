@@ -77,7 +77,12 @@ defmodule Octocon.Application do
 
   defp group_children(:primary) do
     if Application.get_env(:octocon, :env) == :prod do
+      goth_source =
+        Application.get_env(:octocon, :fcm_service_account_json)
+        |> Jason.decode!()
+
       [
+        {Goth, name: Octocon.Goth, source: {:service_account, goth_source}},
         Octocon.FCM
       ]
     else

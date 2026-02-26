@@ -72,7 +72,7 @@ defmodule Octocon.MixProject do
       {:jose, "~> 1.11"},
 
       # Push notifications
-      {:pigeon, "2.0.0-rc.1"},
+      {:pigeon, "~> 2.0"},
 
       # Discord
       # {:nostrum,

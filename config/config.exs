@@ -108,7 +108,7 @@ config :octocon, Oban,
 config :nostrum,
   caches: %{
     presences: Nostrum.Cache.PresenceCache.NoOp,
-    guilds: Nostrum.Cache.GuildCache.Mnesia,
+    guilds: OctoconDiscord.GuildCache,
     users: Nostrum.Cache.UserCache.Mnesia,
     channel_guild_mapping: Nostrum.Cache.ChannelGuildMapping.Mnesia
   },

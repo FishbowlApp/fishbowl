@@ -47,8 +47,7 @@ defmodule OctoconDiscord.StatusUpdater do
     if new_count >= shard_count do
       Logger.info("All shards have bumped; starting OctoconDiscord.StatusUpdater.")
 
-      update_status()
-      Process.send_after(self(), :update, @interval)
+      Process.send_after(self(), :update, :timer.seconds(30))
 
       {:noreply, :started}
     else
