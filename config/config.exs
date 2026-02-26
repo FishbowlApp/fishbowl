@@ -107,10 +107,11 @@ config :octocon, Oban,
 # Global Nostrum config
 config :nostrum,
   caches: %{
-    presences: Nostrum.Cache.PresenceCache.NoOp,
     guilds: OctoconDiscord.GuildCache,
-    users: Nostrum.Cache.UserCache.Mnesia,
-    channel_guild_mapping: Nostrum.Cache.ChannelGuildMapping.Mnesia
+    presences: Nostrum.Cache.PresenceCache.NoOp,
+    users: Nostrum.Cache.UserCache.NoOp,
+    channel_guild_mapping: Nostrum.Cache.ChannelGuildMapping.NoOp,
+    members: Nostrum.Cache.MemberCache.NoOp
   },
   # [TODO]: Manual sharding
   # num_shards: :manual,
