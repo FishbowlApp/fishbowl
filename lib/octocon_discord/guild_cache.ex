@@ -314,17 +314,23 @@ defmodule OctoconDiscord.GuildCache do
        }) do
     channels =
       channels
-      |> Enum.map(fn {id, channel} -> {id, Map.take(channel, [:id, :type, :parent_id])} end)
+      |> Enum.map(fn {id, channel} ->
+        {id, if(channel == nil, do: nil, else: Map.take(channel, [:id, :type, :parent_id]))}
+      end)
       |> Map.new()
 
     threads =
       threads
-      |> Enum.map(fn {id, thread} -> {id, Map.take(thread, [:id, :type, :parent_id])} end)
+      |> Enum.map(fn {id, thread} ->
+        {id, if(thread == nil, do: nil, else: Map.take(thread, [:id, :type, :parent_id]))}
+      end)
       |> Map.new()
 
     roles =
       roles
-      |> Enum.map(fn {id, role} -> {id, Map.take(role, [:id, :permissions])} end)
+      |> Enum.map(fn {id, role} ->
+        {id, if(role == nil, do: nil, else: Map.take(role, [:id, :permissions]))}
+      end)
       |> Map.new()
 
     %{
