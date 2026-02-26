@@ -72,21 +72,6 @@ defmodule Nosedrum.Converters do
   defdelegate to_channel(text, guild_id), to: __MODULE__.Channel, as: :into
 
   @doc """
-  Convert the given `text` to a `t:Nostrum.Struct.Guild.Member.t/0`.
-
-  Lookup is attempted in the following order:
-  - by direct ID, such as `1231321`
-  - by mention, such as `<@1231321>`, `<@!1231321>`
-  - by name#discrim combination, such as `Jimmy#9999`
-  - by name, such as `Jimmy`
-
-  Note that name lookups may not be 100% accurate: if there are multiple users
-  with the same name on the server, the first one found will be used.
-  """
-  @spec to_member(String.t(), Guild.id()) :: {:ok, Member.t()} | {:error, reason}
-  defdelegate to_member(text, guild_id), to: __MODULE__.Member, as: :into
-
-  @doc """
   Convert the given `text` to a `t:Nostrum.Struct.Guild.Role.t/0`.
 
   Lookup is attempted in the following order:
