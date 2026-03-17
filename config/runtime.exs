@@ -270,38 +270,22 @@ if config_env() == :prod do
       |> String.replace("\\n", "\n")
 
   config :waffle,
+#    storage: Waffle.Storage.Local,
+#    storage_dir: "uploads",
     storage: Waffle.Storage.S3,
-    bucket: "octocon",
-    asset_host:
-      System.get_env("S3_ASSET_HOST") ||
-        raise("""
-        environment variable S3_ASSET_HOST is missing.
-        """)
+    bucket: "neocon",
+    asset_host: "https://neocon-cdn.attiplayz.dev"
 
   config :ex_aws,
-    access_key_id:
-      System.get_env("S3_ACCESS_KEY_ID") ||
-        raise("""
-        environment variable S3_ACCESS_KEY_ID is missing.
-        """),
-    secret_access_key:
-      System.get_env("S3_SECRET_ACCESS_KEY") ||
-        raise("""
-        environment variable S3_SECRET_ACCESS_KEY is missing.
-        """)
+    json_codec: Jason,
+    debug_requests: true,
+    access_key_id: "9d00576030cc8ee753a47b0dbd502d9f",
+    secret_access_key: "0dce1667a60451f5aa9dd708ef030a310bedb741cbb7d061167c3302af5704e4"
 
   config :ex_aws, :s3,
     scheme: "https://",
-    host:
-      System.get_env("S3_HOST") ||
-        raise("""
-        environment variable S3_HOST is missing.
-        """),
-    region:
-      System.get_env("S3_REGION") ||
-        raise("""
-        environment variable S3_REGION is missing.
-        """)
+    host: "e68278fea4f815e5630b31d0728782ad.eu.r2.cloudflarestorage.com",
+    region: "auto"
 
   config :octocon, Octocon.FCM,
     adapter: Pigeon.FCM,

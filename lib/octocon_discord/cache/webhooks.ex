@@ -12,7 +12,7 @@ defmodule OctoconDiscord.Cache.Webhooks do
 
   alias Nostrum.Api
 
-  @proxy_name "Octocon Proxy"
+  @proxy_name "Neocon Proxy"
   @timeout :timer.seconds(5)
 
   def get_webhook(channel_id) do

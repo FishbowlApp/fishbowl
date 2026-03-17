@@ -61,6 +61,7 @@ defmodule Octocon.Utils.Alter do
         )
 
       _ ->
+#        {:error, :unknown}
         {:error, :unknown}
     end
   end

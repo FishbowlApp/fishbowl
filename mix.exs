@@ -97,6 +97,7 @@ defmodule Octocon.MixProject do
       {:oban, "~> 2.19.4"},
       # Object storage
       {:waffle, "~> 1.1"},
+      {:waffle_ecto, "~> 0.0.11"},
       {:image, "~> 0.62"},
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
