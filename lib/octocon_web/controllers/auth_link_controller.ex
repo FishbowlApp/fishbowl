@@ -82,7 +82,7 @@ defmodule OctoconWeb.AuthLinkController do
 
       {:ok, _} ->
         conn
-        |> redirect(external: "https://octocon.app/deep/link_success/discord")
+        |> redirect(external: "https://neocon.attiplayz.dev/deep/link_success/discord")
     end
   end
 
@@ -102,7 +102,7 @@ defmodule OctoconWeb.AuthLinkController do
 
       {:ok, _} ->
         conn
-        |> redirect(external: "https://octocon.app/deep/link_success/google")
+        |> redirect(external: "https://neocon.attiplayz.dev/deep/link_success/google")
     end
   end
 
@@ -122,7 +122,7 @@ defmodule OctoconWeb.AuthLinkController do
 
       {:ok, _} ->
         conn
-        |> redirect(external: "https://octocon.app/deep/link_success/apple")
+        |> redirect(external: "https://neocon.attiplayz.dev/deep/link_success/apple")
     end
   end
 end

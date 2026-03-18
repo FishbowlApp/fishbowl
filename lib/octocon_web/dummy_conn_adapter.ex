@@ -32,7 +32,7 @@ defmodule OctoconWeb.DummyConnAdapter do
     %Plug.Conn{
       conn
       | adapter: {__MODULE__, state},
-        host: uri.host || conn.host || "www.octocon.app",
+        host: uri.host || conn.host || "neocon.attiplayz.dev",
         method: method,
         owner: owner,
         path_info: split_path(uri.path),

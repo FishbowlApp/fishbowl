@@ -17,7 +17,7 @@ defmodule OctoconDiscord.Consumer do
   alias OctoconDiscord.Events.MessageCreate
 
   @commands %{
-    # "register" => Commands.Register,
+    "register" => Commands.Register,
     "help" => Commands.Help,
     "system" => Commands.System,
     "settings" => Commands.Settings,

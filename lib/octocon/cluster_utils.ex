@@ -59,12 +59,11 @@ defmodule Octocon.ClusterUtils do
     if NodeTracker.sidecar_exists?() do
       NodeTracker.rpc_group(:sidecar, fun, opts)
     else
-      # if :force_sidecar in opts do
-      #   raise "No sidecar node available"
-      # end
+      if :force_sidecar in opts do
+        raise "No sidecar node available"
+      end
 
-      # fun.()
-      {:error, :no_sidecar}
+      fun.()
     end
   end
 
