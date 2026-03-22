@@ -1,6 +1,6 @@
 # [Fishbowl](https://fishbowl.systems) backend
 
-**Fishbowl is the modern, all-in-one toolkit for people with DID and OSDD to manage their disorder and express themselves.**
+**Fishbowl is the modern, all-in-one toolkit for people with DID and OSDD to manage their disorder and express themselves.** It is based on the original tool by [The OctoconDev Team](https://github.com/OctoconDev/octocon)
 
 It's also a
 wacky monolith built with [Elixir](https://elixir-lang.org/), [Phoenix](https://www.phoenixframework.org/),
