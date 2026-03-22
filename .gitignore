@@ -35,3 +35,7 @@ basic.conf
 
 # Dev config (contains secrets)
 /config/dev.exs
+
+docker-compose.yml
+
+lib/node_modules
