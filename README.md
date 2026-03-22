@@ -22,7 +22,7 @@ To set up a development environment for Fishbowl, you'll need to have the follow
 Once installed, follow these steps to set up your development environment:
 1. Clone the repository:
    ```bash
-   git clone https://github.com/FishbowlApp/fishbowl
+   git clone --recursive https://github.com/FishbowlApp/fishbowl
    cd fishbowl
    ```
 
