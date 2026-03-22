@@ -1,20 +1,20 @@
-# [Octocon](https://octocon.app) backend
+# [Fishbowl](https://fishbowl.systems) backend
 
-**Octocon is the modern, all-in-one toolkit for people with DID and OSDD to manage their disorder and express themselves.**
+**Fishbowl is the modern, all-in-one toolkit for people with DID and OSDD to manage their disorder and express themselves.**
 
 It's also a
 wacky monolith built with [Elixir](https://elixir-lang.org/), [Phoenix](https://www.phoenixframework.org/),
 and [ScyllaDB](https://www.scylladb.com/), deployed on a combination of [cloud infrastructure](https://fly.io/) and bare-metal hardware!
 
 ## Project structure 
-This repository contains the backend code for Octocon, which is structured into three main components:
-- **octocon**: The core Elixir application that handles the business logic, data processing, clustering, node differentiation, and other backend functionalities.
-- **octocon-web**: The Phoenix web application that serves the REST API, metrics, and admin dashboard.
-- **octocon-discord**: The Discord bot that serves as an alternative interface for interacting with the Octocon platform, including "proxying" as alters.
+This repository contains the backend code for Fishbowl, which is structured into three main components:
+- **fishbowl**: The core Elixir application that handles the business logic, data processing, clustering, node differentiation, and other backend functionalities.
+- **fishbowl-web**: The Phoenix web application that serves the REST API, metrics, and admin dashboard.
+- **fishbowl-discord**: The Discord bot that serves as an alternative interface for interacting with the Fishbowl platform, including "proxying" as alters.
 
 ## Development setup
 
-To set up a development environment for Octocon, you'll need to have the following prerequisites installed on a Unix-like operating system or WSL:
+To set up a development environment for Fishbowl, you'll need to have the following prerequisites installed on a Unix-like operating system or WSL:
 - [Docker](https://www.docker.com/get-started)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - Git
@@ -22,8 +22,8 @@ To set up a development environment for Octocon, you'll need to have the followi
 Once installed, follow these steps to set up your development environment:
 1. Clone the repository:
    ```bash
-   git clone
-   cd octocon
+   git clone https://github.com/FishbowlApp/fishbowl
+   cd fishbowl
    ```
 
 2. Run the provided setup script:
@@ -36,26 +36,26 @@ Once installed, follow these steps to set up your development environment:
    ```bash
    ./dev/bin/iex
    ```
-    This command will launch an interactive Elixir shell running the Octocon application inside a Docker container.
+    This command will launch an interactive Elixir shell running the Fishbowl application inside a Docker container.
 
 ## Contributing
 
-We welcome contributions to Octocon! If you'd like to contribute, please follow these steps:
+We welcome contributions to Fishbowl! If you'd like to contribute, please follow these steps:
 1. Fork the repository on GitHub and create a new branch for your feature or bug fix.
 2. Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) for your commit messages.
 3. Run `mix format` then `mix lint` before submitting a PR to ensure code quality.
 4. Submit a pull request to this repository for review.
 
-While we respect your time, please note that not every contribution will be accepted; certain features may not align with our project's goals or privacy/security standards. If you'd like to contribute a new feature, your best bet is to reach out to us in the `#development` channel on our [Discord server](https://discord.gg/octocon) first to discuss its feasibility. Alternatively, we welcome PRs implementing accepted suggestions posted on [our issue tracker](https://github.com/octocondev/issues/issues?q=is%3Aissue%20state%3Aopen%20type%3ASuggestion%20(label%3A%22Low%20Priority%22%20OR%20label%3A%22High%20Priority%22%20OR%20label%3AUrgent))
+While we respect your time, please note that not every contribution will be accepted; certain features may not align with our project's goals or privacy/security standards. If you'd like to contribute a new feature, your best bet is to reach out to us in the `#development` channel on our [Discord server](https://discord.neocon.attiplayz.dev) first to discuss its feasibility. Alternatively, we welcome PRs implementing accepted suggestions posted on the issues page.)
 
 ## Deployment structure
-Octocon is designed as a distributed monolith, meaning that while the components have a clear separation of concerns, they share a common codebase which is compiled and deployed as one executable.
+Fishbowl is designed as a distributed monolith, meaning that while the components have a clear separation of concerns, they share a common codebase which is compiled and deployed as one executable.
 
-Octocon is generally run in a cluster of nodes, which are designed to be globally distributed across the world. One "primary" node interfaces with a generally larger database instance and runs the Discord bot, while "auxiliary" nodes interface with smaller database instances. This allows for low-latency access to the data from anywhere in the world.
+Fishbowl is generally run in a cluster of nodes, which are designed to be globally distributed across the world. One "primary" node interfaces with a generally larger database instance and runs the Discord bot, while "auxiliary" nodes interface with smaller database instances. This allows for low-latency access to the data from anywhere in the world.
 
-When not running on Fly.io, an Octocon node knows its role in the overall cluster through an environment variable (`NODE_GROUP`), which determines which parts of the supervision tree it will run, and how it will advertise itself to its peers.
+When not running on Fly.io, an Fishbowl node knows its role in the overall cluster through an environment variable (`NODE_GROUP`), which determines which parts of the supervision tree it will run, and how it will advertise itself to its peers.
 
-In production, Octocon is configured to discover other nodes using the [libcluster](https://github.com/bitwalker/libcluster) library with a custom Tailscale strategy. All that is necessary is for each node to form a Distributed Erlang cluster; Octocon has internal logic to determine and cache each node's role in the cluster through an RPC communication step.
+In production, Fishbowl is configured to discover other nodes using the [libcluster](https://github.com/bitwalker/libcluster) library with a custom Tailscale strategy. All that is necessary is for each node to form a Distributed Erlang cluster; Fishbowl has internal logic to determine and cache each node's role in the cluster through an RPC communication step.
 
 There are 3 node groups:
 - `primary`: A node running in the primary region, which interfaces with a larger database instance, runs Discord shards, and handles certain types of global state. Other nodes proxy some requests to a `primary` node.
@@ -66,7 +66,7 @@ There are 3 node groups:
 
 ## Configuration & integrations
 
-Every Octocon node must be configured with a set of environment variables to function properly. These variables are used to connect to the database, configure the Discord bot, and set up other integrations, such as cloud object storage.
+Every Fishbowl node must be configured with a set of environment variables to function properly. These variables are used to connect to the database, configure the Discord bot, and set up other integrations, such as cloud object storage.
 
 ### OAuth
 - `APPLE_TEAM_ID` - Used for Sign in with Apple integration.
@@ -88,7 +88,7 @@ Every Octocon node must be configured with a set of environment variables to fun
 - `ADMIN_USERNAME` - The username for the admin dashboard.
 - `ADMIN_PASSWORD` - The password for the admin dashboard (HTTP Basic auth).
 ### Storage (S3-compatible)
-- `S3_ACCESS_HOST` - The URL assets are stored at (e.g. `https://cdn.octocon.app`).
+- `S3_ACCESS_HOST` - The URL assets are stored at (e.g. `https://neocon-cdn.attiplayz.dev`).
 - `S3_ASSET_HOST` - Same as above.
 - `S3_HOST` - The storage host (e.g. `xyz.r2.cloudflarestorage.com`).
 - `S3_REGION` - The region of the storage bucket (e.g. `auto` for Cloudflare R2).
