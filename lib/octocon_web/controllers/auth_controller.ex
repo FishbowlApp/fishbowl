@@ -81,8 +81,8 @@ defmodule OctoconWeb.AuthController do
 
     redirect_url =
       case metadata do
-        %{"platform" => "wasm"} -> "https://neocon.attiplayz.dev/app"
-        _ -> "https://neocon.attiplayz.dev/deep/auth/token"
+        %{"platform" => "wasm"} -> "https://fishbowl.systems/app"
+        _ -> "https://fishbowl.systems/deep/auth/token"
       end
       |> Kernel.<>(url_params)
 
@@ -112,9 +112,9 @@ defmodule OctoconWeb.AuthController do
 
     redirect_url =
       case metadata do
-        %{"platform" => "wasm", "is_beta" => "true"} -> "https://beta.neocon.attiplayz.dev/app"
-        %{"platform" => "wasm", "is_beta" => "false"} -> "https://neocon.attiplayz.dev/app"
-        _ -> "https://neocon.attiplayz.dev/deep/auth/token"
+        %{"platform" => "wasm", "is_beta" => "true"} -> "https://beta.fishbowl.systems/app"
+        %{"platform" => "wasm", "is_beta" => "false"} -> "https://fishbowl.systems/app"
+        _ -> "https://fishbowl.systems/deep/auth/token"
       end
       |> Kernel.<>(url_params)
 
@@ -140,7 +140,7 @@ defmodule OctoconWeb.AuthController do
 
     url_params = "?token=#{token}&id=#{user_id}"
 
-    redirect(conn, external: "https://neocon.attiplayz.dev/deep/auth/token#{url_params}")
+    redirect(conn, external: "https://fishbowl.systems/deep/auth/token#{url_params}")
   end
 
   def callback(conn, _params) do
