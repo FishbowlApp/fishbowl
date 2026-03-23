@@ -72,7 +72,7 @@ defmodule OctoconDiscord.Components.DeleteAccountHandler do
           [
             text("### :wave: Success!"),
             text(
-              "**Your system has been deleted**. We hope you enjoyed using Octocon!\n\nIf you'd like to create a new account, you can run the `/register` command.\n\nIf you have any feedback, questions, or concerns, feel free to join our community server: https://octocon.app/discord"
+              "**Your system has been deleted**. We hope you enjoyed using Fishbowl!\n\nIf you'd like to create a new account, you can run the `/register` command.\n\nIf you have any feedback, questions, or concerns, feel free to join our community server: https://fishbowl.systems/discord"
             )
           ],
           %{accent_color: 0x00FF00}

@@ -18,7 +18,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq do
       nav_page: "faq_commands_private"
     },
     %{
-      name: "How do I invite Octocon to my server?",
+      name: "How do I invite Fishbowl to my server?",
       emoji: Emojis.four(),
       nav_page: "faq_invite_octocon"
     },
@@ -61,7 +61,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq do
         title: "#{Emojis.faq()} FAQ",
         color: Utils.hex_to_int("#3F3793"),
         description: """
-        Have a question about how to use Octocon? Check out the FAQ below! Use the dropdown menu to navigate to a specific question.
+        Have a question about how to use Fishbowl? Check out the FAQ below! Use the dropdown menu to navigate to a specific question.
         #{@questions_joined}
         """
       }

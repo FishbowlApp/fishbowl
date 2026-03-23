@@ -15,7 +15,7 @@ defmodule OctoconDiscord.Commands.Octo do
   @behaviour Nosedrum.ApplicationCommand
 
   @impl Nosedrum.ApplicationCommand
-  def description, do: "Displays an all-in-one interface to interact with Octocon."
+  def description, do: "Displays an all-in-one interface to interact with Fishbowl."
 
   @impl Nosedrum.ApplicationCommand
   def command(_interaction) do

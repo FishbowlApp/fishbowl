@@ -7,7 +7,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.IdsAliases do
         title: "#{Emojis.faq()} How do IDs and aliases work?",
         color: Utils.hex_to_int("#3F3793"),
         description: """
-        In Octocon, every alter is identified by a numerical ID. Notably, this ID is unique on a by-system basis, but not globally. This means that two different users `Atlas` and `Prometheus` can *both* have an alter with the ID `1`.
+        In Fishbowl, every alter is identified by a numerical ID. Notably, this ID is unique on a by-system basis, but not globally. This means that two different users `Atlas` and `Prometheus` can *both* have an alter with the ID `1`.
 
         IDs are used to reference alters in commands and other contexts. For example, the `/alter edit` command accepts an `id` parameter to specify which alter to edit.
         ### Aliases

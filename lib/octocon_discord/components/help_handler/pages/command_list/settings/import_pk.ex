@@ -9,7 +9,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList.Settings.Impor
         description: """
         The `/settings import-pk` command imports existing alters from PluralKit, including their names, descriptions, pronouns, and avatars.
 
-        If an alter has a display name set in PluralKit, it will also be imported as a **proxy name** in Octocon.
+        If an alter has a display name set in PluralKit, it will also be imported as a **proxy name** in Fishbowl.
         ### Usage
         ```
         /settings import-pk <token>

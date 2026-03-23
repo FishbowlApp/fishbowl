@@ -169,7 +169,7 @@ if config_env() == :prod do
       port: port
     ],
     check_origin: [
-      "//*.octocon.app",
+      "//*.fishbowl.systems",
       "https://" <> host,
       "wss://" <> host,
       "//localhost",

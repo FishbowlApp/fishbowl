@@ -14,7 +14,7 @@ defmodule OctoconDiscord.Commands.BotInfo do
   }
 
   @impl Nosedrum.ApplicationCommand
-  def description, do: "Views the Octocon bot's metrics."
+  def description, do: "Views the Fishbowl bot's metrics."
 
   @impl Nosedrum.ApplicationCommand
   def command(interaction) do
@@ -75,7 +75,7 @@ defmodule OctoconDiscord.Commands.BotInfo do
       [
         embeds: [
           %Nostrum.Struct.Embed{
-            title: "Octocon Bot Info",
+            title: "Fishbowl Bot Info",
             color: hex_to_int("#3F3793"),
             fields: [
               %Nostrum.Struct.Embed.Field{

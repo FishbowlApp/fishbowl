@@ -4,18 +4,18 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Root do
   def embeds do
     [
       %Embed{
-        title: "Welcome to the Octocon help interface!",
+        title: "Welcome to the Fishbowl help interface!",
         color: Utils.hex_to_int("#3F3793"),
         description: """
-        This interactive guide will help you navigate the various features of the Octocon bot.
+        This interactive guide will help you navigate the various features of the Fishbowl bot.
 
         What can I help you with today?
         ### #{Emojis.slashcommand()} Command list
         > View a list of all available `/slash commands` and how they're used.
         ### #{Emojis.faq()} FAQ
-        > Get answers to frequently asked questions about Octocon.
+        > Get answers to frequently asked questions about Fishbowl.
         ### #{Emojis.resources()} Resources
-        > Find links to the Octocon website, GitHub repository, and other useful resources.
+        > Find links to the Fishbowl website, GitHub repository, and other useful resources.
         """
       }
     ]
@@ -39,14 +39,14 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Root do
               %{
                 label: "FAQ",
                 value: "faq_root",
-                text: "Get answers to frequently asked questions about Octocon.",
+                text: "Get answers to frequently asked questions about Fishbowl.",
                 emoji: map_emoji(Emojis.faq())
               },
               %{
                 label: "Resources",
                 value: "resources",
                 text:
-                  "Find links to the Octocon website, GitHub repository, and other useful resources.",
+                  "Find links to the Fishbowl website, GitHub repository, and other useful resources.",
                 emoji: map_emoji(Emojis.resources())
               }
             ]

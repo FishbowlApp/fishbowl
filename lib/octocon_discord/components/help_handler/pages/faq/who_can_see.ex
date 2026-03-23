@@ -7,18 +7,18 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.WhoCanSee do
         title: "#{Emojis.faq()} Who can see my alters/tags?",
         color: Utils.hex_to_int("#3F3793"),
         description: """
-        Unlike many alternatives, **all data is private by default** in Octocon. This is to ensure your privacy and security. No one can see your alters, tags, or other data unless you explicitly share it with them.
+        Unlike many alternatives, **all data is private by default** in Fishbowl. This is to ensure your privacy and security. No one can see your alters, tags, or other data unless you explicitly share it with them.
         ### Security levels
-        If you'd like to share your alters/tags with someone, you can do so by editing their **security level**. There are four security levels in Octocon:
+        If you'd like to share your alters/tags with someone, you can do so by editing their **security level**. There are four security levels in Fishbowl:
 
         - **Private**: No one but you can see this data (default).
         - **Trusted friends only**: Only **trusted** friends (see below) can see this data.
         - **Friends only**: All friends can see this data.
         - **Public**: Anyone can see this data, even if they're not your friend.
 
-        When in doubt, please keep your alters and tags private! It's best practice to avoid sharing your data with people you don't trust, a concept that Octocon leans heavily into.
+        When in doubt, please keep your alters and tags private! It's best practice to avoid sharing your data with people you don't trust, a concept that Fishbowl leans heavily into.
         ### Trusted friends
-        Octocon models two levels of friendship: *normal* friends and *trusted* friends. If you'd like to mark a friend as a trusted friend, use the `/friend trust` command.
+        Fishbowl models two levels of friendship: *normal* friends and *trusted* friends. If you'd like to mark a friend as a trusted friend, use the `/friend trust` command.
         """
       }
     ]

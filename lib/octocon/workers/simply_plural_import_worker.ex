@@ -362,7 +362,7 @@ defmodule Octocon.Workers.SimplyPluralImportWorker do
 
     res =
       Finch.build(method, uri, [
-        {"User-Agent", "Octocon/spimport; contact = contact@octocon.app"},
+        {"User-Agent", "Octocon/spimport; contact = help@fishbowl.systems"},
         {"Authorization", token}
       ])
       |> Finch.request(Octocon.Finch)

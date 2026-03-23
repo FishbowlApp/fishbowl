@@ -214,7 +214,7 @@ defmodule Octocon.Workers.PluralKitImportWorker do
     res =
       Finch.build(method, uri, [
         {"Content-Type", "application/json"},
-        {"User-Agent", "Octocon/pkimport; contact = contact@octocon.app"},
+        {"User-Agent", "Octocon/pkimport; contact = help@fishbowl.systems"},
         {"Authorization", token}
       ])
       |> Finch.request(Octocon.Finch)

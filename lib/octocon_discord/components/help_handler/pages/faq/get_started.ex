@@ -21,7 +21,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Faq.GetStarted do
         - `/alter proxy add id:Atlas prefix:g-` - Add a proxy tag to the new alter
         - `g-Hello, there!` - Proxy as the alter with the proxy you just created
         ### We're here to help!
-        If you have any questions, feel free to join our [support server](https://octocon.app/discord)! We're happy to help. :smile:
+        If you have any questions, feel free to join our [support server](https://fishbowl.systems/discord)! We're happy to help. :smile:
         """
       }
     ]

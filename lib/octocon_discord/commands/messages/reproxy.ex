@@ -35,7 +35,7 @@ defmodule OctoconDiscord.Commands.Messages.Reproxy do
       case Messages.lookup_message(message_id) do
         nil ->
           error_component(
-            "This message either:\n\n- Was not proxied by Octocon.\n- Is more than 6 months old."
+            "This message either:\n\n- Was not proxied by Fishbowl.\n- Is more than 6 months old."
           )
 
         db_message ->
@@ -46,7 +46,7 @@ defmodule OctoconDiscord.Commands.Messages.Reproxy do
           )
       end
     else
-      error_component("You can only do this with messages proxied by Octocon.")
+      error_component("You can only do this with messages proxied by Fishbowl.")
     end
   end
 

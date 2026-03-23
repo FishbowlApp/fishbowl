@@ -64,7 +64,7 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList do
     },
     %{
       name: "bot-info",
-      description: "Shows technical info about the Octocon bot",
+      description: "Shows technical info about the Fishbowl bot",
       category: false,
       nav_page: "bot_info"
     }
@@ -86,11 +86,11 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.CommandList do
         title: "#{Emojis.slashcommand()} Command list",
         color: Utils.hex_to_int("#3F3793"),
         description: """
-        Octocon uses `/slash commands` to interact with the bot. Choose a command or category below to view more information!
+        Fishbowl uses `/slash commands` to interact with the bot. Choose a command or category below to view more information!
         ### Note
         > All commands are **ephemeral**, meaning they only show up for you and are not visible to others.
         >
-        > You can use Octocon commands in public without worrying about other people seeing your data!
+        > You can use Fishbowl commands in public without worrying about other people seeing your data!
 
         #{Emojis.folder()} *= Category*
         """

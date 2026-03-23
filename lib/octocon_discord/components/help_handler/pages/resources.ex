@@ -9,12 +9,12 @@ defmodule OctoconDiscord.Components.HelpHandler.Pages.Resources do
         description: """
         Here are some resources that you might find helpful:
         ### Official links
-        - [Website](https://octocon.app)
-        - [Support server](https://octocon.app/discord)
-        - [GitHub organization](https://github.com/OctoconDev)
-        - [Documentation](https://octocon.app/docs)
+        - [Website](https://fishbowl.systems)
+        - [Support server](https://fishbowl.systems/discord)
+        - [GitHub organization](https://github.com/FishbowlApp)
+        - [Documentation](https://fishbowl.systems/docs)
         ### DID/OSDD resources
-        **Note**: The resources here are not affiliated with Octocon.
+        **Note**: The resources here are not affiliated with Fishbowl.
 
         - [did-research.org](https://did-research.org)
 

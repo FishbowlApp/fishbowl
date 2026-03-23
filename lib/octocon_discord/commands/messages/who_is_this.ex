@@ -42,14 +42,14 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
       case Messages.lookup_message(message_id) do
         nil ->
           error_component(
-            "This message either:\n\n- Was not proxied by Octocon.\n- Is more than 6 months old."
+            "This message either:\n\n- Was not proxied by Fishbowl.\n- Is more than 6 months old."
           )
 
         message ->
           display_message_data(to_string(user_id), message)
       end
     else
-      error_component("You can only do this with messages proxied by Octocon.")
+      error_component("You can only do this with messages proxied by Fishbowl.")
     end
   end
 
@@ -57,7 +57,7 @@ defmodule OctoconDiscord.Commands.Messages.WhoIsThis do
     case Accounts.get_user({:discord, message.author_id}) do
       nil ->
         error_component(
-          "This user's Octocon account was deleted.\n\nHowever, this message was sent by the following Discord user: <@#{message.author_id}>\n\nWho had the following system ID: `#{message.system_id}`"
+          "This user's Fishbowl account was deleted.\n\nHowever, this message was sent by the following Discord user: <@#{message.author_id}>\n\nWho had the following system ID: `#{message.system_id}`"
         )
 
       target_user ->
