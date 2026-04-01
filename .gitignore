@@ -41,3 +41,5 @@ docker-compose.yml
 lib/node_modules
 
 ssl/
+
+/config/prod.exs
