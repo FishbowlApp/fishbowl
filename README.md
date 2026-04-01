@@ -107,3 +107,6 @@ Every Fishbowl node must be configured with a set of environment variables to fu
 - `TAILSCALE_API_AUTHKEY` - When present, enables Tailscale-based clustering using the provided auth key.
 - `NODE_LIST` - When present, enables static clustering with the provided comma-separated list of node IPs.
 If neither `TAILSCALE_API_AUTHKEY` nor `NODE_LIST` are present, a single-node cluster is assumed, which will run as a `primary` node.
+
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/V7V8ZXACG)
