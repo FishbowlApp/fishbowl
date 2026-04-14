@@ -189,8 +189,8 @@ defmodule OctoconDiscord.Commands.Settings do
         success_component(
           if(new_value,
             do:
-              "Octocon will now introduce a slight delay before proxying your message. This will prevent a Discord bug that causes duplicate \"ghost\" messages to appear when proxying.",
-            else: "Octocon will no longer introduce a slight delay before proxying your message."
+              "Fishbowl will now introduce a slight delay before proxying your message. This will prevent a Discord bug that causes duplicate \"ghost\" messages to appear when proxying.",
+            else: "Fishbowl will no longer introduce a slight delay before proxying your message."
           )
         )
 
@@ -212,7 +212,7 @@ defmodule OctoconDiscord.Commands.Settings do
         success_component(
           if(new_value,
             do:
-              "Octocon will now tell Discord to prevent proxied messages from sending push notifications.",
+              "Fishbowl will now tell Discord to prevent proxied messages from sending push notifications.",
             else: "Proxied messages will now send push notifications as normal."
           )
         )
@@ -255,7 +255,7 @@ defmodule OctoconDiscord.Commands.Settings do
     end)
 
     success_component(
-      "Octocon is attempting to import your alters from PluralKit. This may take a while; you will receive a DM from the Octocon bot when it is complete."
+      "Fishbowl is attempting to import your alters from PluralKit. This may take a while; you will receive a DM from the Fishbowl bot when it is complete."
     )
   end
 
@@ -268,7 +268,7 @@ defmodule OctoconDiscord.Commands.Settings do
     end)
 
     success_component(
-      "Octocon is attempting to import your alters from Simply Plural. This may take a while; you will receive a DM from the Octocon bot when it is complete."
+      "Fishbowl is attempting to import your alters from Simply Plural. This may take a while; you will receive a DM from the Fishbowl bot when it is complete."
     )
   end
 
@@ -381,12 +381,12 @@ defmodule OctoconDiscord.Commands.Settings do
       },
       %{
         name: "toggle-proxy-delay",
-        description: "Toggles whether Octocon introduces a slight delay before proxying.",
+        description: "Toggles whether Fishbowl introduces a slight delay before proxying.",
         type: :sub_command
       },
       %{
         name: "toggle-silent-proxying",
-        description: "Toggles whether Octocon tells Discord to prevent push notifications.",
+        description: "Toggles whether Fishbowl tells Discord to prevent push notifications.",
         type: :sub_command
       },
       %{
